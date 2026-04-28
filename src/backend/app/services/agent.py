@@ -29,7 +29,7 @@ TOOL_DESCRIPTIONS = """
 4. file_delete(path) - 파일 삭제
 5. dir_list(path) - 디렉토리 내용 조회 (기본: "/")
 6. dir_create(path) - 디렉토리 생성
-7. code_run(filename, code) - 코드 실행 (샌드박스 안에서). filename은 실행할 파일명, code는 파일 내용.
+7. code_run(filename, code) - 코드 실행 (샌드박스 안에서). 기본적으로 TypeScript를 사용하고 filename은 .ts 확장자로 작성.
 8. web_preview() - 웹앱 배포모드 활성화, 웹 프리뷰 URL 반환
 
 도구 호출 출력 계약:
@@ -53,6 +53,7 @@ TOOL_DESCRIPTIONS = """
 
 도구를 사용하지 않고 텍스트만 응답할 때는 일반 텍스트로 응답하세요.
 작업 계획을 먼저 설명한 뒤 도구를 호출해야 한다면, 마지막은 반드시 위의 `tool_call` fenced block으로 끝내세요.
+code_run을 사용할 때 별도 지시가 없으면 TypeScript 코드와 `.ts` 파일명을 사용하세요.
 한 번에 하나의 도구만 호출하세요.
 도구 호출 결과를 받은 후 다음 작업을 진행하세요.
 """
