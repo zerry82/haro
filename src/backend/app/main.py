@@ -50,6 +50,9 @@ async def lifespan(app: FastAPI):
     # Migrate: add new columns to sessions table if missing
     await _migrate_session_columns()
 
+    # Migrate: add new columns to projects table if missing
+    await _migrate_project_columns()
+
     # Migrate: sessions → projects + chat_sessions
     await _migrate_sessions_to_projects()
 
@@ -97,6 +100,25 @@ async def _migrate_session_columns():
                     logger.info(f"Added column {col_name} to sessions table")
                 except Exception as e:
                     logger.warning(f"Could not add column {col_name}: {e}")
+
+
+async def _migrate_project_columns():
+    """Add project columns introduced after the POC schema was created."""
+    from sqlalchemy import text
+    async with db_module.engine.begin() as conn:
+        result = await conn.execute(text("PRAGMA table_info(projects)"))
+        existing_cols = {row[1] for row in result.fetchall()}
+
+        migrations = [
+            ("runtime_mode", "ALTER TABLE projects ADD COLUMN runtime_mode VARCHAR(20) DEFAULT 'work' NOT NULL"),
+        ]
+        for col_name, sql in migrations:
+            if col_name not in existing_cols:
+                try:
+                    await conn.execute(text(sql))
+                    logger.info(f"Added column {col_name} to projects table")
+                except Exception as e:
+                    logger.warning(f"Could not add project column {col_name}: {e}")
 
 
 async def _migrate_sessions_to_projects():
@@ -232,9 +254,9 @@ async def _migrate_sessions_to_projects():
 
             # Create project record with same ID as session
             await conn.execute(text(
-                "INSERT INTO projects (id, user_id, title, status, workspace_path, "
+                "INSERT INTO projects (id, user_id, title, status, runtime_mode, workspace_path, "
                 "sandbox_node_id, container_id, container_status, last_activity_at, "
-                "created_at, updated_at) VALUES (:id, :user_id, :title, :status, "
+                "created_at, updated_at) VALUES (:id, :user_id, :title, :status, :runtime_mode, "
                 ":workspace_path, :sandbox_node_id, :container_id, :container_status, "
                 ":last_activity_at, :created_at, :updated_at)"
             ), {
@@ -242,6 +264,7 @@ async def _migrate_sessions_to_projects():
                 "user_id": row_dict["user_id"],
                 "title": row_dict["title"],
                 "status": row_dict.get("status", "idle"),
+                "runtime_mode": "work",
                 "workspace_path": row_dict["workspace_path"],
                 "sandbox_node_id": row_dict.get("sandbox_node_id"),
                 "container_id": row_dict.get("container_id"),

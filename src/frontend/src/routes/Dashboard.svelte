@@ -44,6 +44,10 @@
       hour: '2-digit', minute: '2-digit',
     });
   }
+
+  function getModeLabel(project: ProjectItem) {
+    return project.runtime_mode === 'deploy' ? '배포모드' : '작업모드';
+  }
 </script>
 
 <div class="dashboard">
@@ -93,6 +97,8 @@
           <div class="card-meta">
             <span>💬 {p.chat_session_count}개 채팅</span>
             <span class="status-dot" class:running={p.container_status === 'running'}></span>
+            <span class="mode-badge" class:deploy={p.runtime_mode === 'deploy'}>{getModeLabel(p)}</span>
+            <span>{p.container_status}</span>
           </div>
           <div class="card-date">{formatDate(p.updated_at)}</div>
         </div>
@@ -138,6 +144,8 @@
   .card-meta { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: #888; margin-bottom: 0.25rem; }
   .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #555; }
   .status-dot.running { background: #50c878; }
+  .mode-badge { border-radius: 999px; background: #26314a; color: #cbd5e1; padding: 0.1rem 0.45rem; font-size: 0.72rem; font-weight: 600; }
+  .mode-badge.deploy { background: #4b1f2c; color: #ff9bb0; }
   .card-date { font-size: 0.75rem; color: #666; }
 
   .empty-state { grid-column: 1 / -1; text-align: center; padding: 3rem; color: #666; }

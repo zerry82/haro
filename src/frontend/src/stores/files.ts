@@ -19,6 +19,16 @@ export interface FileContentResponse {
   language: string;
 }
 
+export interface FileMutationResponse {
+  path: string;
+  type: string;
+}
+
+export interface FileUploadResponse {
+  path: string;
+  uploaded: string[];
+}
+
 const LANG_MAP: Record<string, string> = {
   '.py': 'python',
   '.js': 'javascript',
@@ -138,6 +148,28 @@ export async function saveFileContent(projectId: string, path: string, content: 
   fileLoading.set(false);
   loadingFilePath.set(null);
   return res;
+}
+
+export async function createFolder(projectId: string, path: string) {
+  return api<FileMutationResponse>(`/projects/${projectId}/files/directories`, {
+    method: 'POST',
+    body: JSON.stringify({ path }),
+  });
+}
+
+export async function uploadFiles(projectId: string, targetDir: string, files: File[] | FileList, overwrite = false) {
+  const body = new FormData();
+  for (const file of Array.from(files)) {
+    body.append('files', file);
+  }
+
+  return api<FileUploadResponse>(
+    `/projects/${projectId}/files/upload?path=${encodeURIComponent(targetDir)}&overwrite=${overwrite}`,
+    {
+      method: 'POST',
+      body,
+    }
+  );
 }
 
 export async function reloadAllExpanded(projectId: string) {

@@ -5,6 +5,7 @@ export interface ProjectItem {
   id: string;
   title: string;
   status: string;
+  runtime_mode: 'work' | 'deploy';
   container_status: string;
   created_at: string;
   updated_at: string;
@@ -39,4 +40,18 @@ export async function renameProject(id: string, title: string) {
     body: JSON.stringify({ title }),
   });
   await loadProjects();
+}
+
+export interface DeployResponse {
+  preview_url?: string | null;
+  runtime_mode: 'work' | 'deploy';
+  container_status: string;
+}
+
+export async function startProjectDeploy(id: string) {
+  return api<DeployResponse>(`/projects/${id}/deploy/start`, { method: 'POST' });
+}
+
+export async function stopProjectDeploy(id: string) {
+  return api<DeployResponse>(`/projects/${id}/deploy/stop`, { method: 'POST' });
 }

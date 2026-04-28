@@ -30,7 +30,7 @@ TOOL_DESCRIPTIONS = """
 5. dir_list(path) - 디렉토리 내용 조회 (기본: "/")
 6. dir_create(path) - 디렉토리 생성
 7. code_run(filename, code) - 코드 실행 (샌드박스 안에서). filename은 실행할 파일명, code는 파일 내용.
-8. web_preview() - 웹 프리뷰 시작, URL 반환
+8. web_preview() - 웹앱 배포모드 활성화, 웹 프리뷰 URL 반환
 
 도구 호출 출력 계약:
 - 도구를 사용할 때는 반드시 아래 fenced block 형식만 사용하세요.

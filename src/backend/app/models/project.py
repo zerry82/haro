@@ -16,6 +16,7 @@ class Project(Base):
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="idle")
+    runtime_mode: Mapped[str] = mapped_column(String(20), nullable=False, default="work", server_default="work")
     workspace_path: Mapped[str] = mapped_column(String(500), nullable=False)
     created_at: Mapped[str] = mapped_column(String(50), default=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: Mapped[str] = mapped_column(String(50), default=lambda: datetime.now(timezone.utc).isoformat())

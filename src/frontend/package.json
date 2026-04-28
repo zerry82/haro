@@ -24,6 +24,7 @@
     "@codemirror/view": "^6.41.1",
     "codemirror": "^6.0.2",
     "highlight.js": "^11.11.1",
+    "lucide-svelte": "^1.0.1",
     "marked": "^15.0.7",
     "papaparse": "^5.5.3",
     "svelte-spa-router": "^4.0.1"

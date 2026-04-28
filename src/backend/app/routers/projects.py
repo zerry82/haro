@@ -37,6 +37,7 @@ class ProjectResponse(BaseModel):
     id: str
     title: str
     status: str
+    runtime_mode: str = "work"
     container_status: str = "none"
     created_at: str
     updated_at: str
@@ -71,6 +72,7 @@ async def list_projects(user: User = Depends(get_current_user), db: AsyncSession
         projects=[
             ProjectResponse(
                 id=p.id, title=p.title, status=p.status,
+                runtime_mode=p.runtime_mode,
                 container_status=p.container_status,
                 created_at=p.created_at, updated_at=p.updated_at,
                 chat_session_count=cnt,
@@ -97,17 +99,9 @@ async def create_project(body: CreateProjectRequest, user: User = Depends(get_cu
     await db.commit()
     await db.refresh(project)
 
-    # Create sandbox container
-    try:
-        cm = ContainerManager(db)
-        await cm.create_sandbox(project.id, workspace)
-        await db.refresh(project)
-        logger.info(f"Sandbox created for project {project.id}")
-    except Exception as e:
-        logger.error(f"Failed to create sandbox for project {project.id}: {e}")
-
     return ProjectResponse(
         id=project.id, title=project.title, status=project.status,
+        runtime_mode=project.runtime_mode,
         container_status=project.container_status,
         created_at=project.created_at, updated_at=project.updated_at,
         chat_session_count=1,
@@ -130,6 +124,7 @@ async def update_project(project_id: str, body: UpdateProjectRequest, user: User
 
     return ProjectResponse(
         id=project.id, title=project.title, status=project.status,
+        runtime_mode=project.runtime_mode,
         container_status=project.container_status,
         created_at=project.created_at, updated_at=project.updated_at,
         chat_session_count=chat_count,
@@ -191,9 +186,18 @@ class ExecuteResponse(BaseModel):
 class PreviewResponse(BaseModel):
     preview_url: str
     status: str
+    runtime_mode: str = "deploy"
+    container_status: str = "running"
+
+
+class DeployResponse(BaseModel):
+    preview_url: str | None = None
+    runtime_mode: str
+    container_status: str
 
 
 class SandboxStatusResponse(BaseModel):
+    runtime_mode: str
     container_status: str
     container_id: str | None = None
     sandbox_node_id: str | None = None
@@ -229,12 +233,65 @@ async def start_preview(
     cm = ContainerManager(db)
 
     try:
-        ip = await cm.start_preview(project.id)
+        ip = await cm.start_deploy(project.id)
+        await db.refresh(project)
     except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
     preview_url = f"/preview/{project.id}/"
-    return PreviewResponse(preview_url=preview_url, status="running")
+    return PreviewResponse(
+        preview_url=preview_url,
+        status="running",
+        runtime_mode=project.runtime_mode,
+        container_status=project.container_status,
+    )
+
+
+@router.post("/{project_id}/deploy/start", response_model=DeployResponse)
+async def start_deploy(
+    project_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    project = await _get_user_project(db, user.id, project_id)
+    cm = ContainerManager(db)
+
+    try:
+        await cm.start_deploy(project.id)
+        await db.refresh(project)
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Deploy start failed: {e}")
+
+    return DeployResponse(
+        preview_url=f"/preview/{project.id}/",
+        runtime_mode=project.runtime_mode,
+        container_status=project.container_status,
+    )
+
+
+@router.post("/{project_id}/deploy/stop", response_model=DeployResponse)
+async def stop_deploy(
+    project_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    project = await _get_user_project(db, user.id, project_id)
+    cm = ContainerManager(db)
+
+    try:
+        await cm.stop_deploy(project.id)
+        await db.refresh(project)
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Deploy stop failed: {e}")
+
+    return DeployResponse(
+        runtime_mode=project.runtime_mode,
+        container_status=project.container_status,
+    )
 
 
 @router.get("/{project_id}/sandbox", response_model=SandboxStatusResponse)
@@ -248,6 +305,7 @@ async def get_sandbox_status(
     actual_status = await cm.get_status(project.id)
 
     return SandboxStatusResponse(
+        runtime_mode=project.runtime_mode,
         container_status=actual_status,
         container_id=project.container_id,
         sandbox_node_id=project.sandbox_node_id,

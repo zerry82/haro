@@ -2,20 +2,26 @@
   import { onMount } from 'svelte';
   import { push } from 'svelte-spa-router';
   import { isAuthenticated, user } from '../stores/auth';
-  import { currentProjectId } from '../stores/projects';
+  import { currentProjectId, startProjectDeploy, stopProjectDeploy } from '../stores/projects';
   import { chatSessions, loadChatSessions, createChatSession, deleteChatSession, currentChatId, type ChatSessionItem } from '../stores/chatSessions';
   import { messages, loadMessages, sendMessage, streaming, todoSteps, agentStatus } from '../stores/chat';
-  import { fileTree, loadFiles, loadFileContent, saveFileContent, selectedFilePath, fileContent, fileLanguage, fileLoading, expandFolder, reloadAllExpanded, type TreeNode } from '../stores/files';
+  import { fileTree, loadFiles, loadFileContent, saveFileContent, createFolder, uploadFiles, selectedFilePath, fileContent, fileLanguage, fileLoading, expandFolder, reloadAllExpanded, type TreeNode } from '../stores/files';
   import { api } from '../lib/api';
   import CodeEditor from '../components/CodeEditor.svelte';
   import { marked } from 'marked';
   import hljs from 'highlight.js';
   import Papa from 'papaparse';
+  import { Database, Files, FolderPlus, Sparkles, Upload, Wrench } from 'lucide-svelte';
   import 'highlight.js/styles/github-dark.css';
 
   let { params = {} }: { params?: { projectId?: string; chatId?: string } } = $props();
 
   let projectTitle = $state('');
+  let projectRuntimeMode = $state<RuntimeMode>('work');
+  let projectContainerStatus = $state('none');
+  let previewUrl = $state('');
+  let deployBusy = $state(false);
+  let deployMessage = $state('');
   let inputText = $state('');
   let chatContainer: HTMLElement | undefined = $state(undefined);
   let showChatList = $state(false);
@@ -40,10 +46,20 @@
   let skills = $state<SkillResponse[]>([]);
   let skillsLoading = $state(false);
   let skillsError = $state('');
+  let focusedExplorerNode = $state<TreeNode | null>(null);
+  let creatingFolder = $state(false);
+  let creatingFolderParentPath = $state('/');
+  let newFolderName = $state('');
+  let fileActionMessage = $state('');
+  let fileActionBusy = $state(false);
+  let draggingFiles = $state(false);
+  let uploadTargetDir = $state('/');
+  let uploadInput = $state<HTMLInputElement | undefined>(undefined);
   let renderComputeSeq = 0;
 
   type SidePanelTab = 'files' | 'skills' | 'tools' | 'dataSources';
   type SidePanelTabItem = { id: SidePanelTab; label: string };
+  type RuntimeMode = 'work' | 'deploy';
   type ViewerTab = 'preview' | 'source' | 'code' | 'editor';
   type ViewerTabItem = { id: ViewerTab; label: string };
   type SkillResponse = {
@@ -72,7 +88,7 @@
     { name: 'dir_list', signature: 'dir_list(path)', description: '디렉토리 내용 조회' },
     { name: 'dir_create', signature: 'dir_create(path)', description: '디렉토리 생성' },
     { name: 'code_run', signature: 'code_run(filename, code)', description: '샌드박스 안에서 코드 실행' },
-    { name: 'web_preview', signature: 'web_preview()', description: '웹 프리뷰 시작 및 URL 반환' },
+    { name: 'web_preview', signature: 'web_preview()', description: '웹앱 배포모드 활성화 및 URL 반환' },
   ];
 
   const EDITABLE_EXTENSIONS = [
@@ -128,6 +144,56 @@
 
   function getHtmlPreviewKey(path: string | null, content: string, revision: number) {
     return `${path || ''}:${content.length}:${getLightweightHash(content)}:${revision}`;
+  }
+
+  function getSidePanelTitle() {
+    return SIDE_PANEL_TABS.find((tab) => tab.id === activeSideTab)?.label || '폴더';
+  }
+
+  function getParentPath(path: string | null) {
+    if (!path || path === '/') return '/';
+    const normalized = path.endsWith('/') ? path.slice(0, -1) : path;
+    const index = normalized.lastIndexOf('/');
+    return index <= 0 ? '/' : normalized.slice(0, index);
+  }
+
+  function joinExplorerPath(basePath: string, name: string) {
+    return basePath === '/' ? `/${name}` : `${basePath.replace(/\/$/, '')}/${name}`;
+  }
+
+  function getExplorerTargetDir() {
+    if (focusedExplorerNode?.type === 'directory') return focusedExplorerNode.path;
+    if (focusedExplorerNode?.type === 'file') return getParentPath(focusedExplorerNode.path);
+    return getParentPath($selectedFilePath);
+  }
+
+  function getNodeTargetDir(node: TreeNode | null) {
+    if (!node) return getExplorerTargetDir();
+    return node.type === 'directory' ? node.path : getParentPath(node.path);
+  }
+
+  function hasDraggedFiles(event: DragEvent) {
+    return Array.from(event.dataTransfer?.types || []).includes('Files');
+  }
+
+  function getErrorMessage(error: unknown, fallback: string) {
+    return error instanceof Error ? error.message : fallback;
+  }
+
+  async function refreshExplorerAfterMutation(projectId: string, targetDir: string) {
+    await reloadAllExpanded(projectId);
+    await loadFiles(projectId, targetDir);
+  }
+
+  function getRuntimeModeLabel() {
+    return projectRuntimeMode === 'deploy' ? '배포모드' : '작업모드';
+  }
+
+  function applyProjectState(project: any) {
+    projectTitle = project.title;
+    projectRuntimeMode = project.runtime_mode === 'deploy' ? 'deploy' : 'work';
+    projectContainerStatus = project.container_status || 'none';
+    previewUrl = projectRuntimeMode === 'deploy' ? `/preview/${project.id}/` : '';
   }
 
   function getViewerTabs(path: string | null, language: string): ViewerTabItem[] {
@@ -347,6 +413,32 @@
     }
   }
 
+  async function handleDeployToggle() {
+    const pid = $currentProjectId;
+    if (!pid || deployBusy) return;
+    deployBusy = true;
+    deployMessage = '';
+    try {
+      if (projectRuntimeMode === 'deploy') {
+        const res = await stopProjectDeploy(pid);
+        projectRuntimeMode = res.runtime_mode;
+        projectContainerStatus = res.container_status;
+        previewUrl = '';
+        deployMessage = '웹앱 비활성화됨';
+      } else {
+        const res = await startProjectDeploy(pid);
+        projectRuntimeMode = res.runtime_mode;
+        projectContainerStatus = res.container_status;
+        previewUrl = res.preview_url || `/preview/${pid}/`;
+        deployMessage = '웹앱 활성화됨';
+      }
+    } catch (e: any) {
+      deployMessage = e.message || '웹앱 상태 변경 실패';
+    } finally {
+      deployBusy = false;
+    }
+  }
+
   $effect(() => {
     $messages;
     $todoSteps;
@@ -365,7 +457,7 @@
       const res: any = await api(`/projects`);
       const proj = res.projects.find((p: any) => p.id === pid);
       if (!proj) { push('/projects'); return; }
-      projectTitle = proj.title;
+      applyProjectState(proj);
     } catch { push('/projects'); return; }
 
     void loadSkillsPanel();
@@ -482,6 +574,129 @@
     }
   }
 
+  function beginCreateFolder() {
+    activeSideTab = 'files';
+    creatingFolder = true;
+    creatingFolderParentPath = getExplorerTargetDir();
+    newFolderName = '';
+    fileActionMessage = '';
+  }
+
+  function cancelCreateFolder() {
+    creatingFolder = false;
+    creatingFolderParentPath = '/';
+    newFolderName = '';
+  }
+
+  async function submitCreateFolder() {
+    const pid = $currentProjectId;
+    const folderName = newFolderName.trim();
+    if (!pid || fileActionBusy) return;
+    if (!folderName || folderName === '.' || folderName === '..' || folderName.includes('/') || folderName.includes('\\')) {
+      fileActionMessage = '올바른 폴더 이름을 입력하세요.';
+      return;
+    }
+
+    const targetDir = creatingFolderParentPath || getExplorerTargetDir();
+    const folderPath = joinExplorerPath(targetDir, folderName);
+    fileActionBusy = true;
+    fileActionMessage = '';
+    try {
+      await createFolder(pid, folderPath);
+      focusedExplorerNode = { name: folderName, type: 'directory', path: folderPath, children: [], expanded: false, loaded: false };
+      creatingFolder = false;
+      creatingFolderParentPath = '/';
+      newFolderName = '';
+      await refreshExplorerAfterMutation(pid, targetDir);
+      fileActionMessage = `폴더 생성: ${folderName}`;
+    } catch (e) {
+      fileActionMessage = getErrorMessage(e, '폴더 생성 실패');
+    } finally {
+      fileActionBusy = false;
+    }
+  }
+
+  function handleCreateFolderKeydown(event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      void submitCreateFolder();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      cancelCreateFolder();
+    }
+  }
+
+  function triggerUpload() {
+    activeSideTab = 'files';
+    uploadTargetDir = getExplorerTargetDir();
+    fileActionMessage = '';
+    uploadInput?.click();
+  }
+
+  async function uploadSelectedFiles(selectedFiles: File[], targetDir: string) {
+    const pid = $currentProjectId;
+    if (!pid || selectedFiles.length === 0 || fileActionBusy) return;
+
+    fileActionBusy = true;
+    fileActionMessage = '';
+    try {
+      const res = await uploadFiles(pid, targetDir, selectedFiles, false);
+      await refreshExplorerAfterMutation(pid, targetDir);
+      fileActionMessage = `업로드 완료: ${res.uploaded.length}개`;
+    } catch (e) {
+      const message = getErrorMessage(e, '업로드 실패');
+      if (message.includes('File already exists') && confirm('같은 이름의 파일이 있습니다. 덮어쓸까요?')) {
+        try {
+          const res = await uploadFiles(pid, targetDir, selectedFiles, true);
+          await refreshExplorerAfterMutation(pid, targetDir);
+          fileActionMessage = `덮어쓰기 완료: ${res.uploaded.length}개`;
+        } catch (overwriteError) {
+          fileActionMessage = getErrorMessage(overwriteError, '업로드 실패');
+        }
+      } else {
+        fileActionMessage = message;
+      }
+    } finally {
+      fileActionBusy = false;
+    }
+  }
+
+  async function handleUploadChange(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    const selectedFiles = Array.from(input.files || []);
+    input.value = '';
+    await uploadSelectedFiles(selectedFiles, uploadTargetDir || getExplorerTargetDir());
+  }
+
+  function handleFileDragOver(event: DragEvent, node: TreeNode | null = null) {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer!.dropEffect = 'copy';
+    draggingFiles = true;
+    if (node) focusedExplorerNode = node;
+  }
+
+  function handleFileDragLeave(event: DragEvent) {
+    if (event.currentTarget instanceof HTMLElement &&
+      event.relatedTarget instanceof Node &&
+      event.currentTarget.contains(event.relatedTarget)) {
+      return;
+    }
+    draggingFiles = false;
+  }
+
+  async function handleFileDrop(event: DragEvent, node: TreeNode | null = null) {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    draggingFiles = false;
+    const droppedFiles = Array.from(event.dataTransfer?.files || []);
+    if (droppedFiles.length === 0) return;
+    if (node) focusedExplorerNode = node;
+    await uploadSelectedFiles(droppedFiles, getNodeTargetDir(node));
+  }
+
   function handleRevertFile() {
     editorContent = editorBaseContent;
     saveStatus = '되돌림';
@@ -507,6 +722,8 @@
   async function handleNodeClick(node: TreeNode) {
     const pid = $currentProjectId;
     if (!pid) return;
+    focusedExplorerNode = node;
+    fileActionMessage = '';
     if (node.type === 'directory') {
       await expandFolder(pid, node);
     } else {
@@ -528,6 +745,23 @@
   <header class="top-bar">
     <button class="back-btn" onclick={() => push('/projects')}>← 프로젝트</button>
     <span class="project-name">{projectTitle}</span>
+    <span class="runtime-badge" class:deploy={projectRuntimeMode === 'deploy'}>{getRuntimeModeLabel()}</span>
+    <span class="container-badge" class:running={projectContainerStatus === 'running'}>{projectContainerStatus}</span>
+    <button class="deploy-btn" onclick={handleDeployToggle} disabled={deployBusy}>
+      {#if deployBusy}
+        처리 중...
+      {:else if projectRuntimeMode === 'deploy'}
+        웹앱 비활성화
+      {:else}
+        웹앱 활성화
+      {/if}
+    </button>
+    {#if previewUrl}
+      <a class="preview-link" href={previewUrl} target="_blank" rel="noreferrer">열기</a>
+    {/if}
+    {#if deployMessage}
+      <span class="deploy-message" class:error={deployMessage.includes('실패') || deployMessage.includes('failed')}>{deployMessage}</span>
+    {/if}
     <span class="spacer"></span>
     <span class="user-name">{$user?.name}</span>
   </header>
@@ -535,96 +769,175 @@
   <div class="workspace">
     <!-- File Explorer -->
     <div class="panel file-panel">
-      <div class="side-tabs" role="tablist" aria-label="왼쪽 메뉴">
+      <div class="activity-bar" role="tablist" aria-label="왼쪽 메뉴">
         {#each SIDE_PANEL_TABS as tab}
           <button
             type="button"
-            class="side-tab"
+            class="activity-tab"
             class:active={activeSideTab === tab.id}
             role="tab"
             aria-selected={activeSideTab === tab.id}
+            aria-label={tab.label}
+            title={tab.label}
             onclick={() => { activeSideTab = tab.id; }}
           >
-            {tab.label}
+            {#if tab.id === 'files'}
+              <Files size={24} strokeWidth={1.8} />
+            {:else if tab.id === 'skills'}
+              <Sparkles size={24} strokeWidth={1.8} />
+            {:else if tab.id === 'tools'}
+              <Wrench size={24} strokeWidth={1.8} />
+            {:else}
+              <Database size={24} strokeWidth={1.8} />
+            {/if}
+            <span class="sr-only">{tab.label}</span>
           </button>
         {/each}
       </div>
 
-      {#if activeSideTab === 'files'}
-        <div class="file-list">
-          {#snippet renderTree(nodes: TreeNode[], depth: number)}
-            {#each nodes as item}
-              <button
-                class="file-item"
-                class:active={$selectedFilePath === item.path}
-                style="padding-left: {0.5 + depth * 0.75}rem"
-                onclick={() => handleNodeClick(item)}
-              >
-                <span>
-                  {#if item.type === 'directory'}
-                    {item.expanded ? '📂' : '📁'}
-                  {:else}
-                    📄
-                  {/if}
-                  {item.name}
-                </span>
-              </button>
-              {#if item.type === 'directory' && item.expanded && item.children}
-                {@render renderTree(item.children, depth + 1)}
-              {/if}
-            {/each}
-          {/snippet}
-          {@render renderTree($fileTree, 0)}
-          {#if $fileTree.length === 0}
-            <p class="empty">파일 없음</p>
+      <div class="side-panel-shell">
+        <div class="side-panel-header">
+          <span class="side-panel-title">{getSidePanelTitle()}</span>
+          {#if activeSideTab === 'files'}
+            <button
+              type="button"
+              class="side-icon-btn"
+              title="새 폴더"
+              aria-label="새 폴더"
+              disabled={fileActionBusy}
+              onclick={beginCreateFolder}
+            >
+              <FolderPlus size={15} />
+            </button>
+            <button
+              type="button"
+              class="side-icon-btn"
+              title="파일 업로드"
+              aria-label="파일 업로드"
+              disabled={fileActionBusy}
+              onclick={triggerUpload}
+            >
+              <Upload size={15} />
+            </button>
+            <input
+              bind:this={uploadInput}
+              class="hidden-file-input"
+              type="file"
+              multiple
+              onchange={handleUploadChange}
+            />
           {/if}
         </div>
-      {:else if activeSideTab === 'skills'}
-        <div class="side-list">
-          {#if skillsLoading}
-            <p class="empty">스킬 불러오는 중...</p>
-          {:else if skillsError}
-            <div class="side-error">{skillsError}</div>
-          {:else if skills.length === 0}
-            <p class="empty">설치된 스킬 없음</p>
-          {:else}
-            {#each skills as skill}
-              <article class="side-card">
-                <div class="side-card-title" title={skill.name}>{skill.name}</div>
-                <div class="side-card-meta">
-                  <span>{skill.status}</span>
-                  <span>{skill.type}</span>
-                  <span>v{skill.version}</span>
-                </div>
-                {#if skill.description}
-                  <p class="side-card-description">{skill.description}</p>
+        {#if activeSideTab === 'files'}
+          {#if fileActionMessage}
+            <div class="file-action-message">{fileActionMessage}</div>
+          {/if}
+          <div
+            class="file-list"
+            class:dragging={draggingFiles}
+            role="region"
+            aria-label="파일 탐색기"
+            ondragover={(event) => handleFileDragOver(event)}
+            ondragleave={handleFileDragLeave}
+            ondrop={(event) => handleFileDrop(event)}
+          >
+            {#snippet renderNewFolderRow(depth: number)}
+              <div class="new-folder-row" style="margin-left: {depth * 0.75}rem">
+                <input
+                  class="new-folder-input"
+                  type="text"
+                  placeholder="새 폴더 이름"
+                  bind:value={newFolderName}
+                  disabled={fileActionBusy}
+                  onkeydown={handleCreateFolderKeydown}
+                />
+                <button type="button" class="new-folder-action" disabled={fileActionBusy} onclick={submitCreateFolder}>생성</button>
+                <button type="button" class="new-folder-action ghost" disabled={fileActionBusy} onclick={cancelCreateFolder}>취소</button>
+              </div>
+            {/snippet}
+            {#if creatingFolder && creatingFolderParentPath === '/'}
+              {@render renderNewFolderRow(0)}
+            {/if}
+            {#snippet renderTree(nodes: TreeNode[], depth: number)}
+              {#each nodes as item}
+                <button
+                  class="file-item"
+                  class:active={$selectedFilePath === item.path}
+                  class:focused={focusedExplorerNode?.path === item.path}
+                  style="padding-left: {0.5 + depth * 0.75}rem"
+                  ondragover={(event) => handleFileDragOver(event, item)}
+                  ondrop={(event) => handleFileDrop(event, item)}
+                  onclick={() => handleNodeClick(item)}
+                >
+                  <span>
+                    {#if item.type === 'directory'}
+                      {item.expanded ? '📂' : '📁'}
+                    {:else}
+                      📄
+                    {/if}
+                    {item.name}
+                  </span>
+                </button>
+                {#if creatingFolder && item.type === 'directory' && item.path === creatingFolderParentPath}
+                  {@render renderNewFolderRow(depth + 1)}
                 {/if}
-                {#if skill.tools.length > 0}
-                  <div class="side-chip-list">
-                    {#each skill.tools as tool}
-                      <span class="side-chip" title={tool}>{tool}</span>
-                    {/each}
+                {#if item.type === 'directory' && item.expanded && item.children}
+                  {@render renderTree(item.children, depth + 1)}
+                {/if}
+              {/each}
+            {/snippet}
+            {@render renderTree($fileTree, 0)}
+            {#if $fileTree.length === 0}
+              <p class="empty">파일 없음</p>
+            {/if}
+          </div>
+        {:else if activeSideTab === 'skills'}
+          <div class="side-list">
+            {#if skillsLoading}
+              <p class="empty">스킬 불러오는 중...</p>
+            {:else if skillsError}
+              <div class="side-error">{skillsError}</div>
+            {:else if skills.length === 0}
+              <p class="empty">설치된 스킬 없음</p>
+            {:else}
+              {#each skills as skill}
+                <article class="side-card">
+                  <div class="side-card-title" title={skill.name}>{skill.name}</div>
+                  <div class="side-card-meta">
+                    <span>{skill.status}</span>
+                    <span>{skill.type}</span>
+                    <span>v{skill.version}</span>
                   </div>
-                {/if}
+                  {#if skill.description}
+                    <p class="side-card-description">{skill.description}</p>
+                  {/if}
+                  {#if skill.tools.length > 0}
+                    <div class="side-chip-list">
+                      {#each skill.tools as tool}
+                        <span class="side-chip" title={tool}>{tool}</span>
+                      {/each}
+                    </div>
+                  {/if}
+                </article>
+              {/each}
+            {/if}
+          </div>
+        {:else if activeSideTab === 'tools'}
+          <div class="side-list">
+            {#each TOOL_CATALOG as tool}
+              <article class="side-card">
+                <div class="side-card-title" title={tool.name}>{tool.name}</div>
+                <code class="side-signature" title={tool.signature}>{tool.signature}</code>
+                <p class="side-card-description">{tool.description}</p>
               </article>
             {/each}
-          {/if}
-        </div>
-      {:else if activeSideTab === 'tools'}
-        <div class="side-list">
-          {#each TOOL_CATALOG as tool}
-            <article class="side-card">
-              <div class="side-card-title" title={tool.name}>{tool.name}</div>
-              <code class="side-signature" title={tool.signature}>{tool.signature}</code>
-              <p class="side-card-description">{tool.description}</p>
-            </article>
-          {/each}
-        </div>
-      {:else}
-        <div class="side-list">
-          <p class="empty">연결된 데이터소스 없음</p>
-        </div>
-      {/if}
+          </div>
+        {:else}
+          <div class="side-list">
+            <p class="empty">연결된 데이터소스 없음</p>
+          </div>
+        {/if}
+      </div>
     </div>
 
     <!-- File Viewer -->
@@ -862,6 +1175,16 @@
   .back-btn { background: none; border: 1px solid #555; border-radius: 6px; color: #ccc; padding: 0.25rem 0.5rem; cursor: pointer; font-size: 0.8rem; }
   .back-btn:hover { border-color: #e94560; color: #e94560; }
   .project-name { font-weight: 600; color: #e94560; }
+  .runtime-badge, .container-badge { flex-shrink: 0; border-radius: 999px; padding: 0.12rem 0.45rem; font-size: 0.7rem; font-weight: 700; }
+  .runtime-badge { background: #26314a; color: #cbd5e1; }
+  .runtime-badge.deploy { background: #4b1f2c; color: #ff9bb0; }
+  .container-badge { background: #1a1a2e; color: #9ca3af; }
+  .container-badge.running { color: #8bd3a7; }
+  .deploy-btn, .preview-link { flex-shrink: 0; border: 1px solid #3a4660; border-radius: 6px; background: transparent; color: #d0d7e2; padding: 0.25rem 0.55rem; font: inherit; font-size: 0.75rem; cursor: pointer; text-decoration: none; }
+  .deploy-btn:hover:not(:disabled), .preview-link:hover { border-color: #e94560; color: #fff; }
+  .deploy-btn:disabled { cursor: default; opacity: 0.55; }
+  .deploy-message { flex-shrink: 1; min-width: 0; color: #8bd3a7; font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .deploy-message.error { color: #ff9bb0; }
   .spacer { flex: 1; }
   .user-name { color: #888; font-size: 0.8rem; }
 
@@ -869,16 +1192,23 @@
 
   .panel { display: flex; flex-direction: column; border-right: 1px solid #333; }
   .panel-header { padding: 0.6rem 1rem; background: #16213e; border-bottom: 1px solid #333; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
-  .file-panel { width: 200px; }
+  .file-panel { width: 260px; flex-direction: row; }
   .viewer-panel { flex: 1; min-width: 0; }
   .chat-panel { width: 400px; border-right: none; display: flex; flex-direction: column; }
 
-  .side-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); flex-shrink: 0; background: #16213e; border-bottom: 1px solid #333; }
-  .side-tab { min-width: 0; border: none; border-right: 1px solid #333; border-bottom: 1px solid #333; background: transparent; color: #aaa; padding: 0.45rem 0.35rem; font: inherit; font-size: 0.74rem; font-weight: 600; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .side-tab:nth-child(2n) { border-right: none; }
-  .side-tab:nth-last-child(-n + 2) { border-bottom: none; }
-  .side-tab:hover { color: #fff; background: #1a2a4e; }
-  .side-tab.active { color: #fff; background: #e94560; }
+  .activity-bar { width: 48px; flex-shrink: 0; display: flex; flex-direction: column; align-items: stretch; padding: 0.25rem 0; background: #050812; border-right: 1px solid #333; }
+  .activity-tab { position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border: none; border-left: 2px solid transparent; background: transparent; color: #8b95a7; cursor: pointer; }
+  .activity-tab:hover { color: #fff; background: #10172a; }
+  .activity-tab.active { color: #fff; border-left-color: #e94560; background: #10172a; }
+  .activity-tab.active::after { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 2px; background: #e94560; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  .side-panel-shell { flex: 1; min-width: 0; display: flex; flex-direction: column; background: #0a0a1a; }
+  .side-panel-header { flex-shrink: 0; display: flex; align-items: center; gap: 0.35rem; min-height: 40px; padding: 0.35rem 0.5rem 0.35rem 0.75rem; border-bottom: 1px solid #333; background: #16213e; color: #e0e0e0; font-size: 0.75rem; font-weight: 700; letter-spacing: 0; }
+  .side-panel-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .side-icon-btn { width: 28px; height: 28px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: 5px; background: transparent; color: #cbd5e1; cursor: pointer; }
+  .side-icon-btn:hover:not(:disabled) { border-color: #3a4660; background: #10172a; color: #fff; }
+  .side-icon-btn:disabled { cursor: default; opacity: 0.45; }
+  .hidden-file-input { display: none; }
   .side-list { flex: 1; overflow-y: auto; padding: 0.4rem; }
   .side-card { margin-bottom: 0.4rem; border: 1px solid #27324a; border-radius: 6px; background: #10172a; padding: 0.5rem; }
   .side-card-title { color: #fff; font-size: 0.82rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -889,10 +1219,22 @@
   .side-chip { max-width: 100%; border-radius: 4px; background: #1a1a2e; color: #d8e2f1; padding: 0.12rem 0.3rem; font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .side-signature { display: block; margin-top: 0.35rem; color: #ffd166; font-family: Consolas, 'Courier New', monospace; font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .side-error { border: 1px solid #5a2735; border-radius: 6px; background: #1f1020; color: #ffbdc9; padding: 0.6rem; font-size: 0.75rem; line-height: 1.45; }
+  .file-action-message { flex-shrink: 0; margin: 0.35rem 0.4rem 0; border: 1px solid #27324a; border-radius: 5px; background: #10172a; color: #cbd5e1; padding: 0.35rem 0.45rem; font-size: 0.72rem; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .file-list { flex: 1; overflow-y: auto; padding: 0.25rem; }
+  .file-list.dragging { outline: 1px dashed #e94560; outline-offset: -4px; background: #0d1020; }
   .file-item { padding: 0.35rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; background: transparent; border: none; color: #e0e0e0; width: 100%; text-align: left; font-family: inherit; display: block; }
+  .file-item span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .file-item:hover { background: #16213e; }
+  .file-item.focused { outline: 1px solid #4b5f86; outline-offset: -1px; background: #10172a; }
   .file-item.active { background: #1a1a2e; color: #e94560; }
+  .file-item.active.focused { outline-color: #e94560; }
+  .new-folder-row { display: flex; align-items: center; gap: 0.25rem; margin: 0.15rem 0.1rem 0.35rem; padding: 0.25rem; border-radius: 5px; background: #10172a; }
+  .new-folder-input { flex: 1; min-width: 0; border: 1px solid #3a4660; border-radius: 5px; background: #050812; color: #f8fafc; padding: 0.35rem 0.45rem; font: inherit; font-size: 0.76rem; }
+  .new-folder-input:focus { outline: none; border-color: #e94560; }
+  .new-folder-action { flex-shrink: 0; border: 1px solid #e94560; border-radius: 5px; background: #e94560; color: #fff; padding: 0.35rem 0.45rem; font: inherit; font-size: 0.72rem; cursor: pointer; }
+  .new-folder-action.ghost { border-color: #3a4660; background: transparent; color: #cbd5e1; }
+  .new-folder-action:hover:not(:disabled) { filter: brightness(1.08); }
+  .new-folder-action:disabled { cursor: default; opacity: 0.5; }
 
   .viewer-header { padding: 0; min-height: 40px; align-items: stretch; gap: 0; }
   .viewer-title { display: flex; align-items: center; flex: 0 1 auto; max-width: 45%; min-width: 0; padding: 0.6rem 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

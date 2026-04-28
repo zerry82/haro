@@ -277,7 +277,8 @@ class ContainerManager:
             return
 
         if not project.container_id or not project.sandbox_node_id:
-            raise RuntimeError("No sandbox container assigned to this project")
+            await self.create_sandbox(project_id, project.workspace_path)
+            return
 
         node_result = await self.db.execute(
             select(SandboxNode).where(SandboxNode.id == project.sandbox_node_id)
@@ -304,13 +305,16 @@ class ContainerManager:
             await self.db.commit()
             raise RuntimeError(f"Failed to restart sandbox: {e}")
 
-    async def start_preview(self, project_id: str) -> str:
+    async def start_deploy(self, project_id: str) -> str:
         result = await self.db.execute(
             select(Project).where(Project.id == project_id)
         )
         project = result.scalar_one_or_none()
         if project is None:
             raise ValueError(f"Project {project_id} not found")
+
+        await self.ensure_running(project_id)
+        await self.db.refresh(project)
 
         if project.container_status != "running":
             raise RuntimeError("Sandbox is not running")
@@ -331,16 +335,34 @@ class ContainerManager:
             detach=True,
         )
 
-        await self._record_activity(project_id)
+        project.runtime_mode = "deploy"
+        project.last_activity_at = datetime.now(timezone.utc).isoformat()
+        await self.db.commit()
 
         ip = await self.get_container_ip(project_id)
         if not ip:
             raise RuntimeError("Could not determine container IP")
         return ip
 
+    async def start_preview(self, project_id: str) -> str:
+        return await self.start_deploy(project_id)
+
+    async def stop_deploy(self, project_id: str) -> None:
+        result = await self.db.execute(
+            select(Project).where(Project.id == project_id)
+        )
+        project = result.scalar_one_or_none()
+        if project is None:
+            raise ValueError(f"Project {project_id} not found")
+
+        project.runtime_mode = "work"
+        if project.container_status == "running":
+            await self._stop_container(project)
+        await self.db.commit()
+
     async def stop_idle_containers(self, idle_minutes: int | None = None) -> list[str]:
         if idle_minutes is None:
-            idle_minutes = settings.sandbox_idle_timeout_minutes
+            idle_minutes = settings.sandbox_work_idle_timeout_minutes
 
         now = datetime.now(timezone.utc)
         stopped: list[str] = []
@@ -348,6 +370,7 @@ class ContainerManager:
         result = await self.db.execute(
             select(Project).where(
                 Project.container_status == "running",
+                Project.runtime_mode != "deploy",
                 Project.last_activity_at.isnot(None),
             )
         )

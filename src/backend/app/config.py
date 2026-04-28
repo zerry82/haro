@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     sandbox_cpu_quota: int = 50000
     sandbox_cpu_period: int = 100000
     sandbox_idle_timeout_minutes: int = 30
+    sandbox_work_idle_timeout_minutes: int = 5
     sandbox_exec_timeout: int = 30
     sandbox_default_node_host: str = "unix:///var/run/docker.sock"
     sandbox_default_node_max_containers: int = 10
