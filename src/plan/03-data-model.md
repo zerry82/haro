@@ -1,4 +1,4 @@
-# 데이터 모델 현재 구현
+﻿# 데이터 모델 현재 구현
 
 ## 1. 개요
 
@@ -25,8 +25,8 @@ Session/Todo         초기 설계 호환용 레거시 모델
 |------|-----------|
 | 드라이버 | `sqlite+aiosqlite` |
 | ORM | SQLAlchemy async |
-| DB 파일 | `{DB_DATA_DIR}/openclaw.db` |
-| 기본 경로 | `./data/pgdata/openclaw.db` |
+| DB 파일 | `{DB_DATA_DIR}/haro.db` |
+| 기본 경로 | `./data/pgdata/haro.db` |
 | SQLite 설정 | WAL journal, foreign_keys ON |
 | 스키마 생성 | 앱 시작 시 `Base.metadata.create_all` |
 | 마이그레이션 | `main.py`의 ad hoc SQLite migration 함수 |

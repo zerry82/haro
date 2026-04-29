@@ -373,7 +373,7 @@ async def _stop_all_containers():
         logger.warning(f"Failed to stop containers on shutdown: {e}")
 
 
-app = FastAPI(title="Mini Open Claw", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="haro", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

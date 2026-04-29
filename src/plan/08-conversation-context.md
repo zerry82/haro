@@ -1,4 +1,4 @@
-# 대화 히스토리와 컨텍스트 현재 구현
+﻿# 대화 히스토리와 컨텍스트 현재 구현
 
 ## 1. 개요
 
@@ -7,8 +7,8 @@
 LLM에 전달되는 정보:
 
 1. 기본 시스템 프롬프트
-2. 프로젝트 워크스페이스 인덱스 (`.openclaw/workspace.md`)가 있으면 포함
-3. 최신 대화 요약 파일 (`.openclaw/summary_v*.md`)이 있으면 포함
+2. 프로젝트 워크스페이스 인덱스 (`.haro/workspace.md`)가 있으면 포함
+3. 최신 대화 요약 파일 (`.haro/summary_v*.md`)이 있으면 포함
 4. 현재 채팅 세션의 최근 메시지 20개
 5. 방금 입력한 사용자 메시지
 6. 도구 설명 문자열
@@ -53,10 +53,10 @@ role 변환:
 
 ## 4. 대화 요약
 
-`context.py`는 `.openclaw` 디렉토리에서 `summary_v*.md` 파일을 찾아 가장 최신 파일을 읽을 수 있다.
+`context.py`는 `.haro` 디렉토리에서 `summary_v*.md` 파일을 찾아 가장 최신 파일을 읽을 수 있다.
 
 ```
-{workspace}/.openclaw/summary_v3.md
+{workspace}/.haro/summary_v3.md
 ```
 
 하지만 현재 코드에는 요약 파일을 생성하거나 메시지를 압축하는 백그라운드 작업이 없다.
@@ -64,10 +64,10 @@ role 변환:
 
 ## 5. 워크스페이스 컨텍스트
 
-파일 도구가 파일을 생성/수정/삭제하면 `workspace_index.py`가 `.openclaw/workspace.md`를 갱신한다.
+파일 도구가 파일을 생성/수정/삭제하면 `workspace_index.py`가 `.haro/workspace.md`를 갱신한다.
 
 ```
-{workspace}/.openclaw/
+{workspace}/.haro/
 ├── workspace.md
 └── file_summaries/
     └── src__main.ts.md
@@ -139,7 +139,7 @@ contents.append({
 현재 구조를 유지하면서 확장하려면 다음 순서가 자연스럽다.
 
 1. 메시지 수가 임계값을 넘을 때 오래된 메시지를 요약
-2. 요약을 `.openclaw/summary_v{n}.md`에 저장
+2. 요약을 `.haro/summary_v{n}.md`에 저장
 3. 요약된 메시지를 `compressed=true`로 표시
 4. 긴 파일은 LLM 요약으로 `file_summaries` 품질 개선
 5. 프로젝트 단위 요약과 채팅 단위 요약을 분리

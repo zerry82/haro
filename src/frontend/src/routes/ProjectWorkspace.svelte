@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import { push } from 'svelte-spa-router';
   import { isAuthenticated, user } from '../stores/auth';
   import { currentProjectId, startProjectDeploy, stopProjectDeploy } from '../stores/projects';
@@ -11,8 +11,8 @@
   import { marked } from 'marked';
   import hljs from 'highlight.js';
   import Papa from 'papaparse';
-  import { Database, Files, FolderPlus, Sparkles, Upload, Wrench } from 'lucide-svelte';
-  import 'highlight.js/styles/github-dark.css';
+  import { Database, Files, FolderPlus, Lock, Sparkles, Upload, Wrench } from 'lucide-svelte';
+  import 'highlight.js/styles/github.css';
 
   let { params = {} }: { params?: { projectId?: string; chatId?: string } } = $props();
 
@@ -56,12 +56,20 @@
   let uploadTargetDir = $state('/');
   let uploadInput = $state<HTMLInputElement | undefined>(undefined);
   let renderComputeSeq = 0;
+  let workspaceElement = $state<HTMLDivElement | undefined>(undefined);
+  let filePanelWidth = $state(loadStoredPanelWidth('haro:filePanelWidth', 260));
+  let chatPanelWidth = $state(loadStoredPanelWidth('haro:chatPanelWidth', 400));
+  let resizingPanel = $state<ResizePanel | null>(null);
+  let resizeStartX = 0;
+  let resizeStartFileWidth = 0;
+  let resizeStartChatWidth = 0;
 
   type SidePanelTab = 'files' | 'skills' | 'tools' | 'dataSources';
   type SidePanelTabItem = { id: SidePanelTab; label: string };
   type RuntimeMode = 'work' | 'deploy';
   type ViewerTab = 'preview' | 'source' | 'code' | 'editor';
   type ViewerTabItem = { id: ViewerTab; label: string };
+  type ResizePanel = 'file' | 'chat';
   type SkillResponse = {
     name: string;
     version: string;
@@ -95,6 +103,27 @@
     '.html', '.md', '.csv', '.ts', '.js', '.json',
     '.txt', '.css', '.py', '.yaml', '.yml', '.svg',
   ];
+
+  const FILE_PANEL_MIN = 220;
+  const FILE_PANEL_MAX = 560;
+  const CHAT_PANEL_MIN = 300;
+  const CHAT_PANEL_MAX = 720;
+  const VIEWER_PANEL_MIN = 360;
+
+  function loadStoredPanelWidth(key: string, fallback: number) {
+    if (typeof localStorage === 'undefined') return fallback;
+    const saved = Number(localStorage.getItem(key));
+    return Number.isFinite(saved) && saved > 0 ? saved : fallback;
+  }
+
+  function saveStoredPanelWidth(key: string, value: number) {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(key, String(Math.round(value)));
+  }
+
+  function clamp(value: number, min: number, max: number) {
+    return Math.min(Math.max(value, min), max);
+  }
 
   function getExtension(path: string | null) {
     if (!path) return '';
@@ -157,6 +186,42 @@
     return index <= 0 ? '/' : normalized.slice(0, index);
   }
 
+  function normalizeWorkspacePath(path: string | null) {
+    if (!path) return '/';
+    const parts = path.replace(/\\/g, '/').split('/').filter(Boolean);
+    const normalized: string[] = [];
+    for (const part of parts) {
+      if (part === '.') continue;
+      if (part === '..') {
+        normalized.pop();
+      } else {
+        normalized.push(part);
+      }
+    }
+    return normalized.length === 0 ? '/' : `/${normalized.join('/')}`;
+  }
+
+  function isCleanRoomPath(path: string | null) {
+    const normalized = normalizeWorkspacePath(path);
+    return normalized === '/clean-room' || normalized.startsWith('/clean-room/');
+  }
+
+  function getDefaultPlaygroundInbox() {
+    return $user?.id ? `/playground/users/${$user.id}/00_inbox` : '/';
+  }
+
+  function isOwnPlaygroundPath(path: string | null) {
+    const normalized = normalizeWorkspacePath(path);
+    const root = $user?.id ? `/playground/users/${$user.id}` : '';
+    return Boolean(root && (normalized === root || normalized.startsWith(`${root}/`)));
+  }
+
+  function getPathBadge(path: string | null) {
+    if (isCleanRoomPath(path)) return '읽기 전용';
+    if (isOwnPlaygroundPath(path)) return '내 작업공간';
+    return '';
+  }
+
   function joinExplorerPath(basePath: string, name: string) {
     return basePath === '/' ? `/${name}` : `${basePath.replace(/\/$/, '')}/${name}`;
   }
@@ -164,12 +229,17 @@
   function getExplorerTargetDir() {
     if (focusedExplorerNode?.type === 'directory') return focusedExplorerNode.path;
     if (focusedExplorerNode?.type === 'file') return getParentPath(focusedExplorerNode.path);
-    return getParentPath($selectedFilePath);
+    if ($selectedFilePath) return getParentPath($selectedFilePath);
+    return getDefaultPlaygroundInbox();
   }
 
   function getNodeTargetDir(node: TreeNode | null) {
     if (!node) return getExplorerTargetDir();
     return node.type === 'directory' ? node.path : getParentPath(node.path);
+  }
+
+  function isExplorerTargetReadOnly() {
+    return isCleanRoomPath(getExplorerTargetDir());
   }
 
   function hasDraggedFiles(event: DragEvent) {
@@ -183,6 +253,14 @@
   async function refreshExplorerAfterMutation(projectId: string, targetDir: string) {
     await reloadAllExpanded(projectId);
     await loadFiles(projectId, targetDir);
+  }
+
+  async function loadDefaultHarnessTree(projectId: string) {
+    await loadFiles(projectId);
+    if (!$user?.id) return;
+    await loadFiles(projectId, '/playground');
+    await loadFiles(projectId, '/playground/users');
+    await loadFiles(projectId, `/playground/users/${$user.id}`);
   }
 
   function getRuntimeModeLabel() {
@@ -481,7 +559,7 @@
 
     currentChatId.set(chatId!);
     await loadMessages(pid, chatId!);
-    await loadFiles(pid);
+    await loadDefaultHarnessTree(pid);
 
     // Update URL if needed
     if (!params.chatId || params.chatId !== chatId) {
@@ -506,6 +584,10 @@
   onMount(() => {
     window.addEventListener('file-changed', handleFileChanged);
     return () => window.removeEventListener('file-changed', handleFileChanged);
+  });
+
+  onDestroy(() => {
+    document.body.classList.remove('resizing-columns');
   });
 
   async function handleSelectChat(chatId: string) {
@@ -558,6 +640,10 @@
     const pid = $currentProjectId;
     const path = $selectedFilePath;
     if (!pid || !path || savingFile || !isEditableTextFile(path, $fileLanguage)) return;
+    if (isCleanRoomPath(path)) {
+      saveStatus = 'Clean Room은 직접 수정할 수 없습니다.';
+      return;
+    }
     savingFile = true;
     saveStatus = '';
     try {
@@ -576,6 +662,10 @@
 
   function beginCreateFolder() {
     activeSideTab = 'files';
+    if (isExplorerTargetReadOnly()) {
+      fileActionMessage = 'Clean Room에는 직접 폴더를 만들 수 없습니다.';
+      return;
+    }
     creatingFolder = true;
     creatingFolderParentPath = getExplorerTargetDir();
     newFolderName = '';
@@ -598,6 +688,10 @@
     }
 
     const targetDir = creatingFolderParentPath || getExplorerTargetDir();
+    if (isCleanRoomPath(targetDir)) {
+      fileActionMessage = 'Clean Room에는 직접 폴더를 만들 수 없습니다.';
+      return;
+    }
     const folderPath = joinExplorerPath(targetDir, folderName);
     fileActionBusy = true;
     fileActionMessage = '';
@@ -629,6 +723,10 @@
   function triggerUpload() {
     activeSideTab = 'files';
     uploadTargetDir = getExplorerTargetDir();
+    if (isCleanRoomPath(uploadTargetDir)) {
+      fileActionMessage = 'Clean Room에는 직접 업로드할 수 없습니다.';
+      return;
+    }
     fileActionMessage = '';
     uploadInput?.click();
   }
@@ -636,6 +734,10 @@
   async function uploadSelectedFiles(selectedFiles: File[], targetDir: string) {
     const pid = $currentProjectId;
     if (!pid || selectedFiles.length === 0 || fileActionBusy) return;
+    if (isCleanRoomPath(targetDir)) {
+      fileActionMessage = 'Clean Room에는 직접 업로드할 수 없습니다.';
+      return;
+    }
 
     fileActionBusy = true;
     fileActionMessage = '';
@@ -716,7 +818,48 @@
     if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 's') return;
     if (!path || !isEditableTextFile(path, $fileLanguage)) return;
     event.preventDefault();
+    if (isCleanRoomPath(path)) {
+      saveStatus = 'Clean Room은 직접 수정할 수 없습니다.';
+      return;
+    }
     if (hasUnsavedChanges() && !savingFile) handleSaveFile();
+  }
+
+  function getWorkspaceWidth() {
+    return workspaceElement?.clientWidth || window.innerWidth;
+  }
+
+  function beginPanelResize(panel: ResizePanel, event: PointerEvent) {
+    event.preventDefault();
+    resizingPanel = panel;
+    resizeStartX = event.clientX;
+    resizeStartFileWidth = filePanelWidth;
+    resizeStartChatWidth = chatPanelWidth;
+    document.body.classList.add('resizing-columns');
+  }
+
+  function handleWorkspaceResizeMove(event: PointerEvent) {
+    if (!resizingPanel) return;
+    event.preventDefault();
+
+    const workspaceWidth = getWorkspaceWidth();
+    const deltaX = event.clientX - resizeStartX;
+
+    if (resizingPanel === 'file') {
+      const maxWidth = Math.min(FILE_PANEL_MAX, workspaceWidth - chatPanelWidth - VIEWER_PANEL_MIN);
+      filePanelWidth = clamp(resizeStartFileWidth + deltaX, FILE_PANEL_MIN, Math.max(FILE_PANEL_MIN, maxWidth));
+    } else {
+      const maxWidth = Math.min(CHAT_PANEL_MAX, workspaceWidth - filePanelWidth - VIEWER_PANEL_MIN);
+      chatPanelWidth = clamp(resizeStartChatWidth - deltaX, CHAT_PANEL_MIN, Math.max(CHAT_PANEL_MIN, maxWidth));
+    }
+  }
+
+  function endPanelResize() {
+    if (!resizingPanel) return;
+    saveStoredPanelWidth('haro:filePanelWidth', filePanelWidth);
+    saveStoredPanelWidth('haro:chatPanelWidth', chatPanelWidth);
+    resizingPanel = null;
+    document.body.classList.remove('resizing-columns');
   }
 
   async function handleNodeClick(node: TreeNode) {
@@ -738,7 +881,12 @@
   }
 </script>
 
-<svelte:window onkeydown={handleWindowKeydown} />
+<svelte:window
+  onkeydown={handleWindowKeydown}
+  onpointermove={handleWorkspaceResizeMove}
+  onpointerup={endPanelResize}
+  onblur={endPanelResize}
+/>
 
 <div class="layout">
   <!-- Top bar -->
@@ -766,9 +914,9 @@
     <span class="user-name">{$user?.name}</span>
   </header>
 
-  <div class="workspace">
+  <div class="workspace" class:resizing={resizingPanel !== null} bind:this={workspaceElement}>
     <!-- File Explorer -->
-    <div class="panel file-panel">
+    <div class="panel file-panel" style="width: {filePanelWidth}px">
       <div class="activity-bar" role="tablist" aria-label="왼쪽 메뉴">
         {#each SIDE_PANEL_TABS as tab}
           <button
@@ -804,7 +952,7 @@
               class="side-icon-btn"
               title="새 폴더"
               aria-label="새 폴더"
-              disabled={fileActionBusy}
+              disabled={fileActionBusy || isExplorerTargetReadOnly()}
               onclick={beginCreateFolder}
             >
               <FolderPlus size={15} />
@@ -814,7 +962,7 @@
               class="side-icon-btn"
               title="파일 업로드"
               aria-label="파일 업로드"
-              disabled={fileActionBusy}
+              disabled={fileActionBusy || isExplorerTargetReadOnly()}
               onclick={triggerUpload}
             >
               <Upload size={15} />
@@ -864,18 +1012,27 @@
                   class="file-item"
                   class:active={$selectedFilePath === item.path}
                   class:focused={focusedExplorerNode?.path === item.path}
+                  class:readonly={isCleanRoomPath(item.path)}
                   style="padding-left: {0.5 + depth * 0.75}rem"
                   ondragover={(event) => handleFileDragOver(event, item)}
                   ondrop={(event) => handleFileDrop(event, item)}
                   onclick={() => handleNodeClick(item)}
                 >
-                  <span>
+                  <span class="file-label">
+                    {#if isCleanRoomPath(item.path)}
+                      <Lock size={13} strokeWidth={2} />
+                    {/if}
+                    <span class="file-icon">
                     {#if item.type === 'directory'}
                       {item.expanded ? '📂' : '📁'}
                     {:else}
                       📄
                     {/if}
-                    {item.name}
+                    </span>
+                    <span class="file-name">{item.name}</span>
+                    {#if getPathBadge(item.path)}
+                      <span class="path-badge">{getPathBadge(item.path)}</span>
+                    {/if}
                   </span>
                 </button>
                 {#if creatingFolder && item.type === 'directory' && item.path === creatingFolderParentPath}
@@ -939,6 +1096,15 @@
         {/if}
       </div>
     </div>
+
+    <button
+      type="button"
+      class="panel-resizer file-resizer"
+      class:active={resizingPanel === 'file'}
+      aria-label="폴더 패널 너비 조절"
+      title="폴더 패널 너비 조절"
+      onpointerdown={(event) => beginPanelResize('file', event)}
+    ></button>
 
     <!-- File Viewer -->
     <div class="panel viewer-panel">
@@ -1017,7 +1183,9 @@
             <div class="editor-pane">
               <div class="editor-toolbar">
                 <span class="editor-status" class:dirty={hasUnsavedChanges()} class:warning={externalFileChanged}>
-                  {#if externalFileChanged}
+                  {#if isCleanRoomPath($selectedFilePath)}
+                    Clean Room은 직접 수정할 수 없습니다.
+                  {:else if externalFileChanged}
                     외부 변경 있음
                   {:else if hasUnsavedChanges()}
                     저장되지 않음
@@ -1031,8 +1199,8 @@
                 {#if externalFileChanged}
                   <button type="button" class="editor-action" onclick={handleReloadCurrentFile}>다시 불러오기</button>
                 {/if}
-                <button type="button" class="editor-action" onclick={handleRevertFile} disabled={!hasUnsavedChanges() || savingFile}>되돌리기</button>
-                <button type="button" class="editor-save" onclick={handleSaveFile} disabled={!hasUnsavedChanges() || savingFile}>
+                <button type="button" class="editor-action" onclick={handleRevertFile} disabled={isCleanRoomPath($selectedFilePath) || !hasUnsavedChanges() || savingFile}>되돌리기</button>
+                <button type="button" class="editor-save" onclick={handleSaveFile} disabled={isCleanRoomPath($selectedFilePath) || !hasUnsavedChanges() || savingFile}>
                   {savingFile ? '저장 중...' : '저장'}
                 </button>
               </div>
@@ -1054,6 +1222,7 @@
                             <td>
                               <input
                                 value={cell}
+                                disabled={isCleanRoomPath($selectedFilePath)}
                                 aria-label={`CSV ${rowIndex + 1}행 ${cellIndex + 1}열`}
                                 oninput={(event) => handleCsvCellInput(rowIndex, cellIndex, event)}
                               />
@@ -1070,7 +1239,9 @@
             <div class="editor-pane">
               <div class="editor-toolbar">
                 <span class="editor-status" class:dirty={hasUnsavedChanges()} class:warning={externalFileChanged}>
-                  {#if externalFileChanged}
+                  {#if isCleanRoomPath($selectedFilePath)}
+                    Clean Room은 직접 수정할 수 없습니다.
+                  {:else if externalFileChanged}
                     외부 변경 있음
                   {:else if hasUnsavedChanges()}
                     저장되지 않음
@@ -1084,8 +1255,8 @@
                 {#if externalFileChanged}
                   <button type="button" class="editor-action" onclick={handleReloadCurrentFile}>다시 불러오기</button>
                 {/if}
-                <button type="button" class="editor-action" onclick={handleRevertFile} disabled={!hasUnsavedChanges() || savingFile}>되돌리기</button>
-                <button type="button" class="editor-save" onclick={handleSaveFile} disabled={!hasUnsavedChanges() || savingFile}>
+                <button type="button" class="editor-action" onclick={handleRevertFile} disabled={isCleanRoomPath($selectedFilePath) || !hasUnsavedChanges() || savingFile}>되돌리기</button>
+                <button type="button" class="editor-save" onclick={handleSaveFile} disabled={isCleanRoomPath($selectedFilePath) || !hasUnsavedChanges() || savingFile}>
                   {savingFile ? '저장 중...' : '저장'}
                 </button>
               </div>
@@ -1093,6 +1264,7 @@
                 <CodeEditor
                   value={editorContent}
                   language={$fileLanguage}
+                  readonly={isCleanRoomPath($selectedFilePath)}
                   onchange={(value) => { editorContent = value; saveStatus = ''; }}
                 />
               </div>
@@ -1110,8 +1282,17 @@
       </div>
     </div>
 
+    <button
+      type="button"
+      class="panel-resizer chat-resizer"
+      class:active={resizingPanel === 'chat'}
+      aria-label="채팅 패널 너비 조절"
+      title="채팅 패널 너비 조절"
+      onpointerdown={(event) => beginPanelResize('chat', event)}
+    ></button>
+
     <!-- Chat Panel -->
-    <div class="panel chat-panel">
+    <div class="panel chat-panel" style="width: {chatPanelWidth}px">
       {#if showChatList}
         <!-- Chat List View -->
         <div class="panel-header">
@@ -1170,69 +1351,80 @@
 </div>
 
 <style>
-  .layout { height: 100vh; display: flex; flex-direction: column; }
-  .top-bar { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; background: #0f3460; border-bottom: 1px solid #333; font-size: 0.85rem; }
-  .back-btn { background: none; border: 1px solid #555; border-radius: 6px; color: #ccc; padding: 0.25rem 0.5rem; cursor: pointer; font-size: 0.8rem; }
-  .back-btn:hover { border-color: #e94560; color: #e94560; }
-  .project-name { font-weight: 600; color: #e94560; }
+  .layout { height: 100vh; display: flex; flex-direction: column; background: var(--color-bg); color: var(--color-text); }
+  .top-bar { display: flex; align-items: center; gap: 0.75rem; padding: 0.45rem 0.8rem; background: var(--color-surface); border-bottom: 1px solid var(--color-border); font-size: 0.85rem; }
+  .back-btn { background: transparent; border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text-muted); padding: 0.25rem 0.5rem; cursor: pointer; font-size: 0.8rem; }
+  .back-btn:hover { border-color: var(--color-accent); color: var(--color-accent-strong); background: var(--color-accent-soft); }
+  .project-name { font-weight: 700; color: var(--color-text); }
   .runtime-badge, .container-badge { flex-shrink: 0; border-radius: 999px; padding: 0.12rem 0.45rem; font-size: 0.7rem; font-weight: 700; }
-  .runtime-badge { background: #26314a; color: #cbd5e1; }
-  .runtime-badge.deploy { background: #4b1f2c; color: #ff9bb0; }
-  .container-badge { background: #1a1a2e; color: #9ca3af; }
-  .container-badge.running { color: #8bd3a7; }
-  .deploy-btn, .preview-link { flex-shrink: 0; border: 1px solid #3a4660; border-radius: 6px; background: transparent; color: #d0d7e2; padding: 0.25rem 0.55rem; font: inherit; font-size: 0.75rem; cursor: pointer; text-decoration: none; }
-  .deploy-btn:hover:not(:disabled), .preview-link:hover { border-color: #e94560; color: #fff; }
+  .runtime-badge { background: var(--color-info-soft); color: var(--color-info); }
+  .runtime-badge.deploy { background: var(--color-pink-soft); color: #be185d; }
+  .container-badge { background: var(--color-sidebar-strong); color: var(--color-text-muted); }
+  .container-badge.running { color: var(--color-accent-strong); }
+  .deploy-btn, .preview-link { flex-shrink: 0; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: transparent; color: var(--color-text-muted); padding: 0.25rem 0.55rem; font: inherit; font-size: 0.75rem; cursor: pointer; text-decoration: none; }
+  .deploy-btn:hover:not(:disabled), .preview-link:hover { border-color: var(--color-accent); color: var(--color-accent-strong); background: var(--color-accent-soft); }
   .deploy-btn:disabled { cursor: default; opacity: 0.55; }
-  .deploy-message { flex-shrink: 1; min-width: 0; color: #8bd3a7; font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .deploy-message.error { color: #ff9bb0; }
+  .deploy-message { flex-shrink: 1; min-width: 0; color: var(--color-accent-strong); font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .deploy-message.error { color: var(--color-danger); }
   .spacer { flex: 1; }
-  .user-name { color: #888; font-size: 0.8rem; }
+  .user-name { color: var(--color-text-muted); font-size: 0.8rem; }
 
   .workspace { flex: 1; display: flex; overflow: hidden; }
+  .workspace.resizing { cursor: col-resize; user-select: none; }
 
-  .panel { display: flex; flex-direction: column; border-right: 1px solid #333; }
-  .panel-header { padding: 0.6rem 1rem; background: #16213e; border-bottom: 1px solid #333; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
-  .file-panel { width: 260px; flex-direction: row; }
+  .panel { display: flex; flex-direction: column; border-right: 1px solid var(--color-border); background: var(--color-surface); }
+  .panel-header { padding: 0.6rem 1rem; background: var(--color-surface); border-bottom: 1px solid var(--color-border); font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+  .file-panel { flex: 0 0 auto; flex-direction: row; }
   .viewer-panel { flex: 1; min-width: 0; }
-  .chat-panel { width: 400px; border-right: none; display: flex; flex-direction: column; }
+  .chat-panel { flex: 0 0 auto; border-right: none; display: flex; flex-direction: column; }
+  .panel-resizer { position: relative; z-index: 5; flex: 0 0 8px; margin: 0 -4px; border: 0; padding: 0; background: transparent; cursor: col-resize; }
+  .panel-resizer::before { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 1px; background: var(--color-border); transition: background 0.12s ease, width 0.12s ease, left 0.12s ease; }
+  .panel-resizer:hover::before,
+  .panel-resizer.active::before { left: 2px; width: 3px; background: var(--color-accent); }
+  .panel-resizer:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+  :global(body.resizing-columns) { cursor: col-resize; user-select: none; }
 
-  .activity-bar { width: 48px; flex-shrink: 0; display: flex; flex-direction: column; align-items: stretch; padding: 0.25rem 0; background: #050812; border-right: 1px solid #333; }
-  .activity-tab { position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border: none; border-left: 2px solid transparent; background: transparent; color: #8b95a7; cursor: pointer; }
-  .activity-tab:hover { color: #fff; background: #10172a; }
-  .activity-tab.active { color: #fff; border-left-color: #e94560; background: #10172a; }
-  .activity-tab.active::after { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 2px; background: #e94560; }
+  .activity-bar { width: 48px; flex-shrink: 0; display: flex; flex-direction: column; align-items: stretch; padding: 0.25rem 0; background: var(--color-surface); border-right: 1px solid var(--color-border); }
+  .activity-tab { position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border: none; border-left: 2px solid transparent; background: transparent; color: var(--color-text-muted); cursor: pointer; }
+  .activity-tab:hover { color: var(--color-text); background: var(--color-sidebar-strong); }
+  .activity-tab.active { color: var(--color-text); border-left-color: var(--color-accent); background: var(--color-sidebar-strong); }
+  .activity-tab.active::after { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 2px; background: var(--color-accent); }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-  .side-panel-shell { flex: 1; min-width: 0; display: flex; flex-direction: column; background: #0a0a1a; }
-  .side-panel-header { flex-shrink: 0; display: flex; align-items: center; gap: 0.35rem; min-height: 40px; padding: 0.35rem 0.5rem 0.35rem 0.75rem; border-bottom: 1px solid #333; background: #16213e; color: #e0e0e0; font-size: 0.75rem; font-weight: 700; letter-spacing: 0; }
+  .side-panel-shell { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--color-sidebar); }
+  .side-panel-header { flex-shrink: 0; display: flex; align-items: center; gap: 0.35rem; min-height: 40px; padding: 0.35rem 0.5rem 0.35rem 0.75rem; border-bottom: 1px solid var(--color-border); background: var(--color-sidebar); color: var(--color-text); font-size: 0.75rem; font-weight: 700; letter-spacing: 0; }
   .side-panel-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .side-icon-btn { width: 28px; height: 28px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: 5px; background: transparent; color: #cbd5e1; cursor: pointer; }
-  .side-icon-btn:hover:not(:disabled) { border-color: #3a4660; background: #10172a; color: #fff; }
+  .side-icon-btn { width: 28px; height: 28px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-muted); cursor: pointer; }
+  .side-icon-btn:hover:not(:disabled) { border-color: var(--color-border); background: var(--color-surface); color: var(--color-text); }
   .side-icon-btn:disabled { cursor: default; opacity: 0.45; }
   .hidden-file-input { display: none; }
   .side-list { flex: 1; overflow-y: auto; padding: 0.4rem; }
-  .side-card { margin-bottom: 0.4rem; border: 1px solid #27324a; border-radius: 6px; background: #10172a; padding: 0.5rem; }
-  .side-card-title { color: #fff; font-size: 0.82rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .side-card-meta { display: flex; gap: 0.25rem; flex-wrap: wrap; margin-top: 0.35rem; color: #9ca3af; font-size: 0.68rem; }
-  .side-card-meta span { border-radius: 999px; background: #16213e; padding: 0.1rem 0.35rem; }
-  .side-card-description { margin: 0.45rem 0 0; color: #b8c0cc; font-size: 0.74rem; line-height: 1.45; }
+  .side-card { margin-bottom: 0.4rem; border: 1px solid var(--color-border-soft); border-radius: var(--radius-md); background: var(--color-surface); padding: 0.5rem; }
+  .side-card-title { color: var(--color-text); font-size: 0.82rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .side-card-meta { display: flex; gap: 0.25rem; flex-wrap: wrap; margin-top: 0.35rem; color: var(--color-text-muted); font-size: 0.68rem; }
+  .side-card-meta span { border-radius: 999px; background: var(--color-sidebar-strong); padding: 0.1rem 0.35rem; }
+  .side-card-description { margin: 0.45rem 0 0; color: var(--color-text-muted); font-size: 0.74rem; line-height: 1.45; }
   .side-chip-list { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.45rem; }
-  .side-chip { max-width: 100%; border-radius: 4px; background: #1a1a2e; color: #d8e2f1; padding: 0.12rem 0.3rem; font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .side-signature { display: block; margin-top: 0.35rem; color: #ffd166; font-family: Consolas, 'Courier New', monospace; font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .side-error { border: 1px solid #5a2735; border-radius: 6px; background: #1f1020; color: #ffbdc9; padding: 0.6rem; font-size: 0.75rem; line-height: 1.45; }
-  .file-action-message { flex-shrink: 0; margin: 0.35rem 0.4rem 0; border: 1px solid #27324a; border-radius: 5px; background: #10172a; color: #cbd5e1; padding: 0.35rem 0.45rem; font-size: 0.72rem; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .side-chip { max-width: 100%; border-radius: var(--radius-sm); background: var(--color-sidebar-strong); color: var(--color-text-muted); padding: 0.12rem 0.3rem; font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .side-signature { display: block; margin-top: 0.35rem; color: var(--color-info); font-family: var(--font-mono); font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .side-error { border: 1px solid var(--color-danger-soft); border-radius: var(--radius-md); background: var(--color-danger-soft); color: var(--color-danger); padding: 0.6rem; font-size: 0.75rem; line-height: 1.45; }
+  .file-action-message { flex-shrink: 0; margin: 0.35rem 0.4rem 0; border: 1px solid var(--color-border-soft); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-muted); padding: 0.35rem 0.45rem; font-size: 0.72rem; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .file-list { flex: 1; overflow-y: auto; padding: 0.25rem; }
-  .file-list.dragging { outline: 1px dashed #e94560; outline-offset: -4px; background: #0d1020; }
-  .file-item { padding: 0.35rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; background: transparent; border: none; color: #e0e0e0; width: 100%; text-align: left; font-family: inherit; display: block; }
-  .file-item span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .file-item:hover { background: #16213e; }
-  .file-item.focused { outline: 1px solid #4b5f86; outline-offset: -1px; background: #10172a; }
-  .file-item.active { background: #1a1a2e; color: #e94560; }
-  .file-item.active.focused { outline-color: #e94560; }
-  .new-folder-row { display: flex; align-items: center; gap: 0.25rem; margin: 0.15rem 0.1rem 0.35rem; padding: 0.25rem; border-radius: 5px; background: #10172a; }
-  .new-folder-input { flex: 1; min-width: 0; border: 1px solid #3a4660; border-radius: 5px; background: #050812; color: #f8fafc; padding: 0.35rem 0.45rem; font: inherit; font-size: 0.76rem; }
-  .new-folder-input:focus { outline: none; border-color: #e94560; }
-  .new-folder-action { flex-shrink: 0; border: 1px solid #e94560; border-radius: 5px; background: #e94560; color: #fff; padding: 0.35rem 0.45rem; font: inherit; font-size: 0.72rem; cursor: pointer; }
-  .new-folder-action.ghost { border-color: #3a4660; background: transparent; color: #cbd5e1; }
+  .file-list.dragging { outline: 1px dashed var(--color-accent); outline-offset: -4px; background: var(--color-accent-soft); }
+  .file-item { padding: 0.35rem 0.5rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.8rem; background: transparent; border: none; color: var(--color-text); width: 100%; text-align: left; font-family: inherit; display: block; }
+  .file-item.readonly { color: var(--color-text-muted); }
+  .file-label { display: flex; align-items: center; gap: 0.25rem; min-width: 0; overflow: hidden; }
+  .file-icon { flex-shrink: 0; }
+  .file-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .path-badge { flex-shrink: 0; max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 999px; background: var(--color-info-soft); color: var(--color-info); padding: 0.08rem 0.32rem; font-size: 0.62rem; font-weight: 700; }
+  .file-item:hover { background: var(--color-sidebar-strong); }
+  .file-item.focused { outline: 1px solid #b7c2d2; outline-offset: -1px; background: var(--color-surface); }
+  .file-item.active { background: var(--color-surface); color: var(--color-text); box-shadow: inset 0 0 0 1px var(--color-info); }
+  .file-item.active.focused { outline-color: var(--color-info); }
+  .new-folder-row { display: flex; align-items: center; gap: 0.25rem; margin: 0.15rem 0.1rem 0.35rem; padding: 0.25rem; border-radius: var(--radius-sm); background: var(--color-surface); }
+  .new-folder-input { flex: 1; min-width: 0; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); padding: 0.35rem 0.45rem; font: inherit; font-size: 0.76rem; }
+  .new-folder-input:focus { outline: none; border-color: var(--color-accent); }
+  .new-folder-action { flex-shrink: 0; border: 1px solid var(--color-accent); border-radius: var(--radius-sm); background: var(--color-accent); color: #fff; padding: 0.35rem 0.45rem; font: inherit; font-size: 0.72rem; cursor: pointer; }
+  .new-folder-action.ghost { border-color: var(--color-border); background: transparent; color: var(--color-text-muted); }
   .new-folder-action:hover:not(:disabled) { filter: brightness(1.08); }
   .new-folder-action:disabled { cursor: default; opacity: 0.5; }
 
@@ -1240,95 +1432,96 @@
   .viewer-title { display: flex; align-items: center; flex: 0 1 auto; max-width: 45%; min-width: 0; padding: 0.6rem 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .viewer-status-spacer { flex: 1; min-width: 0; }
   .dirty-badge, .external-badge { align-self: center; flex-shrink: 0; margin-right: 0.5rem; border-radius: 999px; padding: 0.15rem 0.5rem; font-size: 0.7rem; font-weight: 600; }
-  .dirty-badge { background: #4b3b18; color: #ffd166; }
-  .external-badge { background: #4b1f2c; color: #ff9bb0; }
-  .viewer-tabs { display: flex; flex-shrink: 0; border-left: 1px solid #333; }
-  .viewer-tab { border: none; border-right: 1px solid #333; background: #16213e; color: #aaa; padding: 0 0.85rem; font: inherit; font-size: 0.78rem; cursor: pointer; }
-  .viewer-tab:hover { color: #fff; background: #1a2a4e; }
-  .viewer-tab.active { color: #fff; background: #e94560; }
-  .viewer-content { flex: 1; overflow: auto; padding: 0; background: #0a0a1a; }
+  .dirty-badge { background: var(--color-warning-soft); color: #92400e; }
+  .external-badge { background: var(--color-danger-soft); color: var(--color-danger); }
+  .viewer-tabs { display: flex; flex-shrink: 0; border-left: 1px solid var(--color-border); }
+  .viewer-tab { border: none; border-right: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-muted); padding: 0 0.85rem; font: inherit; font-size: 0.78rem; cursor: pointer; }
+  .viewer-tab:hover { color: var(--color-text); background: var(--color-sidebar-strong); }
+  .viewer-tab.active { color: var(--color-text); background: var(--color-pink-soft); box-shadow: inset 0 -2px 0 var(--color-pink); }
+  .viewer-content { flex: 1; overflow: auto; padding: 0; background: var(--color-canvas); }
   .code-preview { margin: 0; min-height: 100%; padding: 1rem; box-sizing: border-box; font-size: 0.8rem; line-height: 1.5; white-space: pre; word-break: normal; overflow: auto; }
   .code-preview code { font-family: Consolas, 'Courier New', monospace; }
   .html-preview-frame { position: relative; width: 100%; height: 100%; min-height: 100%; }
-  .html-preview-refresh { position: absolute; top: 0.6rem; right: 0.8rem; z-index: 2; border: 1px solid rgba(0,0,0,0.12); border-radius: 6px; background: rgba(255,255,255,0.92); color: #333; padding: 0.3rem 0.6rem; font: inherit; font-size: 0.75rem; font-weight: 600; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
-  .html-preview-refresh:hover { background: #fff; border-color: rgba(0,0,0,0.24); }
-  .html-preview { display: block; width: 100%; height: 100%; min-height: 100%; border: 0; background: #fff; }
-  .markdown-preview { min-height: 100%; box-sizing: border-box; padding: 1.25rem; color: #e0e0e0; line-height: 1.65; background: #0f1729; }
+  .html-preview-refresh { position: absolute; top: 0.6rem; right: 0.8rem; z-index: 2; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: rgba(255,255,255,0.92); color: var(--color-text); padding: 0.3rem 0.6rem; font: inherit; font-size: 0.75rem; font-weight: 600; cursor: pointer; box-shadow: 0 2px 6px rgba(15,23,42,0.12); }
+  .html-preview-refresh:hover { background: var(--color-surface); border-color: var(--color-pink); }
+  .html-preview { display: block; width: 100%; height: 100%; min-height: 100%; border: 0; background: var(--color-surface); }
+  .markdown-preview { min-height: 100%; box-sizing: border-box; padding: 1.25rem; color: var(--color-text); line-height: 1.65; background: var(--color-canvas); }
   .markdown-preview :global(h1),
   .markdown-preview :global(h2),
-  .markdown-preview :global(h3) { margin: 1.1em 0 0.55em; color: #fff; line-height: 1.25; }
+  .markdown-preview :global(h3) { margin: 1.1em 0 0.55em; color: var(--color-text); line-height: 1.25; }
   .markdown-preview :global(h1:first-child),
   .markdown-preview :global(h2:first-child),
   .markdown-preview :global(h3:first-child) { margin-top: 0; }
   .markdown-preview :global(p) { margin: 0 0 0.85rem; }
-  .markdown-preview :global(a) { color: #7db7ff; }
+  .markdown-preview :global(a) { color: var(--color-info); }
   .markdown-preview :global(ul),
   .markdown-preview :global(ol) { padding-left: 1.4rem; margin: 0 0 0.85rem; }
-  .markdown-preview :global(blockquote) { margin: 0 0 0.85rem; padding-left: 0.85rem; border-left: 3px solid #e94560; color: #bbb; }
-  .markdown-preview :global(code) { border-radius: 4px; background: #1a1a2e; padding: 0.1rem 0.25rem; font-family: Consolas, 'Courier New', monospace; font-size: 0.9em; }
-  .markdown-preview :global(pre) { overflow: auto; border-radius: 6px; background: #0a0a1a; padding: 0.85rem; }
+  .markdown-preview :global(blockquote) { margin: 0 0 0.85rem; padding-left: 0.85rem; border-left: 3px solid var(--color-pink); color: var(--color-text-muted); }
+  .markdown-preview :global(code) { border-radius: 4px; background: var(--color-sidebar-strong); padding: 0.1rem 0.25rem; font-family: var(--font-mono); font-size: 0.9em; }
+  .markdown-preview :global(pre) { overflow: auto; border-radius: var(--radius-md); background: var(--color-sidebar); padding: 0.85rem; }
   .markdown-preview :global(pre code) { background: transparent; padding: 0; }
   .markdown-preview :global(table) { width: 100%; border-collapse: collapse; margin: 0 0 1rem; font-size: 0.9rem; }
   .markdown-preview :global(th),
-  .markdown-preview :global(td) { border: 1px solid #333; padding: 0.45rem 0.6rem; }
-  .markdown-preview :global(th) { background: #16213e; color: #fff; }
-  .csv-table-wrap, .csv-editor-body { min-height: 100%; box-sizing: border-box; overflow: auto; padding: 1rem; background: #0f1729; }
+  .markdown-preview :global(td) { border: 1px solid var(--color-border); padding: 0.45rem 0.6rem; }
+  .markdown-preview :global(th) { background: var(--color-sidebar); color: var(--color-text); }
+  .csv-table-wrap, .csv-editor-body { min-height: 100%; box-sizing: border-box; overflow: auto; padding: 1rem; background: var(--color-canvas); }
   .csv-editor-body { flex: 1; min-height: 0; }
-  .csv-table { width: 100%; min-width: max-content; border-collapse: collapse; color: #e0e0e0; font-size: 0.8rem; line-height: 1.4; }
-  .csv-table th, .csv-table td { border: 1px solid #2b3852; padding: 0.45rem 0.6rem; text-align: left; white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
-  .csv-table th, .csv-table tr.header-row td { background: #16213e; color: #fff; font-weight: 700; }
+  .csv-table { width: 100%; min-width: max-content; border-collapse: collapse; color: var(--color-text); font-size: 0.8rem; line-height: 1.4; }
+  .csv-table th, .csv-table td { border: 1px solid var(--color-border); padding: 0.45rem 0.6rem; text-align: left; white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+  .csv-table th, .csv-table tr.header-row td { background: var(--color-sidebar); color: var(--color-text); font-weight: 700; }
   .csv-edit-table td { padding: 0; max-width: none; overflow: visible; }
-  .csv-edit-table input { width: 100%; min-width: 120px; box-sizing: border-box; border: 0; background: transparent; color: #f8fafc; padding: 0.45rem 0.6rem; font: inherit; }
-  .csv-edit-table input:focus { position: relative; z-index: 1; outline: 2px solid #e94560; outline-offset: -2px; background: #111b33; }
-  .csv-error { margin: 0; border: 1px solid #5a2735; border-radius: 6px; background: #1f1020; color: #ffbdc9; padding: 0.85rem; font-size: 0.82rem; line-height: 1.5; }
-  .csv-error strong { display: block; margin-bottom: 0.35rem; color: #fff; }
-  .csv-error pre { margin: 0 0 0.45rem; white-space: pre-wrap; font-family: Consolas, 'Courier New', monospace; }
-  .editor-pane { height: 100%; min-height: 0; display: flex; flex-direction: column; background: #0a0a1a; }
-  .editor-toolbar { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; padding: 0.45rem 0.6rem; border-bottom: 1px solid #333; background: #10172a; }
-  .editor-status { color: #8bd3a7; font-size: 0.75rem; font-weight: 600; }
-  .editor-status.dirty { color: #ffd166; }
-  .editor-status.warning { color: #ff9bb0; }
-  .editor-action, .editor-save { border: 1px solid #3a4660; border-radius: 6px; padding: 0.3rem 0.65rem; font: inherit; font-size: 0.78rem; cursor: pointer; }
-  .editor-action { background: transparent; color: #d0d7e2; }
-  .editor-action:hover:not(:disabled) { border-color: #e94560; color: #fff; }
-  .editor-save { border-color: #e94560; background: #e94560; color: #fff; }
+  .csv-edit-table input { width: 100%; min-width: 120px; box-sizing: border-box; border: 0; background: transparent; color: var(--color-text); padding: 0.45rem 0.6rem; font: inherit; }
+  .csv-edit-table input:focus { position: relative; z-index: 1; outline: 2px solid var(--color-pink); outline-offset: -2px; background: var(--color-pink-soft); }
+  .csv-edit-table input:disabled { color: var(--color-text-muted); cursor: default; opacity: 0.78; }
+  .csv-error { margin: 0; border: 1px solid var(--color-danger-soft); border-radius: var(--radius-md); background: var(--color-danger-soft); color: var(--color-danger); padding: 0.85rem; font-size: 0.82rem; line-height: 1.5; }
+  .csv-error strong { display: block; margin-bottom: 0.35rem; color: var(--color-text); }
+  .csv-error pre { margin: 0 0 0.45rem; white-space: pre-wrap; font-family: var(--font-mono); }
+  .editor-pane { height: 100%; min-height: 0; display: flex; flex-direction: column; background: var(--color-surface); }
+  .editor-toolbar { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--color-border); background: var(--color-sidebar); }
+  .editor-status { color: var(--color-accent-strong); font-size: 0.75rem; font-weight: 600; }
+  .editor-status.dirty { color: #92400e; }
+  .editor-status.warning { color: var(--color-danger); }
+  .editor-action, .editor-save { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 0.3rem 0.65rem; font: inherit; font-size: 0.78rem; cursor: pointer; }
+  .editor-action { background: transparent; color: var(--color-text-muted); }
+  .editor-action:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent-strong); background: var(--color-accent-soft); }
+  .editor-save { border-color: var(--color-accent); background: var(--color-accent); color: #fff; }
   .editor-action:disabled, .editor-save:disabled { cursor: default; opacity: 0.45; }
   .editor-body { flex: 1; min-height: 0; }
 
-  .link-btn { background: none; border: none; color: #e94560; cursor: pointer; font-size: 0.8rem; padding: 0; }
+  .link-btn { background: none; border: none; color: var(--color-pink); cursor: pointer; font-size: 0.8rem; padding: 0; }
   .link-btn:hover { text-decoration: underline; }
 
   /* Chat list */
   .chat-list { flex: 1; overflow-y: auto; padding: 0.5rem; }
-  .chat-item { display: flex; align-items: center; margin-bottom: 2px; border-radius: 6px; }
-  .chat-item:hover { background: #16213e; }
-  .chat-item.active { background: #1a1a2e; }
-  .chat-select { flex: 1; background: none; border: none; color: #e0e0e0; padding: 0.5rem 0.75rem; cursor: pointer; text-align: left; font-family: inherit; font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.15rem; }
+  .chat-item { display: flex; align-items: center; margin-bottom: 2px; border-radius: var(--radius-md); }
+  .chat-item:hover { background: var(--color-sidebar-strong); }
+  .chat-item.active { background: var(--color-pink-soft); }
+  .chat-select { flex: 1; background: none; border: none; color: var(--color-text); padding: 0.5rem 0.75rem; cursor: pointer; text-align: left; font-family: inherit; font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.15rem; }
   .chat-title { font-weight: 500; }
-  .chat-meta { font-size: 0.75rem; color: #888; }
-  .delete-btn { background: none; border: none; color: #666; cursor: pointer; font-size: 1.1rem; padding: 0 8px; }
-  .delete-btn:hover { color: #e94560; }
-  .new-chat-btn { width: 100%; padding: 0.5rem; border: 1px dashed #555; border-radius: 6px; background: transparent; color: #e0e0e0; cursor: pointer; margin-top: 0.5rem; font-size: 0.85rem; }
-  .new-chat-btn:hover { border-color: #e94560; color: #e94560; }
+  .chat-meta { font-size: 0.75rem; color: var(--color-text-muted); }
+  .delete-btn { background: none; border: none; color: var(--color-text-subtle); cursor: pointer; font-size: 1.1rem; padding: 0 8px; }
+  .delete-btn:hover { color: var(--color-danger); }
+  .new-chat-btn { width: 100%; padding: 0.5rem; border: 1px dashed var(--color-border); border-radius: var(--radius-md); background: transparent; color: var(--color-text-muted); cursor: pointer; margin-top: 0.5rem; font-size: 0.85rem; }
+  .new-chat-btn:hover { border-color: var(--color-pink); color: var(--color-pink); background: var(--color-pink-soft); }
 
   /* Messages */
   .messages { flex: 1; overflow-y: auto; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.75rem; }
   .message { display: flex; gap: 0.5rem; }
   .message.user { flex-direction: row-reverse; }
   .msg-role { font-size: 1.2rem; flex-shrink: 0; }
-  .msg-content { background: #16213e; padding: 0.6rem 0.8rem; border-radius: 8px; font-size: 0.85rem; line-height: 1.5; max-width: 85%; white-space: pre-wrap; }
-  .message.user .msg-content { background: #0f3460; }
+  .msg-content { background: var(--color-sidebar); border: 1px solid var(--color-border-soft); padding: 0.6rem 0.8rem; border-radius: var(--radius-md); font-size: 0.85rem; line-height: 1.5; max-width: 85%; white-space: pre-wrap; }
+  .message.user .msg-content { background: var(--color-info-soft); border-color: #bfdbfe; }
 
-  .tool-step-inline { padding: 0.2rem 0.75rem; font-size: 0.8rem; color: #888; border-left: 2px solid #333; margin-left: 1.5rem; }
-  .step-text { font-family: monospace; }
+  .tool-step-inline { padding: 0.2rem 0.75rem; font-size: 0.8rem; color: var(--color-text-muted); border-left: 2px solid var(--color-border); margin-left: 1.5rem; }
+  .step-text { font-family: var(--font-mono); }
 
-  .input-area { display: flex; gap: 0.5rem; padding: 0.75rem; border-top: 1px solid #333; }
-  .input-area input { flex: 1; padding: 0.6rem; border: 1px solid #333; border-radius: 8px; background: #0f3460; color: #e0e0e0; font-size: 0.9rem; }
-  .input-area input:focus { outline: none; border-color: #e94560; }
-  .input-area button { padding: 0.6rem 1.2rem; border: none; border-radius: 8px; background: #e94560; color: white; cursor: pointer; }
+  .input-area { display: flex; gap: 0.5rem; padding: 0.75rem; border-top: 1px solid var(--color-border); }
+  .input-area input { flex: 1; padding: 0.6rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text); font-size: 0.9rem; }
+  .input-area input:focus { outline: none; border-color: var(--color-pink); box-shadow: 0 0 0 3px var(--color-pink-soft); }
+  .input-area button { padding: 0.6rem 1.2rem; border: none; border-radius: var(--radius-md); background: var(--color-pink); color: white; cursor: pointer; font-weight: 700; }
   .input-area button:disabled { opacity: 0.5; }
 
-  .status-badge { background: #e94560; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.7rem; }
+  .status-badge { background: var(--color-pink); color: white; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.7rem; }
 
-  .empty { color: #555; font-size: 0.8rem; text-align: center; padding: 1rem; }
+  .empty { color: var(--color-text-subtle); font-size: 0.8rem; text-align: center; padding: 1rem; }
 </style>

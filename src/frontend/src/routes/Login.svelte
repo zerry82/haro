@@ -23,7 +23,7 @@
 
 <div class="container">
   <div class="card">
-    <h1>Mini Open Claw</h1>
+    <h1>haro</h1>
     <p class="subtitle">AI 에이전트 작업 공간</p>
     <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
       <input type="email" placeholder="이메일" bind:value={email} required />

@@ -16,7 +16,7 @@ from app.models.project import Project
 from app.services.context import build_context, get_recent_messages
 from app.services.llm import get_client
 from app.services.sse import SSEEmitter
-from app.services.workspace_index import update_file_summary
+from app.services.workspace_index import META_EXCLUDES, update_file_summary
 
 MAX_TOOL_ROUNDS = 15
 
@@ -129,7 +129,7 @@ async def execute_tool(workspace: str, tool_name: str, args: dict, emitter: SSEE
                 return f"디렉토리 없음: {path}"
             items = []
             for entry in os.scandir(full_path):
-                if entry.name.startswith(".openclaw"):
+                if entry.name in META_EXCLUDES:
                     continue
                 t = "dir" if entry.is_dir() else "file"
                 items.append(f"  [{t}] {entry.name}")

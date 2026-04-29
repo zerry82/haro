@@ -12,10 +12,12 @@
   let {
     value = '',
     language = 'plaintext',
+    readonly = false,
     onchange,
   }: {
     value?: string;
     language?: string;
+    readonly?: boolean;
     onchange?: (value: string) => void;
   } = $props();
 
@@ -23,6 +25,7 @@
   let view: EditorView | null = null;
   let currentValue = '';
   const languageCompartment = new Compartment();
+  const readOnlyCompartment = new Compartment();
 
   function getLanguageExtension(lang: string): Extension {
     switch (lang) {
@@ -46,6 +49,16 @@
 
   onMount(() => {
     currentValue = value;
+    const token = (name: string, fallback: string) =>
+      getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+    const surface = token('--color-surface', '#ffffff');
+    const sidebar = token('--color-sidebar', '#f7f8fb');
+    const sidebarStrong = token('--color-sidebar-strong', '#eef2f7');
+    const borderSoft = token('--color-border-soft', '#e7ebf1');
+    const text = token('--color-text', '#111827');
+    const textSubtle = token('--color-text-subtle', '#98a2b3');
+    const infoSoft = token('--color-info-soft', '#dbeafe');
+
     view = new EditorView({
       parent: host,
       state: EditorState.create({
@@ -54,6 +67,10 @@
           basicSetup,
           EditorView.lineWrapping,
           languageCompartment.of(getLanguageExtension(language)),
+          readOnlyCompartment.of([
+            EditorState.readOnly.of(readonly),
+            EditorView.editable.of(!readonly),
+          ]),
           EditorView.updateListener.of((update) => {
             if (!update.docChanged) return;
             currentValue = update.state.doc.toString();
@@ -62,26 +79,26 @@
           EditorView.theme({
             '&': {
               height: '100%',
-              backgroundColor: '#0a0a1a',
-              color: '#e0e0e0',
+              backgroundColor: surface,
+              color: text,
               fontSize: '13px',
             },
             '.cm-scroller': {
-              fontFamily: "Consolas, 'Courier New', monospace",
+              fontFamily: "var(--font-mono)",
             },
             '.cm-gutters': {
-              backgroundColor: '#10172a',
-              color: '#7d8799',
-              borderRight: '1px solid #2a3448',
+              backgroundColor: sidebar,
+              color: textSubtle,
+              borderRight: `1px solid ${borderSoft}`,
             },
             '.cm-activeLine': {
-              backgroundColor: '#16213e',
+              backgroundColor: sidebar,
             },
             '.cm-activeLineGutter': {
-              backgroundColor: '#1f2d4a',
+              backgroundColor: sidebarStrong,
             },
             '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': {
-              backgroundColor: '#344c7a',
+              backgroundColor: infoSoft,
             },
             '&.cm-focused': {
               outline: 'none',
@@ -104,6 +121,16 @@
     if (!view) return;
     view.dispatch({
       effects: languageCompartment.reconfigure(getLanguageExtension(language)),
+    });
+  });
+
+  $effect(() => {
+    if (!view) return;
+    view.dispatch({
+      effects: readOnlyCompartment.reconfigure([
+        EditorState.readOnly.of(readonly),
+        EditorView.editable.of(!readonly),
+      ]),
     });
   });
 

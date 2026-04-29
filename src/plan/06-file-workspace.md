@@ -1,4 +1,4 @@
-# 파일 작업 공간 현재 구현
+﻿# 파일 작업 공간 현재 구현
 
 ## 1. 워크스페이스 구조
 
@@ -8,7 +8,7 @@
 {WORKSPACE_ROOT}/
 └── {user_id}/
     └── {project_id}/
-        ├── .openclaw/
+        ├── .haro/
         │   ├── workspace.md
         │   └── file_summaries/
         │       └── README.md.md
@@ -30,7 +30,7 @@
 프로젝트 생성 시:
 
 1. `{workspace_root}/{user_id}/{project_id}` 생성
-2. `.openclaw/file_summaries` 생성
+2. `.haro/file_summaries` 생성
 3. `Project.workspace_path`에 물리 경로 저장
 4. 가능한 경우 Docker 컨테이너 생성 후 이 경로를 `/workspace`로 마운트
 
@@ -63,7 +63,7 @@ if not full.startswith(os.path.realpath(workspace)):
 - `os.scandir`로 한 단계만 조회
 - 디렉토리는 `children_count` 포함
 - 파일은 `size` 포함
-- `.openclaw`로 시작하는 항목은 숨김
+- `.haro`로 시작하는 항목은 숨김
 - 디렉토리 먼저, 그다음 파일을 이름순 정렬
 
 ### 파일 내용
@@ -103,7 +103,7 @@ if not full.startswith(os.path.realpath(workspace)):
 | `dir_create` | 디렉토리 생성 |
 
 파일 생성/수정/삭제와 디렉토리 생성은 `file_changed` SSE 이벤트를 발행한다.
-파일 생성/수정/삭제는 `.openclaw` 워크스페이스 인덱스도 갱신한다.
+파일 생성/수정/삭제는 `.haro` 워크스페이스 인덱스도 갱신한다.
 
 ## 6. 워크스페이스 인덱스
 
@@ -116,11 +116,11 @@ file_create / file_write / file_delete
     ↓
 update_file_summary(workspace, path, action)
     ↓
-.openclaw/file_summaries/{path}.md 갱신 또는 삭제
+.haro/file_summaries/{path}.md 갱신 또는 삭제
     ↓
 rebuild_workspace_index(workspace)
     ↓
-.openclaw/workspace.md 재생성
+.haro/workspace.md 재생성
 ```
 
 현재 파일 요약은 LLM을 쓰지 않고 간단히 생성한다.

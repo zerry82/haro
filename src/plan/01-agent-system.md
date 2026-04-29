@@ -1,4 +1,4 @@
-# 에이전트 시스템 현재 구현
+﻿# 에이전트 시스템 현재 구현
 
 ## 1. 개요
 
@@ -24,8 +24,8 @@ run_agent(db, chat_session, project, user_content, emitter)
     ↓
 시스템 컨텍스트 조립
     ├─ 기본 시스템 프롬프트
-    ├─ .openclaw/workspace.md
-    └─ .openclaw/summary_v*.md 중 최신 파일(있을 때)
+    ├─ .haro/workspace.md
+    └─ .haro/summary_v*.md 중 최신 파일(있을 때)
     ↓
 최근 메시지 20개 로드
     ↓

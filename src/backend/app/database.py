@@ -20,8 +20,11 @@ def init_db() -> None:
     global engine, async_session_factory
     os.makedirs(os.path.dirname(settings.db_data_dir) or ".", exist_ok=True)
 
-    db_path = os.path.join(settings.db_data_dir, "openclaw.db")
     os.makedirs(settings.db_data_dir, exist_ok=True)
+    db_path = os.path.join(settings.db_data_dir, "haro.db")
+    legacy_db_path = os.path.join(settings.db_data_dir, "openclaw.db")
+    if not os.path.exists(db_path) and os.path.exists(legacy_db_path):
+        db_path = legacy_db_path
     async_url = f"sqlite+aiosqlite:///{db_path}"
 
     engine = create_async_engine(async_url, echo=False)

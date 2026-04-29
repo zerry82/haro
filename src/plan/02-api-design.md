@@ -1,4 +1,4 @@
-# API 엔드포인트 현재 구현
+﻿# API 엔드포인트 현재 구현
 
 기본 prefix는 `/api`이다.
 인증이 필요한 엔드포인트는 `Authorization: Bearer {token}` 헤더를 사용한다.
@@ -310,7 +310,7 @@
 }
 ```
 
-`.openclaw`로 시작하는 파일/디렉토리는 목록에서 제외한다.
+`.haro`로 시작하는 파일/디렉토리는 목록에서 제외한다.
 
 ### GET `/api/projects/{project_id}/files/content`
 

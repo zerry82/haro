@@ -1,4 +1,4 @@
-# 프로젝트 개요: Mini Open Claw
+﻿# 프로젝트 개요: haro
 
 ## 1. 프로젝트 비전
 
@@ -42,7 +42,7 @@ ChatGPT와 유사한 대화형 AI 서비스이되, **프로젝트마다 독립�
 | 실시간 통신 | POST 응답 SSE (`fetch` + `ReadableStream`) |
 | 인증 | JWT Bearer Token, bcrypt 비밀번호 해시 |
 | LLM | Google Gemini API, `gemini-3-flash-preview` |
-| 데이터 저장 | SQLite + SQLAlchemy async (`./data/pgdata/openclaw.db`) |
+| 데이터 저장 | SQLite + SQLAlchemy async (`./data/pgdata/haro.db`) |
 | 파일 저장 | 로컬 파일시스템 (`./data/workspaces/{user_id}/{project_id}`) |
 | 코드 실행 | Docker SDK + `denoland/deno:latest` 컨테이너 |
 | 웹 프리뷰 | 컨테이너 내부 Deno file_server + FastAPI 프록시 |

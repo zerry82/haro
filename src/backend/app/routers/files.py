@@ -12,7 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_current_user, get_db
 from app.models.project import Project
 from app.models.user import User
-from app.services.workspace_index import rebuild_workspace_index, update_file_summary
+from app.services.harness import ensure_harness_structure, is_clean_room_path, is_haro_internal_path
+from app.services.workspace_index import META_EXCLUDES, rebuild_workspace_index, update_file_summary
 
 router = APIRouter(prefix="/api/projects/{project_id}/files", tags=["files"])
 
@@ -78,6 +79,17 @@ async def _get_workspace(db: AsyncSession, user_id: str, project_id: str) -> str
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return project.workspace_path
+
+
+def _assert_read_allowed(requested: str) -> None:
+    if is_haro_internal_path(requested):
+        raise HTTPException(status_code=403, detail="Haro internal metadata is not accessible")
+
+
+def _assert_write_allowed(requested: str) -> None:
+    _assert_read_allowed(requested)
+    if is_clean_room_path(requested):
+        raise HTTPException(status_code=403, detail="Clean Room is read-only")
 
 
 def _validate_path(workspace: str, requested: str) -> str:
@@ -199,16 +211,18 @@ async def list_files(
     db: AsyncSession = Depends(get_db),
 ):
     workspace = await _get_workspace(db, user.id, project_id)
+    ensure_harness_structure(workspace, user.id, initialize_git=path == "/")
+    _assert_read_allowed(path)
     full_path = _validate_path(workspace, path)
     if not os.path.isdir(full_path):
         raise HTTPException(status_code=404, detail="Directory not found")
 
     items: list[FileItem] = []
     for entry in os.scandir(full_path):
-        if entry.name.startswith(".openclaw"):
+        if entry.name in META_EXCLUDES:
             continue
         if entry.is_dir():
-            children = len([e for e in os.scandir(entry.path) if not e.name.startswith(".openclaw")])
+            children = len([e for e in os.scandir(entry.path) if e.name not in META_EXCLUDES])
             items.append(FileItem(name=entry.name, type="directory", children_count=children))
         else:
             items.append(FileItem(name=entry.name, type="file", size=entry.stat().st_size))
@@ -224,6 +238,8 @@ async def create_directory(
     db: AsyncSession = Depends(get_db),
 ):
     workspace = await _get_workspace(db, user.id, project_id)
+    ensure_harness_structure(workspace, user.id, initialize_git=False)
+    _assert_write_allowed(body.path)
     full_path = _validate_path(workspace, body.path)
     if os.path.exists(full_path):
         raise HTTPException(status_code=409, detail="Path already exists")
@@ -247,6 +263,8 @@ async def upload_files(
     db: AsyncSession = Depends(get_db),
 ):
     workspace = await _get_workspace(db, user.id, project_id)
+    ensure_harness_structure(workspace, user.id, initialize_git=False)
+    _assert_write_allowed(path)
     target_dir = _validate_path(workspace, path)
     if not os.path.isdir(target_dir):
         raise HTTPException(status_code=404, detail="Directory not found")
@@ -305,6 +323,8 @@ async def get_file_content(
     db: AsyncSession = Depends(get_db),
 ):
     workspace = await _get_workspace(db, user.id, project_id)
+    ensure_harness_structure(workspace, user.id, initialize_git=False)
+    _assert_read_allowed(path)
     full_path = _validate_path(workspace, path)
     if not os.path.isfile(full_path):
         raise HTTPException(status_code=404, detail="File not found")
@@ -325,6 +345,8 @@ async def update_file_content(
     db: AsyncSession = Depends(get_db),
 ):
     workspace = await _get_workspace(db, user.id, project_id)
+    ensure_harness_structure(workspace, user.id, initialize_git=False)
+    _assert_write_allowed(path)
     full_path = _validate_path(workspace, path)
     if not os.path.isfile(full_path):
         raise HTTPException(status_code=404, detail="File not found")

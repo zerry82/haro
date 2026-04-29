@@ -8,11 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.message import Message
 from app.models.project import Project
-from app.services.workspace_index import load_workspace_context
+from app.services.workspace_index import LEGACY_META_DIR, META_DIR, load_workspace_context
 
 RECENT_MESSAGE_COUNT = 20
 
-SYSTEM_PROMPT = """당신은 Mini Open Claw AI 에이전트입니다.
+SYSTEM_PROMPT = """당신은 haro AI 에이전트입니다.
 사용자의 요청을 분석하고, 도구를 사용하여 파일을 생성·수정·삭제하며 작업을 수행합니다.
 
 역할:
@@ -69,14 +69,15 @@ async def get_recent_messages(db: AsyncSession, chat_session_id: str) -> list[di
 
 
 def _load_latest_summary(workspace_path: str) -> str | None:
-    openclaw = os.path.join(workspace_path, ".openclaw")
-    if not os.path.exists(openclaw):
-        return None
-    summaries = sorted(
-        [f for f in os.listdir(openclaw) if f.startswith("summary_v") and f.endswith(".md")],
-        reverse=True,
-    )
-    if summaries:
-        with open(os.path.join(openclaw, summaries[0]), "r", encoding="utf-8") as f:
-            return f.read()
+    for meta_name in [META_DIR, LEGACY_META_DIR]:
+        meta_dir = os.path.join(workspace_path, meta_name)
+        if not os.path.exists(meta_dir):
+            continue
+        summaries = sorted(
+            [f for f in os.listdir(meta_dir) if f.startswith("summary_v") and f.endswith(".md")],
+            reverse=True,
+        )
+        if summaries:
+            with open(os.path.join(meta_dir, summaries[0]), "r", encoding="utf-8") as f:
+                return f.read()
     return None

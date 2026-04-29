@@ -37,9 +37,9 @@
 <style>
   :global(body) {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #1a1a2e;
-    color: #e0e0e0;
+    font-family: var(--font-sans);
+    background: var(--color-bg);
+    color: var(--color-text);
   }
   :global(*) {
     box-sizing: border-box;

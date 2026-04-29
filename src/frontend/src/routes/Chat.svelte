@@ -105,7 +105,7 @@
   <!-- Session Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-header">
-      <h2>Mini Open Claw</h2>
+      <h2>haro</h2>
       <button class="new-chat" onclick={handleNewChat}>+ 새 채팅</button>
     </div>
     <div class="session-list">
