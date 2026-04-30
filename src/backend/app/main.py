@@ -53,15 +53,19 @@ async def lifespan(app: FastAPI):
     # Migrate: add new columns to projects table if missing
     await _migrate_project_columns()
 
+    # Migrate: add new columns to chat_sessions table if missing
+    await _migrate_chat_session_columns()
+
     # Migrate: sessions → projects + chat_sessions
     await _migrate_sessions_to_projects()
 
     # Seed builtin skill
     await _seed_builtin_skills()
 
-    # Seed default sandbox node + reconcile
+    # Seed default sandbox node. Docker reconciliation is intentionally not
+    # done at startup so login/project/file APIs stay available without Docker.
     await _seed_sandbox_node()
-    await _reconcile_containers()
+    await _mark_work_containers_stopped_on_startup()
 
     # Start idle cleanup background task
     _idle_cleanup_task = asyncio.create_task(_idle_cleanup_loop())
@@ -76,7 +80,16 @@ async def lifespan(app: FastAPI):
         except asyncio.CancelledError:
             pass
 
-    await _stop_all_containers()
+    if settings.sandbox_stop_containers_on_shutdown:
+        try:
+            await asyncio.wait_for(
+                _stop_all_containers(),
+                timeout=max(settings.sandbox_docker_timeout + 2, 5),
+            )
+        except asyncio.TimeoutError:
+            logger.warning("Timed out while stopping Docker containers during shutdown")
+    else:
+        logger.info("Skipping Docker container stop on shutdown")
 
 
 async def _migrate_session_columns():
@@ -119,6 +132,25 @@ async def _migrate_project_columns():
                     logger.info(f"Added column {col_name} to projects table")
                 except Exception as e:
                     logger.warning(f"Could not add project column {col_name}: {e}")
+
+
+async def _migrate_chat_session_columns():
+    """Add chat session columns introduced after the POC schema was created."""
+    from sqlalchemy import text
+    async with db_module.engine.begin() as conn:
+        result = await conn.execute(text("PRAGMA table_info(chat_sessions)"))
+        existing_cols = {row[1] for row in result.fetchall()}
+
+        migrations = [
+            ("folder_path", "ALTER TABLE chat_sessions ADD COLUMN folder_path VARCHAR(500)"),
+        ]
+        for col_name, sql in migrations:
+            if col_name not in existing_cols:
+                try:
+                    await conn.execute(text(sql))
+                    logger.info(f"Added column {col_name} to chat_sessions table")
+                except Exception as e:
+                    logger.warning(f"Could not add chat_session column {col_name}: {e}")
 
 
 async def _migrate_sessions_to_projects():
@@ -277,12 +309,13 @@ async def _migrate_sessions_to_projects():
             # Create chat_session record
             now = datetime.now(timezone.utc).isoformat()
             await conn.execute(text(
-                "INSERT INTO chat_sessions (id, project_id, title, created_at, updated_at) "
-                "VALUES (:id, :project_id, :title, :created_at, :updated_at)"
+                "INSERT INTO chat_sessions (id, project_id, title, folder_path, created_at, updated_at) "
+                "VALUES (:id, :project_id, :title, :folder_path, :created_at, :updated_at)"
             ), {
                 "id": chat_session_id,
                 "project_id": session_id,
                 "title": "기본 채팅",
+                "folder_path": None,
                 "created_at": now,
                 "updated_at": now,
             })
@@ -311,20 +344,39 @@ async def _seed_builtin_skills():
 
     async with async_session_factory() as db:
         result = await db.execute(select(InstalledSkill).where(InstalledSkill.name == "file_ops"))
-        if not result.scalar_one_or_none():
-            import json
+        import json
+        existing = result.scalar_one_or_none()
+        desired_tools = [
+            "file_create", "file_read", "file_write", "file_delete",
+            "dir_list", "dir_create", "file_search", "file_count",
+        ]
+        manifest = {
+            "tools": desired_tools,
+        }
+        if not existing:
             skill = InstalledSkill(
                 name="file_ops",
                 version="1.0.0",
                 type="builtin",
-                description="파일 시스템 도구 — 파일/디렉토리 생성, 읽기, 수정, 삭제",
+                description="파일 시스템 도구 — 파일/디렉토리 생성, 읽기, 수정, 삭제, 검색, 개수 조회",
                 status="enabled",
-                manifest=json.dumps({
-                    "tools": ["file_create", "file_read", "file_write", "file_delete", "dir_list", "dir_create"],
-                }),
+                manifest=json.dumps(manifest),
             )
             db.add(skill)
             await db.commit()
+        else:
+            try:
+                existing_manifest = json.loads(existing.manifest)
+            except Exception:
+                existing_manifest = {}
+            tools = set(existing_manifest.get("tools", []))
+            missing_tools = [tool for tool in desired_tools if tool not in tools]
+            if missing_tools:
+                existing_manifest["tools"] = [*existing_manifest.get("tools", []), *missing_tools]
+                existing.manifest = json.dumps(existing_manifest)
+                if existing.description:
+                    existing.description = "파일 시스템 도구 — 파일/디렉토리 생성, 읽기, 수정, 삭제, 검색, 개수 조회"
+                await db.commit()
 
 
 async def _seed_sandbox_node():
@@ -345,6 +397,22 @@ async def _seed_sandbox_node():
             db.add(node)
             await db.commit()
             logger.info(f"Seeded default sandbox node: {settings.sandbox_default_node_host}")
+
+
+async def _mark_work_containers_stopped_on_startup():
+    """DB-only startup normalization so stale work-mode containers do not look active."""
+    from sqlalchemy import text
+    try:
+        async with db_module.engine.begin() as conn:
+            await conn.execute(text("""
+                UPDATE projects
+                SET container_status = 'stopped'
+                WHERE runtime_mode != 'deploy'
+                  AND container_status IN ('running', 'creating')
+                  AND container_id IS NOT NULL
+            """))
+    except Exception as e:
+        logger.warning(f"Could not normalize sandbox status on startup: {e}")
 
 
 async def _reconcile_containers():

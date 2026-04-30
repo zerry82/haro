@@ -5,9 +5,16 @@ export interface ChatSessionItem {
   id: string;
   project_id: string;
   title: string;
+  folder_path?: string | null;
   created_at: string;
   updated_at: string;
   message_count: number;
+}
+
+export interface ChatSummaryResponse {
+  summary_path: string | null;
+  context_path: string;
+  compressed_message_count: number;
 }
 
 export const chatSessions = writable<ChatSessionItem[]>([]);
@@ -38,4 +45,16 @@ export async function renameChatSession(projectId: string, chatId: string, title
     body: JSON.stringify({ title }),
   });
   await loadChatSessions(projectId);
+}
+
+export async function syncChatFiles(projectId: string, chatId: string) {
+  return api<{ folder_path: string }>(`/projects/${projectId}/chats/${chatId}/sync-files`, {
+    method: 'POST',
+  });
+}
+
+export async function summarizeChatSession(projectId: string, chatId: string) {
+  return api<ChatSummaryResponse>(`/projects/${projectId}/chats/${chatId}/summarize`, {
+    method: 'POST',
+  });
 }

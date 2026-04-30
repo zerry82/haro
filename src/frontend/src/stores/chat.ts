@@ -2,7 +2,7 @@ import { writable, get } from 'svelte/store';
 import { api } from '../lib/api';
 import { streamPost } from '../lib/sse';
 
-interface ChatMessage {
+export interface ChatMessage {
   id: string;
   role: string;
   content: string;
@@ -15,6 +15,21 @@ interface TodoStep {
   status: string;
 }
 
+export interface DebugTraceEvent {
+  id: string;
+  round_index: number;
+  event_type: string;
+  payload: any;
+  duration_ms?: number | null;
+  created_at: string;
+}
+
+export interface DebugTraceResponse {
+  message_id: string;
+  has_trace: boolean;
+  events: DebugTraceEvent[];
+}
+
 export const messages = writable<ChatMessage[]>([]);
 export const streaming = writable(false);
 export const agentStatus = writable('idle');
@@ -25,8 +40,24 @@ export async function loadMessages(projectId: string, chatId: string) {
   messages.set(res.messages);
 }
 
-export async function sendMessage(projectId: string, chatId: string, content: string) {
-  const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content };
+export async function loadDebugTrace(projectId: string, chatId: string, messageId: string): Promise<DebugTraceResponse> {
+  return api(`/projects/${projectId}/chats/${chatId}/messages/${messageId}/debug-trace`);
+}
+
+export async function sendMessage(
+  projectId: string,
+  chatId: string,
+  content: string,
+  options: { debugEnabled?: boolean } = {},
+) {
+  const clientMessageId = crypto.randomUUID();
+  const debugEnabled = Boolean(options.debugEnabled);
+  const userMsg: ChatMessage = {
+    id: clientMessageId,
+    role: 'user',
+    content,
+    metadata: { client_message_id: clientMessageId, debug_enabled: debugEnabled },
+  };
   messages.update((m) => [...m, userMsg]);
   streaming.set(true);
   todoSteps.set([]);
@@ -35,8 +66,28 @@ export async function sendMessage(projectId: string, chatId: string, content: st
   let currentContent = '';
 
   try {
-    await streamPost(`/projects/${projectId}/chats/${chatId}/messages`, { content }, (event, data) => {
+    await streamPost(
+      `/projects/${projectId}/chats/${chatId}/messages`,
+      { content, debug_enabled: debugEnabled, client_message_id: clientMessageId },
+      (event, data) => {
       switch (event) {
+        case 'user_message_saved':
+          messages.update((m) =>
+            m.map((msg) =>
+              msg.id === data.client_message_id
+                ? {
+                    ...msg,
+                    id: data.message_id,
+                    metadata: {
+                      ...(msg.metadata || {}),
+                      server_message_id: data.message_id,
+                      debug_enabled: data.debug_enabled,
+                    },
+                  }
+                : msg
+            )
+          );
+          break;
         case 'status':
           agentStatus.set(data.session_status);
           break;
@@ -92,6 +143,12 @@ export async function sendMessage(projectId: string, chatId: string, content: st
         }
         case 'file_changed':
           window.dispatchEvent(new CustomEvent('file-changed', { detail: data }));
+          break;
+        case 'summary_suggested':
+          messages.update((m) => [
+            ...m,
+            { id: crypto.randomUUID(), role: 'system', content: `요약 제안: ${data.message}` },
+          ]);
           break;
         case 'error':
           messages.update((m) => [

@@ -3,7 +3,11 @@ from __future__ import annotations
 
 import logging
 import os
+import asyncio
+import time
+from collections.abc import Callable
 from datetime import datetime, timezone
+from typing import TypeVar
 
 import docker
 from docker.errors import APIError, NotFound
@@ -15,6 +19,9 @@ from app.models.sandbox_node import SandboxNode
 from app.models.project import Project
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
+_docker_blocked_until = 0.0
 
 
 def validate_workspace_path(workspace: str, requested: str) -> str:
@@ -37,11 +44,31 @@ class ContainerManager:
             return self._docker_clients[node.id]
         host = node.host
         if host.startswith("unix://") or host == "local":
-            client = docker.from_env()
+            client = docker.from_env(timeout=settings.sandbox_docker_timeout)
         else:
-            client = docker.DockerClient(base_url=host)
+            client = docker.DockerClient(base_url=host, timeout=settings.sandbox_docker_timeout)
         self._docker_clients[node.id] = client
         return client
+
+    async def _docker_call(self, operation: Callable[[], T], operation_name: str) -> T:
+        """Run blocking Docker SDK calls outside the FastAPI event loop."""
+        global _docker_blocked_until
+
+        now = time.monotonic()
+        if now < _docker_blocked_until:
+            remaining = int(_docker_blocked_until - now)
+            raise RuntimeError(f"Docker unavailable; retry after {remaining}s")
+
+        try:
+            return await asyncio.wait_for(
+                asyncio.to_thread(operation),
+                timeout=settings.sandbox_docker_timeout,
+            )
+        except asyncio.TimeoutError as exc:
+            _docker_blocked_until = time.monotonic() + settings.sandbox_docker_circuit_breaker_seconds
+            raise RuntimeError(f"Docker {operation_name} timed out") from exc
+        except Exception:
+            raise
 
     async def select_node(self) -> SandboxNode:
         result = await self.db.execute(
@@ -68,24 +95,25 @@ class ContainerManager:
             return project.container_id
 
         node = await self.select_node()
-        client = self._get_docker_client(node)
-
         project.container_status = "creating"
         project.sandbox_node_id = node.id
         await self.db.commit()
 
         try:
-            container = client.containers.run(
-                settings.sandbox_image,
-                command="sleep infinity",
-                detach=True,
-                name=f"sandbox-{project_id[:12]}",
-                mem_limit=settings.sandbox_mem_limit,
-                cpu_period=settings.sandbox_cpu_period,
-                cpu_quota=settings.sandbox_cpu_quota,
-                volumes={os.path.abspath(workspace_path): {"bind": "/workspace", "mode": "rw"}},
-                working_dir="/workspace",
-                labels={"sandbox": "true", "project": project_id},
+            container = await self._docker_call(
+                lambda: self._get_docker_client(node).containers.run(
+                    settings.sandbox_image,
+                    command="sleep infinity",
+                    detach=True,
+                    name=f"sandbox-{project_id[:12]}",
+                    mem_limit=settings.sandbox_mem_limit,
+                    cpu_period=settings.sandbox_cpu_period,
+                    cpu_quota=settings.sandbox_cpu_quota,
+                    volumes={os.path.abspath(workspace_path): {"bind": "/workspace", "mode": "rw"}},
+                    working_dir="/workspace",
+                    labels={"sandbox": "true", "project": project_id},
+                ),
+                "create_sandbox",
             )
 
             now = datetime.now(timezone.utc).isoformat()
@@ -124,10 +152,10 @@ class ContainerManager:
 
             if node:
                 try:
-                    client = self._get_docker_client(node)
-                    container = client.containers.get(container_id)
-                    container.stop(timeout=3)
-                    container.remove()
+                    await self._docker_call(
+                        lambda: self._remove_container(node, container_id),
+                        "remove_sandbox",
+                    )
                     logger.info(f"Removed sandbox container {container_id} for project {project_id}")
                 except NotFound:
                     logger.warning(f"Container {container_id} already removed")
@@ -173,10 +201,11 @@ class ContainerManager:
             select(SandboxNode).where(SandboxNode.id == project.sandbox_node_id)
         )
         node = node_result.scalar_one()
-        client = self._get_docker_client(node)
-
         try:
-            container = client.containers.get(project.container_id)
+            container = await self._docker_call(
+                lambda: self._get_docker_client(node).containers.get(project.container_id),
+                "get_container_for_exec",
+            )
         except NotFound:
             raise RuntimeError("Container not found")
 
@@ -189,7 +218,10 @@ class ContainerManager:
 
         cmd = self.build_command(filename)
         try:
-            exec_result = container.exec_run(cmd, workdir="/workspace", demux=True)
+            exec_result = await self._docker_call(
+                lambda: container.exec_run(cmd, workdir="/workspace", demux=True),
+                "execute_code",
+            )
             stdout_bytes = exec_result.output[0] if exec_result.output[0] else b""
             stderr_bytes = exec_result.output[1] if exec_result.output[1] else b""
             stdout = stdout_bytes.decode("utf-8", errors="replace")
@@ -222,10 +254,10 @@ class ContainerManager:
             return project.container_status
 
         try:
-            client = self._get_docker_client(node)
-            container = client.containers.get(project.container_id)
-            container.reload()
-            actual_status = container.status
+            actual_status = await self._docker_call(
+                lambda: self._load_container_status(node, project.container_id),
+                "get_status",
+            )
             if actual_status == "running":
                 return "running"
             elif actual_status in ("exited", "dead"):
@@ -253,10 +285,10 @@ class ContainerManager:
             return None
 
         try:
-            client = self._get_docker_client(node)
-            container = client.containers.get(project.container_id)
-            container.reload()
-            networks = container.attrs.get("NetworkSettings", {}).get("Networks", {})
+            networks = await self._docker_call(
+                lambda: self._load_container_networks(node, project.container_id),
+                "get_container_ip",
+            )
             for net_name, net_info in networks.items():
                 ip = net_info.get("IPAddress")
                 if ip:
@@ -288,9 +320,10 @@ class ContainerManager:
             raise RuntimeError("Sandbox node not found")
 
         try:
-            client = self._get_docker_client(node)
-            container = client.containers.get(project.container_id)
-            container.start()
+            await self._docker_call(
+                lambda: self._start_container(node, project.container_id),
+                "restart_container",
+            )
             project.container_status = "running"
             await self._record_activity(project_id)
             logger.info(f"Restarted container {project.container_id} for project {project_id}")
@@ -323,16 +356,20 @@ class ContainerManager:
             select(SandboxNode).where(SandboxNode.id == project.sandbox_node_id)
         )
         node = node_result.scalar_one()
-        client = self._get_docker_client(node)
-
         try:
-            container = client.containers.get(project.container_id)
+            container = await self._docker_call(
+                lambda: self._get_docker_client(node).containers.get(project.container_id),
+                "get_container_for_deploy",
+            )
         except NotFound:
             raise RuntimeError("Container not found")
 
-        container.exec_run(
-            ["sh", "-c", "deno run --allow-all --allow-net https://deno.land/std/http/file_server.ts /workspace --port 3000 &"],
-            detach=True,
+        await self._docker_call(
+            lambda: container.exec_run(
+                ["sh", "-c", "deno run --allow-all --allow-net https://deno.land/std/http/file_server.ts /workspace --port 3000 &"],
+                detach=True,
+            ),
+            "start_file_server",
         )
 
         project.runtime_mode = "deploy"
@@ -405,9 +442,10 @@ class ContainerManager:
             return
 
         try:
-            client = self._get_docker_client(node)
-            container = client.containers.get(project.container_id)
-            container.stop(timeout=3)
+            await self._docker_call(
+                lambda: self._stop_container_sync(node, project.container_id),
+                "stop_container",
+            )
         except NotFound:
             pass
         except Exception as e:
@@ -451,10 +489,10 @@ class ContainerManager:
                 continue
 
             try:
-                client = self._get_docker_client(node)
-                container = client.containers.get(project.container_id)
-                container.reload()
-                actual = container.status
+                actual = await self._docker_call(
+                    lambda: self._load_container_status(node, project.container_id),
+                    "reconcile_container",
+                )
                 if actual == "running":
                     project.container_status = "running"
                 elif actual in ("exited", "dead"):
@@ -482,3 +520,26 @@ class ContainerManager:
         if project:
             project.last_activity_at = datetime.now(timezone.utc).isoformat()
             await self.db.commit()
+
+    def _remove_container(self, node: SandboxNode, container_id: str) -> None:
+        container = self._get_docker_client(node).containers.get(container_id)
+        container.stop(timeout=3)
+        container.remove()
+
+    def _stop_container_sync(self, node: SandboxNode, container_id: str) -> None:
+        container = self._get_docker_client(node).containers.get(container_id)
+        container.stop(timeout=3)
+
+    def _start_container(self, node: SandboxNode, container_id: str) -> None:
+        container = self._get_docker_client(node).containers.get(container_id)
+        container.start()
+
+    def _load_container_status(self, node: SandboxNode, container_id: str) -> str:
+        container = self._get_docker_client(node).containers.get(container_id)
+        container.reload()
+        return container.status
+
+    def _load_container_networks(self, node: SandboxNode, container_id: str) -> dict:
+        container = self._get_docker_client(node).containers.get(container_id)
+        container.reload()
+        return container.attrs.get("NetworkSettings", {}).get("Networks", {})

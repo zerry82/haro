@@ -3,15 +3,15 @@
   import { push } from 'svelte-spa-router';
   import { isAuthenticated, user } from '../stores/auth';
   import { currentProjectId, startProjectDeploy, stopProjectDeploy } from '../stores/projects';
-  import { chatSessions, loadChatSessions, createChatSession, deleteChatSession, currentChatId, type ChatSessionItem } from '../stores/chatSessions';
-  import { messages, loadMessages, sendMessage, streaming, todoSteps, agentStatus } from '../stores/chat';
-  import { fileTree, loadFiles, loadFileContent, saveFileContent, createFolder, uploadFiles, selectedFilePath, fileContent, fileLanguage, fileLoading, expandFolder, reloadAllExpanded, type TreeNode } from '../stores/files';
+  import { chatSessions, loadChatSessions, createChatSession, deleteChatSession, summarizeChatSession, currentChatId, type ChatSessionItem } from '../stores/chatSessions';
+  import { messages, loadMessages, sendMessage, streaming, todoSteps, agentStatus, loadDebugTrace, type ChatMessage, type DebugTraceResponse } from '../stores/chat';
+  import { fileTree, loadFiles, loadFileContent, saveFileContent, createFolder, uploadFiles, searchFiles, selectedFilePath, fileContent, fileLanguage, fileLoading, expandFolder, reloadAllExpanded, type FileSearchItem, type TreeNode } from '../stores/files';
   import { api } from '../lib/api';
   import CodeEditor from '../components/CodeEditor.svelte';
   import { marked } from 'marked';
   import hljs from 'highlight.js';
   import Papa from 'papaparse';
-  import { Database, Files, FolderPlus, Lock, Sparkles, Upload, Wrench } from 'lucide-svelte';
+  import { Database, Files, FolderPlus, Lock, Search, Sparkles, Upload, Wrench } from 'lucide-svelte';
   import 'highlight.js/styles/github.css';
 
   let { params = {} }: { params?: { projectId?: string; chatId?: string } } = $props();
@@ -55,10 +55,25 @@
   let draggingFiles = $state(false);
   let uploadTargetDir = $state('/');
   let uploadInput = $state<HTMLInputElement | undefined>(undefined);
+  let fileSearchQuery = $state('');
+  let fileSearchResults = $state<FileSearchItem[]>([]);
+  let fileSearchLoading = $state(false);
+  let fileSearchMessage = $state('');
+  let fileSearchSeq = 0;
+  let chatActionMessage = $state('');
+  let summarizingChat = $state(false);
   let renderComputeSeq = 0;
   let workspaceElement = $state<HTMLDivElement | undefined>(undefined);
   let filePanelWidth = $state(loadStoredPanelWidth('haro:filePanelWidth', 260));
   let chatPanelWidth = $state(loadStoredPanelWidth('haro:chatPanelWidth', 400));
+  let debugMode = $state(loadStoredBool('haro:debugMode', false));
+  let debugTraceOpen = $state(false);
+  let debugTraceLoading = $state(false);
+  let debugTraceError = $state('');
+  let debugTrace = $state<DebugTraceResponse | null>(null);
+  let debugTraceMessage = $state<ChatMessage | null>(null);
+  let debugPayloadView = $state<DebugPayloadView>('expanded');
+  let debugTraceCopyMessage = $state('');
   let resizingPanel = $state<ResizePanel | null>(null);
   let resizeStartX = 0;
   let resizeStartFileWidth = 0;
@@ -70,6 +85,8 @@
   type ViewerTab = 'preview' | 'source' | 'code' | 'editor';
   type ViewerTabItem = { id: ViewerTab; label: string };
   type ResizePanel = 'file' | 'chat';
+  type DebugPayloadView = 'expanded' | 'json';
+  type DebugPayloadSection = { title: string; content: string; code?: boolean };
   type SkillResponse = {
     name: string;
     version: string;
@@ -95,6 +112,8 @@
     { name: 'file_delete', signature: 'file_delete(path)', description: '파일 삭제' },
     { name: 'dir_list', signature: 'dir_list(path)', description: '디렉토리 내용 조회' },
     { name: 'dir_create', signature: 'dir_create(path)', description: '디렉토리 생성' },
+    { name: 'file_search', signature: 'file_search(query, limit)', description: '파일명, 경로, 요약 텍스트 검색' },
+    { name: 'file_count', signature: 'file_count(path, item_type, recursive)', description: '파일/폴더 개수 조회' },
     { name: 'code_run', signature: 'code_run(filename, code)', description: '샌드박스 안에서 코드 실행' },
     { name: 'web_preview', signature: 'web_preview()', description: '웹앱 배포모드 활성화 및 URL 반환' },
   ];
@@ -119,6 +138,22 @@
   function saveStoredPanelWidth(key: string, value: number) {
     if (typeof localStorage === 'undefined') return;
     localStorage.setItem(key, String(Math.round(value)));
+  }
+
+  function loadStoredBool(key: string, fallback: boolean) {
+    if (typeof localStorage === 'undefined') return fallback;
+    const saved = localStorage.getItem(key);
+    if (saved === null) return fallback;
+    return saved === 'true';
+  }
+
+  function saveStoredBool(key: string, value: boolean) {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(key, value ? 'true' : 'false');
+  }
+
+  function getDebugModeStorageKey() {
+    return `haro:debugMode:${$user?.id || 'anonymous'}`;
   }
 
   function clamp(value: number, min: number, max: number) {
@@ -253,6 +288,9 @@
   async function refreshExplorerAfterMutation(projectId: string, targetDir: string) {
     await reloadAllExpanded(projectId);
     await loadFiles(projectId, targetDir);
+    if (fileSearchQuery.trim()) {
+      await runFileSearch();
+    }
   }
 
   async function loadDefaultHarnessTree(projectId: string) {
@@ -265,6 +303,59 @@
 
   function getRuntimeModeLabel() {
     return projectRuntimeMode === 'deploy' ? '배포모드' : '작업모드';
+  }
+
+  function getRoomLabel(room: string) {
+    if (room === 'clean_room_data') return 'Data Clean Room';
+    if (room === 'clean_room_meta') return 'Meta Clean Room';
+    if (room === 'playground') return 'Playground';
+    if (room === 'archive') return 'Archive';
+    return 'Root';
+  }
+
+  async function runFileSearch() {
+    const pid = $currentProjectId;
+    const query = fileSearchQuery.trim();
+    const seq = ++fileSearchSeq;
+    fileSearchMessage = '';
+    if (!pid || !query) {
+      fileSearchResults = [];
+      fileSearchLoading = false;
+      return;
+    }
+
+    fileSearchLoading = true;
+    try {
+      const res = await searchFiles(pid, query, 50);
+      if (seq !== fileSearchSeq) return;
+      if (res.status === 'search_unavailable') {
+        fileSearchResults = [];
+        fileSearchMessage = '파일 검색 인덱스가 아직 준비되지 않았습니다.';
+      } else {
+        fileSearchResults = res.items || [];
+        fileSearchMessage = fileSearchResults.length === 0 ? '검색 결과 없음' : '';
+      }
+    } catch (e) {
+      if (seq !== fileSearchSeq) return;
+      fileSearchResults = [];
+      fileSearchMessage = getErrorMessage(e, '검색 실패');
+    } finally {
+      if (seq === fileSearchSeq) fileSearchLoading = false;
+    }
+  }
+
+  function handleFileSearchInput() {
+    const query = fileSearchQuery.trim();
+    if (!query) {
+      fileSearchSeq += 1;
+      fileSearchResults = [];
+      fileSearchMessage = '';
+      fileSearchLoading = false;
+      return;
+    }
+    window.setTimeout(() => {
+      if (query === fileSearchQuery.trim()) void runFileSearch();
+    }, 180);
   }
 
   function applyProjectState(project: any) {
@@ -323,6 +414,36 @@
 
   function renderMarkdown(content: string | null) {
     return marked.parse(content || '', { async: false }) as string;
+  }
+
+  function renderChatMarkdown(content: string | null) {
+    const html = marked.parse(content || '', { async: false, breaks: true }) as string;
+    return sanitizeChatMarkdown(html);
+  }
+
+  function sanitizeChatMarkdown(html: string) {
+    if (typeof document === 'undefined') return html;
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    template.content.querySelectorAll('script, style, iframe, object, embed, link, meta').forEach((node) => node.remove());
+    template.content.querySelectorAll('*').forEach((element) => {
+      Array.from(element.attributes).forEach((attribute) => {
+        const name = attribute.name.toLowerCase();
+        const value = attribute.value.trim().toLowerCase();
+        if (name.startsWith('on') || name === 'srcdoc') {
+          element.removeAttribute(attribute.name);
+          return;
+        }
+        if ((name === 'href' || name === 'src') && value.startsWith('javascript:')) {
+          element.removeAttribute(attribute.name);
+        }
+      });
+      if (element.tagName.toLowerCase() === 'a') {
+        element.setAttribute('target', '_blank');
+        element.setAttribute('rel', 'noreferrer');
+      }
+    });
+    return template.innerHTML;
   }
 
   function highlightCode(content: string | null, language: string) {
@@ -527,6 +648,7 @@
     if (!$isAuthenticated) { push('/login'); return; }
     const pid = params.projectId;
     if (!pid) { push('/projects'); return; }
+    debugMode = loadStoredBool(getDebugModeStorageKey(), false);
 
     currentProjectId.set(pid);
 
@@ -606,6 +728,7 @@
     currentChatId.set(id);
     messages.set([]);
     showChatList = false;
+    await reloadAllExpanded(pid);
     push(`/projects/${pid}/chats/${id}`);
   }
 
@@ -632,8 +755,270 @@
     if (!pid || !cid || !inputText.trim() || $streaming) return;
     const text = inputText;
     inputText = '';
-    await sendMessage(pid, cid, text);
+    await sendMessage(pid, cid, text, { debugEnabled: debugMode });
     if (pid) await reloadAllExpanded(pid);
+  }
+
+  function handleDebugModeChange() {
+    saveStoredBool(getDebugModeStorageKey(), debugMode);
+  }
+
+  function isDebugInspectable(msg: ChatMessage) {
+    return msg.role === 'user';
+  }
+
+  function formatDebugPayload(payload: unknown) {
+    if (typeof payload === 'string') return payload;
+    try {
+      return JSON.stringify(payload, null, 2);
+    } catch {
+      return String(payload);
+    }
+  }
+
+  function escapeDebugHtml(text: string) {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function highlightDebugPayload(payload: unknown) {
+    const escaped = escapeDebugHtml(formatDebugPayload(payload));
+    return escaped.replace(
+      /("(\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
+      (match) => {
+        let className = 'debug-json-number';
+        if (/^"/.test(match)) {
+          className = /:$/.test(match) ? 'debug-json-key' : 'debug-json-string';
+        } else if (/true|false/.test(match)) {
+          className = 'debug-json-boolean';
+        } else if (/null/.test(match)) {
+          className = 'debug-json-null';
+        }
+        return `<span class="${className}">${match}</span>`;
+      }
+    );
+  }
+
+  function stringifyDebugValue(value: unknown) {
+    if (typeof value === 'string') return value;
+    if (value === null || value === undefined) return '';
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
+  }
+
+  function debugPayloadRecord(payload: unknown): Record<string, unknown> {
+    if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+      return payload as Record<string, unknown>;
+    }
+    return { value: payload };
+  }
+
+  function debugContentText(entry: unknown) {
+    const record = debugPayloadRecord(entry);
+    const parts = record.parts;
+    if (Array.isArray(parts)) {
+      return parts
+        .map((part) => {
+          const partRecord = debugPayloadRecord(part);
+          return typeof partRecord.text === 'string' ? partRecord.text : stringifyDebugValue(part);
+        })
+        .filter(Boolean)
+        .join('\n\n');
+    }
+    return stringifyDebugValue(entry);
+  }
+
+  function addContentSections(sections: DebugPayloadSection[], contents: unknown) {
+    if (!Array.isArray(contents)) {
+      sections.push({ title: '대화 내용', content: stringifyDebugValue(contents), code: true });
+      return;
+    }
+    contents.forEach((entry, index) => {
+      const record = debugPayloadRecord(entry);
+      const role = typeof record.role === 'string' ? record.role : 'unknown';
+      sections.push({
+        title: `대화 내용 ${index + 1} · ${role}`,
+        content: debugContentText(entry),
+      });
+    });
+  }
+
+  function debugPayloadSections(eventType: string, payload: unknown): DebugPayloadSection[] {
+    const record = debugPayloadRecord(payload);
+    const sections: DebugPayloadSection[] = [];
+
+    if (eventType === 'llm_request') {
+      sections.push({ title: '모델', content: stringifyDebugValue(record.model) || '-' });
+      sections.push({ title: 'System Instruction', content: stringifyDebugValue(record.system_instruction) });
+      addContentSections(sections, record.contents);
+      sections.push({ title: 'Generation Config', content: stringifyDebugValue(record.config), code: true });
+      return sections;
+    }
+
+    if (eventType === 'llm_response') {
+      sections.push({ title: '응답 원문', content: stringifyDebugValue(record.text) });
+      sections.push({ title: 'Tool Call 포함 여부', content: record.has_tool_call ? '예' : '아니오' });
+      if (record.parsed_tool_call) {
+        sections.push({ title: '파싱된 Tool Call', content: stringifyDebugValue(record.parsed_tool_call), code: true });
+      }
+      return sections;
+    }
+
+    if (eventType === 'tool_call') {
+      sections.push({ title: '도구 이름', content: stringifyDebugValue(record.tool) || '-' });
+      sections.push({ title: '인자', content: stringifyDebugValue(record.args), code: true });
+      return sections;
+    }
+
+    if (eventType === 'tool_result') {
+      sections.push({ title: '도구 이름', content: stringifyDebugValue(record.tool) || '-' });
+      sections.push({ title: '실행 결과', content: stringifyDebugValue(record.result) });
+      return sections;
+    }
+
+    if (eventType === 'error') {
+      sections.push({ title: '오류 메시지', content: stringifyDebugValue(record.message) });
+      sections.push({ title: 'Traceback', content: stringifyDebugValue(record.traceback), code: true });
+      return sections;
+    }
+
+    if (eventType === 'gate_decision') {
+      sections.push({ title: '판단', content: stringifyDebugValue(record.decision) || '-' });
+      sections.push({ title: '이유', content: stringifyDebugValue(record.reason) || '-' });
+      if (record.candidates) sections.push({ title: '후보 작업', content: stringifyDebugValue(record.candidates), code: true });
+      return sections;
+    }
+
+    if (eventType === 'router_result') {
+      sections.push({ title: '의도', content: stringifyDebugValue(record.intent) || '-' });
+      sections.push({ title: '실행 가능 여부', content: record.can_execute ? '예' : '아니오' });
+      sections.push({ title: '선택 도구', content: stringifyDebugValue(record.selected_tools), code: true });
+      sections.push({ title: '부족한 정보', content: stringifyDebugValue(record.missing_info), code: true });
+      sections.push({ title: '질문', content: stringifyDebugValue(record.question) || '-' });
+      sections.push({ title: '판단 이유', content: stringifyDebugValue(record.reason) || '-' });
+      return sections;
+    }
+
+    if (eventType === 'selected_tools') {
+      sections.push({ title: '선택 도구', content: stringifyDebugValue(record.selected_tools), code: true });
+      sections.push({ title: '선택 스킬', content: stringifyDebugValue(record.selected_skills), code: true });
+      return sections;
+    }
+
+    Object.entries(record).forEach(([key, value]) => {
+      sections.push({ title: key, content: stringifyDebugValue(value), code: typeof value !== 'string' });
+    });
+    return sections;
+  }
+
+  function debugEventLabel(eventType: string) {
+    switch (eventType) {
+      case 'llm_request': return 'LLM에게 보낸 내용';
+      case 'llm_response': return 'LLM이 돌려준 내용';
+      case 'tool_call': return '실행하려 한 도구';
+      case 'tool_result': return '도구 실행 결과';
+      case 'error': return '오류';
+      case 'gate_decision': return '메시지 게이트 판단';
+      case 'router_result': return '라우터 판단';
+      case 'clarification_question': return '맥락 확인 질문';
+      case 'clarification_answer': return '맥락 확인 답변';
+      case 'selected_tools': return '선택된 도구/스킬';
+      case 'result': return '작업 결과';
+      default: return eventType;
+    }
+  }
+
+  async function openDebugTrace(msg: ChatMessage) {
+    if (!isDebugInspectable(msg)) return;
+    const pid = $currentProjectId;
+    const cid = $currentChatId;
+    if (!pid || !cid) return;
+    debugTraceOpen = true;
+    debugTraceLoading = true;
+    debugTraceError = '';
+    debugTrace = null;
+    debugTraceMessage = msg;
+    debugPayloadView = 'expanded';
+    debugTraceCopyMessage = '';
+    try {
+      debugTrace = await loadDebugTrace(pid, cid, msg.id);
+    } catch (e: any) {
+      debugTraceError = e.message || '디버그 기록을 불러오지 못했습니다.';
+    } finally {
+      debugTraceLoading = false;
+    }
+  }
+
+  function handleDebugMessageKeydown(event: KeyboardEvent, msg: ChatMessage) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    openDebugTrace(msg);
+  }
+
+  function closeDebugTrace() {
+    debugTraceOpen = false;
+    debugTraceLoading = false;
+    debugTraceError = '';
+    debugTrace = null;
+    debugTraceMessage = null;
+    debugTraceCopyMessage = '';
+  }
+
+  async function copyDebugPayload(payload: unknown) {
+    if (!navigator.clipboard) return;
+    await navigator.clipboard.writeText(formatDebugPayload(payload));
+  }
+
+  function buildDebugTraceExport() {
+    return {
+      exported_at: new Date().toISOString(),
+      project_id: $currentProjectId,
+      chat_id: $currentChatId,
+      message: debugTraceMessage ? {
+        id: debugTraceMessage.id,
+        role: debugTraceMessage.role,
+        content: debugTraceMessage.content,
+        metadata: debugTraceMessage.metadata || null,
+        created_at: debugTraceMessage.created_at || null,
+      } : null,
+      trace: debugTrace,
+    };
+  }
+
+  async function copyFullDebugTrace() {
+    if (!debugTrace || !navigator.clipboard) return;
+    debugTraceCopyMessage = '';
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(buildDebugTraceExport(), null, 2));
+      debugTraceCopyMessage = '전체 trace JSON 복사됨';
+    } catch (e: any) {
+      debugTraceCopyMessage = e.message || '복사 실패';
+    }
+  }
+
+  async function handleSummarizeChat() {
+    const pid = $currentProjectId;
+    const cid = $currentChatId;
+    if (!pid || !cid || summarizingChat) return;
+    summarizingChat = true;
+    chatActionMessage = '';
+    try {
+      const result = await summarizeChatSession(pid, cid);
+      chatActionMessage = result.summary_path
+        ? `요약 저장: ${result.summary_path}`
+        : '요약할 메시지가 없습니다.';
+      await reloadAllExpanded(pid);
+      await loadChatSessions(pid);
+    } catch (e: any) {
+      chatActionMessage = e.message || '요약 실패';
+    } finally {
+      summarizingChat = false;
+    }
   }
 
   async function handleSaveFile() {
@@ -879,6 +1264,31 @@
       if (reselectingCurrentHtml) refreshHtmlPreview();
     }
   }
+
+  async function handleSearchResultClick(item: FileSearchItem) {
+    const pid = $currentProjectId;
+    if (!pid) return;
+    fileActionMessage = '';
+    const node: TreeNode = {
+      name: item.name,
+      type: item.item_type,
+      path: item.path,
+      children: item.item_type === 'directory' ? [] : undefined,
+      expanded: false,
+      loaded: false,
+    };
+    focusedExplorerNode = node;
+    if (item.item_type === 'directory') {
+      activeSideTab = 'files';
+      await loadFiles(pid, item.path);
+      return;
+    }
+    if (item.path !== $selectedFilePath && hasUnsavedChanges() &&
+      !confirm('저장하지 않은 변경사항을 버리고 다른 파일을 여시겠습니까?')) {
+      return;
+    }
+    await loadFileContent(pid, item.path);
+  }
 </script>
 
 <svelte:window
@@ -980,6 +1390,15 @@
           {#if fileActionMessage}
             <div class="file-action-message">{fileActionMessage}</div>
           {/if}
+          <div class="file-search">
+            <Search size={14} />
+            <input
+              type="search"
+              placeholder="파일명/요약 검색"
+              bind:value={fileSearchQuery}
+              oninput={handleFileSearchInput}
+            />
+          </div>
           <div
             class="file-list"
             class:dragging={draggingFiles}
@@ -1006,8 +1425,41 @@
             {#if creatingFolder && creatingFolderParentPath === '/'}
               {@render renderNewFolderRow(0)}
             {/if}
-            {#snippet renderTree(nodes: TreeNode[], depth: number)}
-              {#each nodes as item}
+            {#if fileSearchQuery.trim()}
+              <div class="search-results">
+                {#if fileSearchLoading}
+                  <p class="empty">검색 중...</p>
+                {:else if fileSearchMessage}
+                  <p class="empty">{fileSearchMessage}</p>
+                {:else}
+                  {#each fileSearchResults as item}
+                    <button
+                      class="search-result"
+                      type="button"
+                      onclick={() => handleSearchResultClick(item)}
+                    >
+                      <span class="search-result-name">{item.name}</span>
+                      <span class="search-result-path">{item.path}</span>
+                      <span class="search-result-meta">
+                        <span>{getRoomLabel(item.room)}</span>
+                        <span>{item.item_type === 'directory' ? '폴더' : item.language || 'file'}</span>
+                        {#if item.access_policy === 'read_only'}
+                          <span>읽기 전용</span>
+                        {/if}
+                        {#if item.summary_status === 'stale'}
+                          <span>요약 갱신 필요</span>
+                        {/if}
+                      </span>
+                      {#if item.summary_snippet}
+                        <span class="search-result-snippet">{item.summary_snippet}</span>
+                      {/if}
+                    </button>
+                  {/each}
+                {/if}
+              </div>
+            {:else}
+              {#snippet renderTree(nodes: TreeNode[], depth: number)}
+                {#each nodes as item}
                 <button
                   class="file-item"
                   class:active={$selectedFilePath === item.path}
@@ -1041,11 +1493,12 @@
                 {#if item.type === 'directory' && item.expanded && item.children}
                   {@render renderTree(item.children, depth + 1)}
                 {/if}
-              {/each}
-            {/snippet}
-            {@render renderTree($fileTree, 0)}
-            {#if $fileTree.length === 0}
-              <p class="empty">파일 없음</p>
+                {/each}
+              {/snippet}
+              {@render renderTree($fileTree, 0)}
+              {#if $fileTree.length === 0}
+                <p class="empty">파일 없음</p>
+              {/if}
             {/if}
           </div>
         {:else if activeSideTab === 'skills'}
@@ -1320,8 +1773,18 @@
             <span class="status-badge">{$agentStatus}</span>
           {/if}
           <span class="spacer"></span>
+          <label class="debug-toggle" title="이후 메시지의 LLM 요청/응답 trace를 저장합니다.">
+            <input type="checkbox" bind:checked={debugMode} onchange={handleDebugModeChange} />
+            <span>디버그</span>
+          </label>
+          <button class="link-btn" disabled={summarizingChat || $streaming} onclick={handleSummarizeChat}>
+            {summarizingChat ? '요약 중...' : '요약'}
+          </button>
           <button class="link-btn" onclick={() => { showChatList = true; }}>채팅 목록</button>
         </div>
+        {#if chatActionMessage}
+          <div class="chat-action-message">{chatActionMessage}</div>
+        {/if}
         <div class="messages" bind:this={chatContainer}>
           {#each $messages as msg}
             {#if msg.role === 'tool_step'}
@@ -1331,7 +1794,18 @@
             {:else}
               <div class="message" class:user={msg.role === 'user'} class:assistant={msg.role !== 'user'}>
                 <div class="msg-role">{msg.role === 'user' ? '🧑' : '🤖'}</div>
-                <div class="msg-content">{msg.content}</div>
+                {#if isDebugInspectable(msg)}
+                  <div
+                    class="msg-content msg-debug-button"
+                    role="button"
+                    tabindex="0"
+                    title="디버그 trace 보기"
+                    onclick={() => openDebugTrace(msg)}
+                    onkeydown={(event) => handleDebugMessageKeydown(event, msg)}
+                  >{@html renderChatMarkdown(msg.content)}</div>
+                {:else}
+                  <div class="msg-content">{@html renderChatMarkdown(msg.content)}</div>
+                {/if}
               </div>
             {/if}
           {/each}
@@ -1349,6 +1823,88 @@
     </div>
   </div>
 </div>
+
+{#if debugTraceOpen}
+  <div class="modal-backdrop" role="presentation" onclick={closeDebugTrace}>
+    <div
+      class="debug-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="디버그 trace"
+      tabindex="-1"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+    >
+      <header class="debug-modal-header">
+        <div class="debug-modal-title">
+          <strong>디버그 trace</strong>
+          <span>{debugTraceMessage?.created_at || '현재 메시지'}</span>
+        </div>
+        <button type="button" class="modal-close" onclick={closeDebugTrace}>닫기</button>
+      </header>
+      <div class="debug-message-preview">{debugTraceMessage?.content}</div>
+      <div class="debug-view-toggle" role="group" aria-label="디버그 payload 보기 방식">
+        <button
+          type="button"
+          class:active={debugPayloadView === 'expanded'}
+          onclick={() => { debugPayloadView = 'expanded'; }}
+        >풀어서 보기</button>
+        <button
+          type="button"
+          class:active={debugPayloadView === 'json'}
+          onclick={() => { debugPayloadView = 'json'; }}
+        >JSON</button>
+        <button
+          type="button"
+          class="debug-copy-all"
+          disabled={!debugTrace?.has_trace || debugTraceLoading}
+          onclick={copyFullDebugTrace}
+        >전체 JSON 복사</button>
+        {#if debugTraceCopyMessage}
+          <span class="debug-copy-message">{debugTraceCopyMessage}</span>
+        {/if}
+      </div>
+      <div class="debug-modal-body">
+        {#if debugTraceLoading}
+          <div class="empty">디버그 기록을 불러오는 중...</div>
+        {:else if debugTraceError}
+          <div class="side-error">{debugTraceError}</div>
+        {:else if !debugTrace?.has_trace}
+          <div class="empty">이 메시지는 디버그 기록이 없습니다.</div>
+        {:else}
+          {#each debugTrace.events as event}
+            <details class="debug-event" open={event.round_index === 0}>
+              <summary>
+                <span>{debugEventLabel(event.event_type)}</span>
+                <small>round {event.round_index}{event.duration_ms ? ` · ${Math.round(event.duration_ms)}ms` : ''}</small>
+              </summary>
+              <div class="debug-event-toolbar">
+                <span>{event.created_at}</span>
+                <button type="button" class="link-btn" onclick={() => copyDebugPayload(event.payload)}>복사</button>
+              </div>
+              {#if debugPayloadView === 'expanded'}
+                <div class="debug-expanded-view">
+                  {#each debugPayloadSections(event.event_type, event.payload) as section}
+                    <section class="debug-md-section">
+                      <h4>{section.title}</h4>
+                      {#if section.code}
+                        <pre class="debug-md-code">{section.content || '-'}</pre>
+                      {:else}
+                        <div class="debug-md-text">{section.content || '-'}</div>
+                      {/if}
+                    </section>
+                  {/each}
+                </div>
+              {:else}
+                <pre class="debug-payload">{@html highlightDebugPayload(event.payload)}</pre>
+              {/if}
+            </details>
+          {/each}
+        {/if}
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .layout { height: 100vh; display: flex; flex-direction: column; background: var(--color-bg); color: var(--color-text); }
@@ -1408,8 +1964,19 @@
   .side-signature { display: block; margin-top: 0.35rem; color: var(--color-info); font-family: var(--font-mono); font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .side-error { border: 1px solid var(--color-danger-soft); border-radius: var(--radius-md); background: var(--color-danger-soft); color: var(--color-danger); padding: 0.6rem; font-size: 0.75rem; line-height: 1.45; }
   .file-action-message { flex-shrink: 0; margin: 0.35rem 0.4rem 0; border: 1px solid var(--color-border-soft); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-muted); padding: 0.35rem 0.45rem; font-size: 0.72rem; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-search { flex-shrink: 0; display: flex; align-items: center; gap: 0.35rem; margin: 0.35rem 0.4rem 0; border: 1px solid var(--color-border-soft); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-muted); padding: 0.25rem 0.4rem; }
+  .file-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--color-text); font: inherit; font-size: 0.76rem; }
+  .file-search input::placeholder { color: var(--color-text-muted); }
   .file-list { flex: 1; overflow-y: auto; padding: 0.25rem; }
   .file-list.dragging { outline: 1px dashed var(--color-accent); outline-offset: -4px; background: var(--color-accent-soft); }
+  .search-results { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.15rem; }
+  .search-result { width: 100%; border: 1px solid var(--color-border-soft); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); padding: 0.45rem; text-align: left; cursor: pointer; font: inherit; }
+  .search-result:hover { border-color: var(--color-info); background: var(--color-sidebar-strong); }
+  .search-result-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.78rem; font-weight: 700; }
+  .search-result-path { display: block; margin-top: 0.16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-muted); font-size: 0.66rem; }
+  .search-result-meta { display: flex; flex-wrap: wrap; gap: 0.2rem; margin-top: 0.3rem; }
+  .search-result-meta span { border-radius: 999px; background: var(--color-sidebar-strong); color: var(--color-text-muted); padding: 0.08rem 0.32rem; font-size: 0.62rem; }
+  .search-result-snippet { display: -webkit-box; margin-top: 0.35rem; color: var(--color-text-muted); font-size: 0.68rem; line-height: 1.35; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .file-item { padding: 0.35rem 0.5rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.8rem; background: transparent; border: none; color: var(--color-text); width: 100%; text-align: left; font-family: inherit; display: block; }
   .file-item.readonly { color: var(--color-text-muted); }
   .file-label { display: flex; align-items: center; gap: 0.25rem; min-width: 0; overflow: hidden; }
@@ -1490,6 +2057,9 @@
 
   .link-btn { background: none; border: none; color: var(--color-pink); cursor: pointer; font-size: 0.8rem; padding: 0; }
   .link-btn:hover { text-decoration: underline; }
+  .link-btn:disabled { cursor: default; opacity: 0.45; text-decoration: none; }
+  .debug-toggle { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--color-text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+  .debug-toggle input { width: 14px; height: 14px; accent-color: var(--color-pink); }
 
   /* Chat list */
   .chat-list { flex: 1; overflow-y: auto; padding: 0.5rem; }
@@ -1505,12 +2075,26 @@
   .new-chat-btn:hover { border-color: var(--color-pink); color: var(--color-pink); background: var(--color-pink-soft); }
 
   /* Messages */
+  .chat-action-message { flex-shrink: 0; padding: 0.35rem 0.75rem; border-bottom: 1px solid var(--color-border); background: var(--color-pink-soft); color: #be185d; font-size: 0.74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .messages { flex: 1; overflow-y: auto; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.75rem; }
   .message { display: flex; gap: 0.5rem; }
   .message.user { flex-direction: row-reverse; }
   .msg-role { font-size: 1.2rem; flex-shrink: 0; }
-  .msg-content { background: var(--color-sidebar); border: 1px solid var(--color-border-soft); padding: 0.6rem 0.8rem; border-radius: var(--radius-md); font-size: 0.85rem; line-height: 1.5; max-width: 85%; white-space: pre-wrap; }
+  .msg-content { background: var(--color-sidebar); border: 1px solid var(--color-border-soft); padding: 0.6rem 0.8rem; border-radius: var(--radius-md); font-size: 0.85rem; line-height: 1.5; max-width: 85%; overflow-wrap: anywhere; }
   .message.user .msg-content { background: var(--color-info-soft); border-color: #bfdbfe; }
+  .msg-content :global(p) { margin: 0 0 0.55rem; }
+  .msg-content :global(p:last-child) { margin-bottom: 0; }
+  .msg-content :global(ul), .msg-content :global(ol) { margin: 0.35rem 0 0.6rem; padding-left: 1.2rem; }
+  .msg-content :global(li + li) { margin-top: 0.2rem; }
+  .msg-content :global(pre) { margin: 0.45rem 0; padding: 0.55rem 0.65rem; border-radius: var(--radius-sm); background: var(--color-canvas); overflow-x: auto; }
+  .msg-content :global(code) { font-family: var(--font-mono); font-size: 0.78rem; }
+  .msg-content :global(:not(pre) > code) { padding: 0.08rem 0.25rem; border-radius: var(--radius-sm); background: var(--color-canvas); }
+  .msg-content :global(blockquote) { margin: 0.45rem 0; padding-left: 0.75rem; border-left: 3px solid var(--color-border); color: var(--color-text-muted); }
+  .msg-content :global(table) { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 0.45rem 0; }
+  .msg-content :global(th), .msg-content :global(td) { border: 1px solid var(--color-border-soft); padding: 0.3rem 0.45rem; }
+  .msg-content :global(a) { color: var(--color-accent-strong); }
+  .msg-debug-button { color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  .msg-debug-button:hover { border-color: var(--color-pink); box-shadow: 0 0 0 2px var(--color-pink-soft); }
 
   .tool-step-inline { padding: 0.2rem 0.75rem; font-size: 0.8rem; color: var(--color-text-muted); border-left: 2px solid var(--color-border); margin-left: 1.5rem; }
   .step-text { font-family: var(--font-mono); }
@@ -1524,4 +2108,37 @@
   .status-badge { background: var(--color-pink); color: white; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.7rem; }
 
   .empty { color: var(--color-text-subtle); font-size: 0.8rem; text-align: center; padding: 1rem; }
+
+  .modal-backdrop { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 2rem; background: rgba(15, 23, 42, 0.35); }
+  .debug-modal { width: min(920px, 92vw); max-height: 86vh; display: flex; flex-direction: column; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); color: var(--color-text); box-shadow: 0 22px 70px rgba(15, 23, 42, 0.28); overflow: hidden; }
+  .debug-modal-header { flex-shrink: 0; display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem; border-bottom: 1px solid var(--color-border); background: var(--color-sidebar); }
+  .debug-modal-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+  .debug-modal-title strong { font-size: 0.95rem; }
+  .debug-modal-title span { color: var(--color-text-muted); font-size: 0.72rem; }
+  .modal-close { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text-muted); padding: 0.35rem 0.65rem; font: inherit; font-size: 0.78rem; cursor: pointer; }
+  .modal-close:hover { border-color: var(--color-pink); color: var(--color-pink); }
+  .debug-message-preview { flex-shrink: 0; max-height: 110px; overflow: auto; padding: 0.75rem 1rem; border-bottom: 1px solid var(--color-border); background: var(--color-info-soft); color: var(--color-text); white-space: pre-wrap; font-size: 0.8rem; line-height: 1.45; }
+  .debug-view-toggle { flex-shrink: 0; display: flex; align-items: center; gap: 0.35rem; padding: 0.55rem 1rem; border-bottom: 1px solid var(--color-border); background: var(--color-surface); }
+  .debug-view-toggle button { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: transparent; color: var(--color-text-muted); padding: 0.3rem 0.65rem; font: inherit; font-size: 0.75rem; cursor: pointer; }
+  .debug-view-toggle button:hover { border-color: var(--color-pink); color: var(--color-pink); }
+  .debug-view-toggle button.active { border-color: var(--color-pink); background: var(--color-pink-soft); color: var(--color-pink); font-weight: 700; }
+  .debug-view-toggle button:disabled { cursor: default; opacity: 0.45; }
+  .debug-copy-all { margin-left: auto; }
+  .debug-copy-message { color: var(--color-accent-strong); font-size: 0.72rem; white-space: nowrap; }
+  .debug-modal-body { flex: 1; min-height: 0; overflow: auto; padding: 0.85rem; background: var(--color-canvas); }
+  .debug-event { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); margin-bottom: 0.65rem; overflow: hidden; }
+  .debug-event summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.65rem 0.8rem; cursor: pointer; font-weight: 700; font-size: 0.82rem; }
+  .debug-event summary small { color: var(--color-text-muted); font-weight: 500; }
+  .debug-event-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.4rem 0.8rem; border-top: 1px solid var(--color-border-soft); color: var(--color-text-muted); font-size: 0.7rem; }
+  .debug-expanded-view { display: flex; flex-direction: column; gap: 0.65rem; padding: 0.75rem; border-top: 1px solid var(--color-border-soft); background: var(--color-canvas); }
+  .debug-md-section { border: 1px solid var(--color-border-soft); border-radius: var(--radius-md); background: var(--color-surface); overflow: hidden; }
+  .debug-md-section h4 { margin: 0; padding: 0.45rem 0.7rem; border-bottom: 1px solid var(--color-border-soft); background: var(--color-sidebar); color: var(--color-text); font-size: 0.75rem; }
+  .debug-md-text { padding: 0.7rem 0.8rem; white-space: pre-wrap; word-break: break-word; color: var(--color-text); font-size: 0.78rem; line-height: 1.55; }
+  .debug-md-code { margin: 0; padding: 0.7rem 0.8rem; max-height: 320px; overflow: auto; background: var(--color-sidebar); color: var(--color-text); font-family: var(--font-mono); font-size: 0.72rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .debug-payload { margin: 0; max-height: 420px; overflow: auto; border-top: 1px solid var(--color-border-soft); background: #0f172a; color: #dbeafe; padding: 0.85rem; font-family: var(--font-mono); font-size: 0.72rem; line-height: 1.55; tab-size: 2; white-space: pre-wrap; word-break: break-word; }
+  .debug-payload :global(.debug-json-key) { color: #93c5fd; font-weight: 700; }
+  .debug-payload :global(.debug-json-string) { color: #86efac; }
+  .debug-payload :global(.debug-json-number) { color: #fbbf24; }
+  .debug-payload :global(.debug-json-boolean) { color: #f0abfc; font-weight: 700; }
+  .debug-payload :global(.debug-json-null) { color: #94a3b8; font-style: italic; }
 </style>

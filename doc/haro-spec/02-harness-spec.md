@@ -124,7 +124,9 @@ haro: 그럼 이 프로젝트를 "주간 광고 성과 보고" 하네스로 구�
       contacts/
       source-refs/
     datasources/
-    file_index.json
+    db/
+      workspace.db
+    file_summaries/
     playground-index.json
     audit-log.jsonl
     promotions/
@@ -253,7 +255,9 @@ Clean Room은 GitHub를 사용하지 않고 작업공간 안의 `.haro/git/`에 
     data-clean-room.git
     meta-clean-room.git
   datasources/
-  file_index.json
+  db/
+    workspace.db
+  file_summaries/
   playground-index.json
   audit-log.jsonl
   promotions/
@@ -305,6 +309,10 @@ playground/users/{user_id}/50_chats/
     linked-files.json
     artifacts.json
     agent-log.md
+    inputs/
+    working/
+    outputs/
+    summaries/
 ```
 
 채팅 폴더는 다음 역할을 한다.
@@ -316,11 +324,14 @@ playground/users/{user_id}/50_chats/
 - `linked-files.json`: 이 채팅에서 사용한 입력/변환/산출 파일
 - `artifacts.json`: 생성된 보고서, 대시보드, 공유 페이지 목록
 - `agent-log.md`: 주요 도구 실행 요약
+- `inputs/`, `working/`, `outputs/`: 채팅 안에서 사용하거나 생성한 파일
+- `summaries/`: 긴 채팅을 압축한 요약 파일
 
 상세 스펙은 [06-chat-session-file-spec.md](./06-chat-session-file-spec.md)를 따른다.
 
 팀 기준으로 보존해야 하는 채팅세션은 요약과 결정만 `clean-room/meta/50_chats/`로 승격한다.
 개인 playground의 전체 대화를 자동으로 팀 공간에 노출하지 않는다.
+사용자가 저장 위치를 명시하지 않은 파일 작업은 현재 채팅 폴더를 기본 위치로 사용한다.
 
 ## 4.4 숨은 사람 맥락 저장소
 
@@ -353,13 +364,14 @@ playground/users/{user_id}/50_chats/
 ```json
 {
   "path": "/clean-room/data/10_sources/media-reports/naver_weekly.csv",
-  "room": "clean-room-data",
+  "room": "clean_room_data",
   "kind": "media_report",
   "source": "naver",
   "owner_scope": "team",
   "owner_user_id": null,
   "status": "classified",
-  "protection": "approved",
+  "approval_state": "approved",
+  "access_policy": "read_only",
   "origin_path": "/playground/users/zerry/00_inbox/report.xlsx",
   "derived_from": ["/playground/users/zerry/00_inbox/report.xlsx"],
   "related_outputs": ["/clean-room/data/30_outputs/reports/a-client-weekly.md"],
@@ -369,14 +381,25 @@ playground/users/{user_id}/50_chats/
 }
 ```
 
-v1에서는 DB 모델을 바로 크게 만들기보다 `.haro/file_index.json` 또는 SQLite 테이블 중 하나를 선택한다.
+v1의 파일/폴더 메타데이터 기준은 workspace 내부 SQLite DB다.
 
-권장 시작점:
+```text
+.haro/db/workspace.db
+```
 
-- DB 테이블: 검색/필터/상태 변경에 유리
-- `.haro/file_index.json`: 빠른 구현과 이식성에 유리
+workspace DB는 다음을 담당한다.
 
-POC 다음 단계에서는 `.haro/file_index.json`으로 시작하고, 검색/권한이 커지면 DB로 이동한다.
+- 파일/폴더 목록
+- 파일명, 경로, 요약 텍스트 검색
+- Clean Room / Playground / Archive 구분
+- 읽기 전용, 숨김, 쓰기 가능 보호 정책
+- 원본, 변환본, 채팅 입력, 채팅 산출물 관계
+- 파일 변경 동기화 상태
+
+검색은 SQLite FTS5 trigram tokenizer를 사용한다.
+v1 검색 범위는 파일명, 폴더명, 경로, `summary_text`이며 파일 본문 전체 검색은 후속 주기로 둔다.
+
+상세 DB 스펙은 [14-workspace-file-db-spec.md](./14-workspace-file-db-spec.md)를 따른다.
 
 ## 6. 파일 상태
 
@@ -634,6 +657,7 @@ playground/users/{user_id}/00_inbox/email/{connection_name}/{thread_slug}/
 
 - Clean Room / 내 Playground 전환
 - 검색 입력
+- 파일명/요약 텍스트 검색 결과
 - 상태 필터
 - 업무 묶음 보기
 - 추천 정리 버튼
@@ -705,6 +729,7 @@ Clean Room의 승인된 파일에는 잠금 상태를 표시한다.
 
 ```http
 GET  /api/projects/{project_id}/harness/files
+GET  /api/projects/{project_id}/files/search
 POST /api/projects/{project_id}/harness/classify
 POST /api/projects/{project_id}/harness/organize
 POST /api/projects/{project_id}/harness/bundles
@@ -731,6 +756,8 @@ POST /api/projects/{project_id}/datasources/gmail/threads/{thread_id}/draft-repl
 v1 성공 기준:
 
 - 사용자가 파일 10개를 올려도 “어디에 무엇이 있는지” 바로 알 수 있다.
+- 파일 3,000개 이상에서도 파일명과 요약 텍스트 검색이 빠르게 동작한다.
+- 파일/폴더 생성, 업로드, 저장, 삭제 후 workspace DB와 검색 인덱스가 동기화된다.
 - Excel 변환본과 원본 관계가 보인다.
 - haro가 업로드 파일을 매체 리포트/리뷰/CS/브리프 중 하나로 분류한다.
 - 사용자가 클릭 한 번으로 추천 폴더 정리를 승인할 수 있다.

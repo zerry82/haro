@@ -13,7 +13,16 @@ from app.dependencies import get_current_user, get_db
 from app.models.project import Project
 from app.models.user import User
 from app.services.harness import ensure_harness_structure, is_clean_room_path, is_haro_internal_path
-from app.services.workspace_index import META_EXCLUDES, rebuild_workspace_index, update_file_summary
+from app.services.workspace_file_db import (
+    WorkspaceSearchUnavailable,
+    atomic_write_bytes,
+    atomic_write_text,
+    list_workspace_directory,
+    mark_workspace_summary_stale,
+    search_workspace_files,
+    sync_workspace_path,
+)
+from app.services.workspace_index import rebuild_workspace_index, update_file_summary
 
 router = APIRouter(prefix="/api/projects/{project_id}/files", tags=["files"])
 
@@ -53,6 +62,24 @@ class FileMutationResponse(BaseModel):
 class FileUploadResponse(BaseModel):
     path: str
     uploaded: list[str]
+
+
+class FileSearchItem(BaseModel):
+    path: str
+    name: str
+    item_type: str
+    language: str | None = None
+    extension: str | None = None
+    room: str
+    access_policy: str
+    summary_status: str
+    summary_snippet: str
+
+
+class FileSearchResponse(BaseModel):
+    query: str
+    status: str = "ok"
+    items: list[FileSearchItem]
 
 
 LANG_MAP = {
@@ -217,17 +244,42 @@ async def list_files(
     if not os.path.isdir(full_path):
         raise HTTPException(status_code=404, detail="Directory not found")
 
-    items: list[FileItem] = []
-    for entry in os.scandir(full_path):
-        if entry.name in META_EXCLUDES:
-            continue
-        if entry.is_dir():
-            children = len([e for e in os.scandir(entry.path) if e.name not in META_EXCLUDES])
-            items.append(FileItem(name=entry.name, type="directory", children_count=children))
-        else:
-            items.append(FileItem(name=entry.name, type="file", size=entry.stat().st_size))
-    items.sort(key=lambda x: (x.type == "file", x.name))
+    items = [FileItem(**item) for item in list_workspace_directory(workspace, path)]
     return FileListResponse(path=path, items=items)
+
+
+@router.get("/search", response_model=FileSearchResponse)
+async def search_files(
+    project_id: str,
+    q: str = Query(""),
+    room: str | None = Query(None),
+    item_type: str | None = Query(None),
+    language: str | None = Query(None),
+    extension: str | None = Query(None),
+    access_policy: str | None = Query(None),
+    chat_id: str | None = Query(None),
+    limit: int = Query(50, ge=1, le=100),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    workspace = await _get_workspace(db, user.id, project_id)
+    ensure_harness_structure(workspace, user.id, initialize_git=False)
+    db_item_type = "dir" if item_type == "directory" else "file" if item_type == "file" else item_type
+    try:
+        items = search_workspace_files(
+            workspace,
+            q,
+            room=room,
+            item_type=db_item_type,
+            language=language,
+            extension=extension,
+            access_policy=access_policy,
+            chat_id=chat_id,
+            limit=limit,
+        )
+    except WorkspaceSearchUnavailable:
+        return FileSearchResponse(query=q, status="search_unavailable", items=[])
+    return FileSearchResponse(query=q, items=[FileSearchItem(**item) for item in items])
 
 
 @router.post("/directories", response_model=FileMutationResponse, status_code=201)
@@ -249,6 +301,7 @@ async def create_directory(
         raise HTTPException(status_code=404, detail="Parent directory not found")
 
     os.mkdir(full_path)
+    sync_workspace_path(workspace, body.path, source_kind="user")
     await rebuild_workspace_index(workspace)
     return FileMutationResponse(path=body.path, type="directory")
 
@@ -307,8 +360,7 @@ async def upload_files(
         relative_path = _join_workspace_path(path, relative_name)
         target_path = _validate_path(workspace, relative_path)
         os.makedirs(os.path.dirname(target_path), exist_ok=True)
-        with open(target_path, "wb") as f:
-            f.write(content)
+        atomic_write_bytes(target_path, content)
         uploaded.append(relative_path)
         await update_file_summary(workspace, relative_path, "modified" if existed_before.get(relative_path) else "created")
 
@@ -355,8 +407,8 @@ async def update_file_content(
     if ext not in EDITABLE_EXTENSIONS:
         raise HTTPException(status_code=415, detail="File type is not editable")
 
-    with open(full_path, "w", encoding="utf-8") as f:
-        f.write(body.content)
+    atomic_write_text(full_path, body.content)
+    mark_workspace_summary_stale(workspace, path)
 
     await update_file_summary(workspace, path, "modified")
 

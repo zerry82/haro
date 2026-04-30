@@ -31,6 +31,8 @@ haro는 특정 직종 전용 도구가 아니라, 화이트칼라 업무를 work
 - [11-gmail-crm-inbox-spec.md](./11-gmail-crm-inbox-spec.md): Gmail LLM triage 기반 CRM형 업무 인박스 스펙
 - [12-hook-integration-spec.md](./12-hook-integration-spec.md): 통지형/외부 연계형 hook과 정책별 자동 실행 스펙
 - [13-human-context-analysis-spec.md](./13-human-context-analysis-spec.md): 인간분석과 숨은 사람 맥락 관리 스펙
+- [14-workspace-file-db-spec.md](./14-workspace-file-db-spec.md): 워크스페이스 파일관리 DB와 FTS 검색 스펙
+- [15-debug-mode-spec.md](./15-debug-mode-spec.md): 채팅 턴별 LLM 교신을 추적하는 디버그 모드 스펙
 - [tasks/README.md](./tasks/README.md): 스펙을 실제 개발 주기로 쪼갠 작업 계획과 검증 기록
 
 ## 상세 사용자 시나리오

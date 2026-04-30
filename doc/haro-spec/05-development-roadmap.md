@@ -352,7 +352,7 @@ haro가 데이터 규칙 후보를 생성해야 한다.
 3. Data/Meta Clean Room 내부 Git 초기화
 4. Clean Room checkpoint와 migration rollback
 5. Project Fork / Meta Template Engine
-6. `.haro/file_index.json` 메타데이터 저장
+6. `.haro/db/workspace.db` 파일관리 DB와 FTS 검색
 7. 업로드 파일 분류와 정리 제안
 8. Google Drive 데이터소스 가져오기
 9. Gmail CRM형 업무 인박스

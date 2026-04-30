@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     sandbox_idle_timeout_minutes: int = 30
     sandbox_work_idle_timeout_minutes: int = 5
     sandbox_exec_timeout: int = 30
+    sandbox_docker_timeout: int = 3
+    sandbox_docker_circuit_breaker_seconds: int = 30
+    sandbox_stop_containers_on_shutdown: bool = False
     sandbox_default_node_host: str = "unix:///var/run/docker.sock"
     sandbox_default_node_max_containers: int = 10
 

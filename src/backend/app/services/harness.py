@@ -72,6 +72,8 @@ def _harness_directories(user_id: str) -> list[str]:
         f"playground/users/{user_id}/50_chats",
         "90_archive",
         ".haro/git",
+        ".haro/db",
+        ".haro/locks",
         ".haro/file_summaries",
         ".haro/context/self",
         ".haro/context/contacts",

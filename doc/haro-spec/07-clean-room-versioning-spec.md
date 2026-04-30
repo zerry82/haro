@@ -59,7 +59,9 @@ clean-room/
     data-clean-room.git
     meta-clean-room.git
   datasources/
-  file_index.json
+  db/
+    workspace.db
+  file_summaries/
   playground-index.json
   audit-log.jsonl
   promotions/
@@ -170,7 +172,7 @@ playground 스킬/규칙/workflow/validator
 검증 예:
 
 - 필수 폴더 존재
-- `.haro/file_index.json` schema 유효성
+- `.haro/db/workspace.db` schema와 검색 인덱스 유효성
 - Data/Meta Clean Room Git status 정상
 - active skill registry 유효성
 - 승격 요청 목록 유효성

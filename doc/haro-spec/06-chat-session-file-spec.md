@@ -45,11 +45,18 @@ playground/users/{user_id}/50_chats/
   2026-04-29-a-client-weekly-report/
     README.md
     conversation.md
+    context.md
     decisions.md
     rule-candidates.md
     linked-files.json
     artifacts.json
     agent-log.md
+    inputs/
+    working/
+    outputs/
+    summaries/
+      summary-0001.md
+      index.json
 ```
 
 ## 4. 파일 역할
@@ -58,11 +65,16 @@ playground/users/{user_id}/50_chats/
 | --- | --- |
 | `README.md` | 채팅세션의 목적, 상태, 요약 |
 | `conversation.md` | 사용자와 haro의 주요 대화 기록 |
+| `context.md` | 긴 대화를 압축한 현재 맥락 |
 | `decisions.md` | 사용자가 승인한 결정과 판단 |
 | `rule-candidates.md` | 스킬로 승격될 수 있는 자연어 규칙 후보 |
 | `linked-files.json` | 이 채팅에서 사용한 원본/변환본/산출물 파일 경로 |
 | `artifacts.json` | 생성된 산출물 목록과 타입 |
 | `agent-log.md` | 주요 도구 실행과 결과 요약 |
+| `inputs/` | 채팅에서 사용한 입력 파일 snapshot 또는 참조 |
+| `working/` | 정규화 데이터, 실험 중간 산출물 |
+| `outputs/` | 보고서, HTML, CSV 등 채팅 산출물 |
+| `summaries/` | 맥락 압축 요약 파일 |
 
 ## 5. README.md 예시
 
@@ -160,11 +172,54 @@ A광고주 보고서에서는 액션 플랜을 지표 요약보다 먼저 배치
 }
 ```
 
-## 10. DB와 파일의 관계
+## 10. 파일 쓰기 기본 위치 규칙
 
-v1에서는 DB를 유지한다.
+채팅 중 파일 쓰기는 강제 격리가 아니다.
+다만 사용자가 위치를 명확히 말하지 않으면 haro는 현재 채팅 폴더를 기본 작업 위치로 사용한다.
 
-- DB: 빠른 목록, 메시지 조회, 권한, SSE, 실행 상태
+기본 규칙:
+
+- 사용자가 “파일 만들어줘”, “보고서 저장해줘”처럼 위치를 말하지 않으면 `outputs/` 또는 `working/`에 저장한다.
+- 사용자가 `/playground/users/{user_id}/30_outputs/...`처럼 명시한 합법 경로를 말하면 그 경로를 따른다.
+- Clean Room과 `.haro` 내부 메타데이터는 직접 쓰지 않는다.
+- 채팅 산출물을 다른 폴더로 보내야 하면 복사 후 연결한다.
+- Clean Room으로 보내야 하면 직접 복사하지 않고 승격 요청으로 처리한다.
+
+예:
+
+```text
+사용자: 보고서 초안 만들어줘.
+저장 위치: playground/users/{user_id}/50_chats/{chat}/outputs/report.md
+
+사용자: 이 파일을 /playground/users/{user_id}/30_outputs/drafts/report.md 로 저장해줘.
+저장 위치: 사용자가 지정한 경로
+```
+
+## 11. 맥락 압축 규칙
+
+채팅이 길어지면 haro는 요약 파일을 만들고 오래된 대화를 LLM 컨텍스트에서 제외할 수 있다.
+원문 DB 메시지는 보존한다.
+
+동작:
+
+- 수동: 사용자가 `요약` 버튼을 눌러 현재 채팅을 요약한다.
+- 자동 제안: 압축되지 않은 메시지가 일정 개수를 넘으면 haro가 요약을 제안한다.
+- 요약 결과는 `summaries/summary-NNNN.md`에 저장한다.
+- 최신 맥락은 `context.md`에 갱신한다.
+- 이후 LLM은 `context.md + 최근 메시지`를 우선 사용한다.
+
+v1 기본값:
+
+- 최근 메시지 20개는 원문으로 유지한다.
+- 압축되지 않은 메시지가 40개 이상이면 요약을 제안한다.
+- 요약 실패 시 메시지를 compressed 처리하지 않는다.
+
+## 12. DB와 파일의 관계
+
+v1에서는 서비스 DB와 workspace DB를 함께 사용한다.
+
+- 서비스 DB: 빠른 채팅 목록, 메시지 조회, 권한, SSE, 실행 상태
+- workspace DB: 채팅 폴더, 입력 파일, 산출물, export 관계 검색
 - 파일: 사용자가 읽고 에이전트가 참조할 수 있는 업무 기록
 
 동기화 방향:
@@ -172,18 +227,45 @@ v1에서는 DB를 유지한다.
 ```text
 DB chat_sessions/messages/agent_logs
   -> chat folder mirror
+  -> workspace_item_relations
   -> harness context
 ```
 
 초기에는 DB를 source of truth로 두고, 채팅이 생성/수정될 때 파일 mirror를 갱신한다.
+채팅에서 읽은 파일과 생성한 파일의 관계는 workspace DB의 `workspace_item_relations`에도 기록한다.
+`linked-files.json`과 `artifacts.json`은 사람이 읽기 쉬운 mirror이며, 검색과 관계 조회의 기준은 workspace DB로 둔다.
 
-## 11. 채팅 생성 규칙
+상세 파일관리 DB 스펙은 [14-workspace-file-db-spec.md](./14-workspace-file-db-spec.md)를 따른다.
+
+## 13. 디버그 trace
+
+채팅세션은 사용자의 업무 기록이지만, 개발과 품질 개선을 위해 에이전트 내부 동작도 턴별로 추적할 수 있어야 한다.
+
+디버그 trace는 사용자가 보낸 메시지 하나를 기준으로 다음 정보를 연결한다.
+
+- LLM에게 보낸 system instruction과 contents
+- LLM이 돌려준 원문 응답
+- tool call과 tool result
+- 에러와 실행 시간
+
+v1에서는 디버그 모드가 켜진 턴만 full trace를 저장한다.
+기존 `agent_logs`는 운영 로그로 유지하고, 원문 전체 디버그 기록은 별도 `agent_debug_traces`로 분리한다.
+
+채팅 UI에서는 사용자가 보낸 메시지 블럭을 클릭하면 중앙 모달로 해당 턴의 디버그 trace를 보여준다.
+trace가 없는 과거 메시지는 “이 메시지는 디버그 기록이 없습니다.”라고 안내한다.
+
+디버그 trace는 채팅 폴더의 일반 산출물이 아니다.
+따라서 Project Fork, Clean Room 승격, workspace file DB 검색 대상에 포함하지 않는다.
+
+상세 디버그 모드 스펙은 [15-debug-mode-spec.md](./15-debug-mode-spec.md)를 따른다.
+
+## 14. 채팅 생성 규칙
 
 채팅 생성 시:
 
 1. DB chat_session 생성
 2. `playground/users/{user_id}/50_chats/{date}-{slug}/` 폴더 생성
-3. 기본 파일 생성
+3. 기본 파일과 `inputs/`, `working/`, `outputs/`, `summaries/` 생성
 4. chat_session에 `folder_path` 또는 metadata 연결
 
 채팅 제목 변경 시:
@@ -202,13 +284,14 @@ Clean Room 공유 시:
 - `README.md`, `decisions.md`, accepted `rule-candidates.md`, 관련 산출물 요약만 승격 대상으로 삼는다.
 - 승격 후 위치는 `clean-room/meta/50_chats/{date}-{slug}/`다.
 
-## 12. UI 변경
+## 15. UI 변경
 
 ### 채팅 패널
 
 현재 오른쪽 채팅 목록은 유지하되, 각 채팅에 폴더 상태를 표시한다.
 
 - 작업 폴더 열기
+- 채팅 요약하기
 - 관련 파일 보기
 - 결정 보기
 - 규칙 후보 보기
@@ -229,18 +312,19 @@ Clean Room 공유 시:
 
 채팅 폴더를 선택하면 “채팅 작업 요약” 뷰를 보여준다.
 
-## 13. 에이전트 컨텍스트
+## 16. 에이전트 컨텍스트
 
 에이전트는 현재 채팅 DB 메시지만 보는 것이 아니라, 채팅 폴더의 요약 파일도 함께 본다.
 
 포함 대상:
 
+- 현재 채팅의 `context.md`
 - 현재 채팅의 `README.md`
 - 현재 채팅의 `decisions.md`
 - 현재 채팅의 accepted `rule-candidates.md`
 - linked files 요약
 
-## 14. API 초안
+## 17. API 초안
 
 ```http
 POST /api/projects/{project_id}/chats
@@ -255,15 +339,29 @@ POST /api/projects/{project_id}/chats/{chat_id}/sync-files
 GET /api/projects/{project_id}/chats/{chat_id}/folder
   -> 채팅 폴더 경로와 파일 목록 반환
 
+POST /api/projects/{project_id}/chats/{chat_id}/summarize
+  -> 요약 파일 생성, context.md 갱신, 오래된 메시지 압축 처리
+
+POST /api/projects/{project_id}/chats/{chat_id}/files/export
+  -> 채팅 산출물을 다른 Playground 폴더로 복사하고 연결 관계 기록
+
 POST /api/projects/{project_id}/chats/{chat_id}/promote
   -> Meta Clean Room 공유용 채팅 요약 승격 요청 생성
+
+GET /api/projects/{project_id}/chats/{chat_id}/messages/{message_id}/debug-trace
+  -> 디버그 모드가 켜진 턴의 LLM 요청/응답/tool trace 반환
 ```
 
-## 15. 성공 기준
+## 18. 성공 기준
 
 - 새 채팅을 만들면 사용자별 playground의 `50_chats/` 아래 폴더가 생긴다.
 - 채팅 메시지가 `conversation.md`에 누적된다.
+- 경로를 말하지 않은 파일 생성은 현재 채팅 폴더에 저장된다.
+- 사용자가 명시한 Playground 경로는 그대로 따른다.
+- 채팅에서 사용한 입력 파일과 생성한 산출물 관계가 `workspace_item_relations`에 남는다.
+- 긴 채팅을 요약하면 `summaries/`와 `context.md`가 갱신된다.
 - 사용자의 명확한 피드백이 `rule-candidates.md` 후보로 남는다.
 - 생성된 보고서와 대시보드가 `artifacts.json`에 연결된다.
 - 담당자가 바뀌어도 채팅 폴더만 열면 작업 목적, 결정, 산출물, 다음 액션을 이해할 수 있다.
 - 팀 공유가 필요한 채팅 요약만 Meta Clean Room으로 승격할 수 있다.
+- 디버그 모드가 켜진 턴은 사용자 메시지 클릭으로 LLM 교신 trace를 확인할 수 있다.

@@ -19,6 +19,7 @@ from app.models.message import Message
 from app.models.project import Project
 from app.models.user import User
 from app.services.container_manager import ContainerManager
+from app.services.chat_workspace import ensure_chat_workspace
 from app.services.harness import ensure_harness_structure
 
 logger = logging.getLogger(__name__)
@@ -97,6 +98,8 @@ async def create_project(body: CreateProjectRequest, user: User = Depends(get_cu
     # Create default chat session
     chat = ChatSession(project_id=pid, title="기본 채팅")
     db.add(chat)
+    await db.flush()
+    ensure_chat_workspace(workspace, user.id, chat)
     await db.commit()
     await db.refresh(project)
 

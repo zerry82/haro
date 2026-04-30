@@ -29,6 +29,24 @@ export interface FileUploadResponse {
   uploaded: string[];
 }
 
+export interface FileSearchItem {
+  path: string;
+  name: string;
+  item_type: 'file' | 'directory';
+  language?: string;
+  extension?: string;
+  room: string;
+  access_policy: string;
+  summary_status: string;
+  summary_snippet: string;
+}
+
+export interface FileSearchResponse {
+  query: string;
+  status: 'ok' | 'search_unavailable';
+  items: FileSearchItem[];
+}
+
 const LANG_MAP: Record<string, string> = {
   '.py': 'python',
   '.js': 'javascript',
@@ -169,6 +187,12 @@ export async function uploadFiles(projectId: string, targetDir: string, files: F
       method: 'POST',
       body,
     }
+  );
+}
+
+export async function searchFiles(projectId: string, query: string, limit = 50) {
+  return api<FileSearchResponse>(
+    `/projects/${projectId}/files/search?q=${encodeURIComponent(query)}&limit=${limit}`
   );
 }
 

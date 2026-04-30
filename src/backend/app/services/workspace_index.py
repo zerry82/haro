@@ -56,6 +56,11 @@ async def update_file_summary(workspace: str, file_path: str, action: str) -> No
     if action == "deleted":
         if os.path.exists(summary_path):
             os.remove(summary_path)
+        try:
+            from app.services.workspace_file_db import mark_workspace_path_deleted
+            mark_workspace_path_deleted(workspace, file_path)
+        except Exception:
+            pass
     else:
         full_path = os.path.join(workspace, file_path.lstrip("/"))
         if not os.path.isfile(full_path):
@@ -68,6 +73,11 @@ async def update_file_summary(workspace: str, file_path: str, action: str) -> No
         summary = generate_simple_summary(file_path, content)
         with open(summary_path, "w", encoding="utf-8") as f:
             f.write(summary)
+        try:
+            from app.services.workspace_file_db import update_workspace_item_summary
+            update_workspace_item_summary(workspace, file_path, summary)
+        except Exception:
+            pass
 
     await rebuild_workspace_index(workspace)
 
