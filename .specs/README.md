@@ -5,7 +5,19 @@
 ## 구조
 
 ```text
-.specs/{spec}/
+.specs/draft/{spec}/
+  spec.md
+  design.md
+  implementation.md
+  commits.md
+
+.specs/work/{spec}/
+  spec.md
+  design.md
+  implementation.md
+  commits.md
+
+.specs/done/{spec}/
   spec.md
   design.md
   implementation.md
@@ -13,6 +25,14 @@
 ```
 
 `{spec}`은 짧고 의미 있는 kebab-case 이름을 사용한다.
+
+스펙 생명주기는 다음을 따른다.
+
+- `.specs/draft/{spec}/`: 아이디어, 문제 정의, 설계 초안이 있고 아직 구현을 시작하지 않은 스펙
+- `.specs/work/{spec}/`: 현재 구현 중이거나 검증/문서 동기화가 진행 중인 스펙
+- `.specs/done/{spec}/`: 구현, 검증, 문서 동기화, 연결 커밋 기록까지 끝난 스펙
+
+구현을 시작할 때는 `draft`에서 `work`로 옮기고, 완료되면 `work`에서 `done`으로 옮긴다.
 
 ## 문서 역할
 

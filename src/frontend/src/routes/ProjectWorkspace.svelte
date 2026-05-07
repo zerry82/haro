@@ -44,7 +44,6 @@
     isHtmlFile,
     isMarkdownFile,
     joinExplorerPath,
-    normalizeWorkspacePath,
     type RuntimeMode,
     type ViewerTab,
   } from '../lib/workspaceUtils';
@@ -79,6 +78,25 @@
     computePanelResize,
     type ResizePanel,
   } from '../lib/workspacePanelResize';
+  import {
+    getAffectedRefreshDirectories,
+    getSelectedFileRefreshDecision,
+    mergeRefreshQueue,
+    normalizeFileChangedDetail,
+  } from '../lib/workspaceFileRefresh';
+  import {
+    formatFileActionError as getErrorMessage,
+    getExplorerTargetDir as resolveExplorerTargetDir,
+    getNodeTargetDir as resolveNodeTargetDir,
+    hasDraggedFiles,
+    isReadOnlyMutationTarget,
+    validateNewFolderName,
+  } from '../lib/workspaceFileActions';
+  import {
+    buildFocusedSearchNode,
+    isDirectorySearchResult,
+    shouldConfirmDiscardUnsaved,
+  } from '../lib/workspaceExplorerActions';
   import 'highlight.js/styles/github.css';
   import DebugTraceModal from '../components/DebugTraceModal.svelte';
   import FileViewerPanel from '../components/FileViewerPanel.svelte';
@@ -157,7 +175,7 @@
   let fileListScrollTop = $state(0);
   let fileListHeight = $state(0);
   let fileRefreshTimer: ReturnType<typeof setTimeout> | null = null;
-  const pendingFileRefreshPaths = new Map<string, string | undefined>();
+  let pendingFileRefreshPaths = new Map<string, string | undefined>();
 
   type DebugPayloadView = 'expanded' | 'json';
   type SkillListResponse = { skills: SkillResponse[] };
@@ -197,27 +215,19 @@
   }
 
   function getExplorerTargetDir() {
-    if (focusedExplorerNode?.type === 'directory') return focusedExplorerNode.path;
-    if (focusedExplorerNode?.type === 'file') return getParentPath(focusedExplorerNode.path);
-    if ($selectedFilePath) return getParentPath($selectedFilePath);
-    return getDefaultPlaygroundInbox();
+    return resolveExplorerTargetDir({
+      focusedNode: focusedExplorerNode,
+      selectedFilePath: $selectedFilePath,
+      defaultInbox: getDefaultPlaygroundInbox(),
+    });
   }
 
   function getNodeTargetDir(node: TreeNode | null) {
-    if (!node) return getExplorerTargetDir();
-    return node.type === 'directory' ? node.path : getParentPath(node.path);
+    return resolveNodeTargetDir(node, getExplorerTargetDir());
   }
 
   function isExplorerTargetReadOnly() {
-    return isCleanRoomPath(getExplorerTargetDir());
-  }
-
-  function hasDraggedFiles(event: DragEvent) {
-    return Array.from(event.dataTransfer?.types || []).includes('Files');
-  }
-
-  function getErrorMessage(error: unknown, fallback: string) {
-    return error instanceof Error ? error.message : fallback;
+    return isReadOnlyMutationTarget(getExplorerTargetDir());
   }
 
   async function refreshExplorerAfterMutation(projectId: string, targetDir: string) {
@@ -509,12 +519,9 @@
   function queueExplorerRefresh(path: string, itemType?: string) {
     const pid = $currentProjectId;
     if (!pid) return;
-    const normalized = normalizeWorkspacePath(path);
-    const parent = getParentPath(normalized);
-    pendingFileRefreshPaths.set(normalized, itemType);
-    markDirectoryDirty(parent);
-    if (itemType === 'directory' || itemType === 'dir') {
-      markDirectoryDirty(normalized);
+    pendingFileRefreshPaths = mergeRefreshQueue(pendingFileRefreshPaths, path, itemType);
+    for (const directoryPath of getAffectedRefreshDirectories(path, itemType)) {
+      markDirectoryDirty(directoryPath);
     }
     if (fileRefreshTimer) clearTimeout(fileRefreshTimer);
     fileRefreshTimer = setTimeout(() => {
@@ -539,20 +546,24 @@
   // Listen for file changes from SSE
   function handleFileChanged(event: Event) {
     const pid = $currentProjectId;
-    const detail = event instanceof CustomEvent ? event.detail : null;
-    if (pid && detail?.path) {
-      queueExplorerRefresh(detail.path, detail.type);
+    const detail = normalizeFileChangedDetail(event instanceof CustomEvent ? event.detail : null);
+    if (pid && detail.path) {
+      queueExplorerRefresh(detail.path, detail.itemType);
     } else if (pid) {
       void reloadAllExpanded(pid);
     }
     const sp = $selectedFilePath;
-    const changedPath = detail?.path ? normalizeWorkspacePath(detail.path) : null;
-    if (pid && sp && (!changedPath || changedPath === normalizeWorkspacePath(sp))) {
-      if (hasUnsavedChanges()) {
-        externalFileChanged = true;
-        return;
-      }
-      loadFileContent(pid, sp);
+    const decision = getSelectedFileRefreshDecision({
+      changedPath: detail.path,
+      selectedPath: sp,
+      hasUnsavedChanges: hasUnsavedChanges(),
+    });
+    if (pid && decision.externalChanged) {
+      externalFileChanged = true;
+      return;
+    }
+    if (pid && decision.reloadPath) {
+      void loadFileContent(pid, decision.reloadPath);
     }
   }
 
@@ -712,7 +723,7 @@
     const pid = $currentProjectId;
     const path = $selectedFilePath;
     if (!pid || !path || savingFile || !isEditableTextFile(path, $fileLanguage)) return;
-    if (isCleanRoomPath(path)) {
+    if (isReadOnlyMutationTarget(path)) {
       saveStatus = 'Clean Room은 직접 수정할 수 없습니다.';
       return;
     }
@@ -752,15 +763,16 @@
 
   async function submitCreateFolder() {
     const pid = $currentProjectId;
-    const folderName = newFolderName.trim();
     if (!pid || fileActionBusy) return;
-    if (!folderName || folderName === '.' || folderName === '..' || folderName.includes('/') || folderName.includes('\\')) {
-      fileActionMessage = '올바른 폴더 이름을 입력하세요.';
+    const validation = validateNewFolderName(newFolderName);
+    if (!validation.ok) {
+      fileActionMessage = validation.message;
       return;
     }
 
+    const folderName = validation.name;
     const targetDir = creatingFolderParentPath || getExplorerTargetDir();
-    if (isCleanRoomPath(targetDir)) {
+    if (isReadOnlyMutationTarget(targetDir)) {
       fileActionMessage = 'Clean Room에는 직접 폴더를 만들 수 없습니다.';
       return;
     }
@@ -795,7 +807,7 @@
   function triggerUpload(input?: HTMLInputElement) {
     activeSideTab = 'files';
     uploadTargetDir = getExplorerTargetDir();
-    if (isCleanRoomPath(uploadTargetDir)) {
+    if (isReadOnlyMutationTarget(uploadTargetDir)) {
       fileActionMessage = 'Clean Room에는 직접 업로드할 수 없습니다.';
       return;
     }
@@ -806,7 +818,7 @@
   async function uploadSelectedFiles(selectedFiles: File[], targetDir: string) {
     const pid = $currentProjectId;
     if (!pid || selectedFiles.length === 0 || fileActionBusy) return;
-    if (isCleanRoomPath(targetDir)) {
+    if (isReadOnlyMutationTarget(targetDir)) {
       fileActionMessage = 'Clean Room에는 직접 업로드할 수 없습니다.';
       return;
     }
@@ -843,7 +855,7 @@
   }
 
   function handleFileDragOver(event: DragEvent, node: TreeNode | null = null) {
-    if (!hasDraggedFiles(event)) return;
+    if (!hasDraggedFiles(event.dataTransfer?.types)) return;
     event.preventDefault();
     event.stopPropagation();
     event.dataTransfer!.dropEffect = 'copy';
@@ -861,7 +873,7 @@
   }
 
   async function handleFileDrop(event: DragEvent, node: TreeNode | null = null) {
-    if (!hasDraggedFiles(event)) return;
+    if (!hasDraggedFiles(event.dataTransfer?.types)) return;
     event.preventDefault();
     event.stopPropagation();
     draggingFiles = false;
@@ -890,7 +902,7 @@
     if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 's') return;
     if (!path || !isEditableTextFile(path, $fileLanguage)) return;
     event.preventDefault();
-    if (isCleanRoomPath(path)) {
+    if (isReadOnlyMutationTarget(path)) {
       saveStatus = 'Clean Room은 직접 수정할 수 없습니다.';
       return;
     }
@@ -944,7 +956,7 @@
       await expandFolder(pid, node);
     } else {
       const reselectingCurrentHtml = node.path === $selectedFilePath && isHtmlFile(node.path, $fileLanguage);
-      if (node.path !== $selectedFilePath && hasUnsavedChanges() &&
+      if (shouldConfirmDiscardUnsaved(node.path, $selectedFilePath, hasUnsavedChanges()) &&
         !confirm('저장하지 않은 변경사항을 버리고 다른 파일을 여시겠습니까?')) {
         return;
       }
@@ -964,21 +976,14 @@
     const pid = $currentProjectId;
     if (!pid) return;
     fileActionMessage = '';
-    const node: TreeNode = {
-      name: item.name,
-      type: item.item_type,
-      path: item.path,
-      children: item.item_type === 'directory' ? [] : undefined,
-      expanded: false,
-      loaded: false,
-    };
+    const node: TreeNode = buildFocusedSearchNode(item);
     focusedExplorerNode = node;
-    if (item.item_type === 'directory') {
+    if (isDirectorySearchResult(item)) {
       activeSideTab = 'files';
       await loadDirectory(pid, item.path, { force: true });
       return;
     }
-    if (item.path !== $selectedFilePath && hasUnsavedChanges() &&
+    if (shouldConfirmDiscardUnsaved(item.path, $selectedFilePath, hasUnsavedChanges()) &&
       !confirm('저장하지 않은 변경사항을 버리고 다른 파일을 여시겠습니까?')) {
       return;
     }
