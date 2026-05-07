@@ -4,7 +4,7 @@
 
 ## 연결된 커밋
 
-아직 없음.
+- `8484ff96d85063ea2f92329b6139c7a6348a7f82` - `refactor: modularize workspace foundation`
 
 ## 브랜치
 

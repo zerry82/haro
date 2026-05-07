@@ -4,7 +4,7 @@
 
 ## 연결된 커밋
 
-아직 없음. 사용자가 `커밋해줘`라고 요청하면 이 스펙에 연결된 변경을 검토한 뒤 커밋/푸쉬 절차를 진행한다.
+- `8484ff96d85063ea2f92329b6139c7a6348a7f82` - `refactor: modularize workspace foundation`
 
 ## 브랜치
 
