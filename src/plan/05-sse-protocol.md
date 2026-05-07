@@ -81,7 +81,7 @@ data: {"message_id":"uuid"}
 
 ### 3.5 `todo_step_updated`
 
-현재 PoC는 DB TODO를 만들지 않는다.
+현재 구현은 DB TODO를 만들지 않는다.
 대신 도구 실행 전후를 단계 이벤트로 보내 UI에 인라인 표시한다.
 
 ```text

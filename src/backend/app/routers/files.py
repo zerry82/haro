@@ -1,23 +1,44 @@
 from __future__ import annotations
 
 import os
-import csv
-from io import BytesIO, StringIO
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_current_user, get_db
 from app.models.project import Project
 from app.models.user import User
-from app.services.harness import ensure_harness_structure, is_clean_room_path, is_haro_internal_path
+from app.routers.file_models import (
+    DirectoryCreateRequest,
+    FileContentResponse,
+    FileContentUpdate,
+    FileItem,
+    FileListResponse,
+    FileMutationResponse,
+    FileSearchItem,
+    FileSearchResponse,
+    FileUploadResponse,
+)
+from app.services.file_conversion import (
+    EDITABLE_EXTENSIONS,
+    excel_to_csv_outputs,
+    get_language,
+    is_excel_file,
+)
+from app.services.file_path_policy import (
+    assert_read_allowed,
+    assert_write_allowed,
+    join_workspace_path,
+    validate_file_name,
+    validate_workspace_path,
+)
+from app.services.harness import ensure_harness_structure
 from app.services.workspace_file_db import (
     WorkspaceSearchUnavailable,
     atomic_write_bytes,
     atomic_write_text,
-    list_workspace_directory,
+    list_workspace_directory_page,
     mark_workspace_summary_stale,
     search_workspace_files,
     sync_workspace_path,
@@ -25,77 +46,6 @@ from app.services.workspace_file_db import (
 from app.services.workspace_index import rebuild_workspace_index, update_file_summary
 
 router = APIRouter(prefix="/api/projects/{project_id}/files", tags=["files"])
-
-
-class FileItem(BaseModel):
-    name: str
-    type: str
-    size: int | None = None
-    children_count: int | None = None
-
-
-class FileListResponse(BaseModel):
-    path: str
-    items: list[FileItem]
-
-
-class FileContentResponse(BaseModel):
-    path: str
-    content: str
-    size: int
-    language: str
-
-
-class FileContentUpdate(BaseModel):
-    content: str
-
-
-class DirectoryCreateRequest(BaseModel):
-    path: str
-
-
-class FileMutationResponse(BaseModel):
-    path: str
-    type: str
-
-
-class FileUploadResponse(BaseModel):
-    path: str
-    uploaded: list[str]
-
-
-class FileSearchItem(BaseModel):
-    path: str
-    name: str
-    item_type: str
-    language: str | None = None
-    extension: str | None = None
-    room: str
-    access_policy: str
-    summary_status: str
-    summary_snippet: str
-
-
-class FileSearchResponse(BaseModel):
-    query: str
-    status: str = "ok"
-    items: list[FileSearchItem]
-
-
-LANG_MAP = {
-    ".py": "python", ".js": "javascript", ".ts": "typescript",
-    ".html": "html", ".css": "css", ".json": "json",
-    ".csv": "csv",
-    ".md": "markdown", ".yaml": "yaml", ".yml": "yaml",
-    ".txt": "plaintext", ".svg": "xml",
-}
-
-EDITABLE_EXTENSIONS = {
-    ".html", ".md", ".csv", ".ts", ".js", ".json",
-    ".txt", ".css", ".py", ".yaml", ".yml", ".svg",
-}
-
-EXCEL_EXTENSIONS = {".xlsx", ".xlsm", ".xls"}
 
 
 async def _get_workspace(db: AsyncSession, user_id: str, project_id: str) -> str:
@@ -108,144 +58,32 @@ async def _get_workspace(db: AsyncSession, user_id: str, project_id: str) -> str
     return project.workspace_path
 
 
-def _assert_read_allowed(requested: str) -> None:
-    if is_haro_internal_path(requested):
-        raise HTTPException(status_code=403, detail="Haro internal metadata is not accessible")
-
-
-def _assert_write_allowed(requested: str) -> None:
-    _assert_read_allowed(requested)
-    if is_clean_room_path(requested):
-        raise HTTPException(status_code=403, detail="Clean Room is read-only")
-
-
-def _validate_path(workspace: str, requested: str) -> str:
-    workspace_real = os.path.realpath(workspace)
-    full = os.path.realpath(os.path.join(workspace_real, requested.lstrip("/")))
-    try:
-        inside_workspace = os.path.commonpath([workspace_real, full]) == workspace_real
-    except ValueError:
-        inside_workspace = False
-    if not inside_workspace:
-        raise HTTPException(status_code=403, detail="Path traversal denied")
-    return full
-
-
-def _join_workspace_path(base_path: str, name: str) -> str:
-    return f"/{name}" if base_path == "/" else f"{base_path.rstrip('/')}/{name}"
-
-
-def _validate_file_name(name: str) -> None:
-    if not name or name in {".", ".."} or "/" in name or "\\" in name:
-        raise HTTPException(status_code=400, detail=f"Invalid file name: {name}")
-
-
-def _sanitize_file_segment(value: str, fallback: str) -> str:
-    cleaned = "".join(
-        char if char not in '<>:"/\\|?*' and ord(char) >= 32 else "_"
-        for char in value.strip()
-    ).strip(" .")
-    if not cleaned or cleaned in {".", ".."}:
-        return fallback
-    return cleaned
-
-
-def _dedupe_name(name: str, used: set[str]) -> str:
-    if name not in used:
-        used.add(name)
-        return name
-    stem, ext = os.path.splitext(name)
-    index = 2
-    while True:
-        candidate = f"{stem}_{index}{ext}"
-        if candidate not in used:
-            used.add(candidate)
-            return candidate
-        index += 1
-
-
-def _stringify_excel_cell(value: object) -> str:
-    return "" if value is None else str(value)
-
-
-def _csv_bytes(rows: list[list[object]]) -> bytes:
-    stream = StringIO(newline="")
-    writer = csv.writer(stream, lineterminator="\n")
-    writer.writerows([[_stringify_excel_cell(cell) for cell in row] for row in rows])
-    return stream.getvalue().encode("utf-8")
-
-
-def _excel_to_csv_outputs(filename: str, content: bytes) -> list[tuple[str, bytes]]:
-    ext = os.path.splitext(filename)[1].lower()
-    workbook_name = _sanitize_file_segment(os.path.splitext(filename)[0], "workbook")
-    used_sheet_names: set[str] = set()
-    outputs: list[tuple[str, bytes]] = []
-
-    if ext in {".xlsx", ".xlsm"}:
-        try:
-            from openpyxl import load_workbook
-        except ImportError as exc:
-            raise HTTPException(status_code=500, detail="Excel conversion dependency is missing") from exc
-
-        try:
-            workbook = load_workbook(BytesIO(content), read_only=True, data_only=True)
-        except Exception as exc:
-            raise HTTPException(status_code=400, detail=f"Invalid Excel file: {filename}") from exc
-
-        for sheet in workbook.worksheets:
-            sheet_name = _sanitize_file_segment(sheet.title, "sheet")
-            csv_name = _dedupe_name(f"{sheet_name}.csv", used_sheet_names)
-            rows = [[cell for cell in row] for row in sheet.iter_rows(values_only=True)]
-            outputs.append((_join_workspace_path(workbook_name, csv_name), _csv_bytes(rows)))
-        workbook.close()
-        return outputs
-
-    if ext == ".xls":
-        try:
-            import xlrd
-        except ImportError as exc:
-            raise HTTPException(status_code=500, detail="Excel conversion dependency is missing") from exc
-
-        try:
-            workbook = xlrd.open_workbook(file_contents=content)
-        except Exception as exc:
-            raise HTTPException(status_code=400, detail=f"Invalid Excel file: {filename}") from exc
-
-        for sheet in workbook.sheets():
-            sheet_name = _sanitize_file_segment(sheet.name, "sheet")
-            csv_name = _dedupe_name(f"{sheet_name}.csv", used_sheet_names)
-            rows = [sheet.row_values(row_index) for row_index in range(sheet.nrows)]
-            outputs.append((_join_workspace_path(workbook_name, csv_name), _csv_bytes(rows)))
-        return outputs
-
-    return []
-
-
-def _is_excel_file(filename: str) -> bool:
-    return os.path.splitext(filename)[1].lower() in EXCEL_EXTENSIONS
-
-
-def _get_language(path: str) -> str:
-    ext = os.path.splitext(path)[1].lower()
-    return LANG_MAP.get(ext, "plaintext")
-
-
 @router.get("", response_model=FileListResponse)
 async def list_files(
     project_id: str,
     path: str = Query("/"),
+    limit: int = Query(200, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     workspace = await _get_workspace(db, user.id, project_id)
     ensure_harness_structure(workspace, user.id, initialize_git=path == "/")
-    _assert_read_allowed(path)
-    full_path = _validate_path(workspace, path)
+    assert_read_allowed(path)
+    full_path = validate_workspace_path(workspace, path)
     if not os.path.isdir(full_path):
         raise HTTPException(status_code=404, detail="Directory not found")
 
-    items = [FileItem(**item) for item in list_workspace_directory(workspace, path)]
-    return FileListResponse(path=path, items=items)
+    page = list_workspace_directory_page(workspace, path, limit=limit, offset=offset)
+    items = [FileItem(**item) for item in page["items"]]
+    return FileListResponse(
+        path=path,
+        items=items,
+        total=page["total"],
+        has_more=page["has_more"],
+        limit=page["limit"],
+        offset=page["offset"],
+    )
 
 
 @router.get("/search", response_model=FileSearchResponse)
@@ -291,8 +129,8 @@ async def create_directory(
 ):
     workspace = await _get_workspace(db, user.id, project_id)
     ensure_harness_structure(workspace, user.id, initialize_git=False)
-    _assert_write_allowed(body.path)
-    full_path = _validate_path(workspace, body.path)
+    assert_write_allowed(body.path)
+    full_path = validate_workspace_path(workspace, body.path)
     if os.path.exists(full_path):
         raise HTTPException(status_code=409, detail="Path already exists")
 
@@ -317,8 +155,8 @@ async def upload_files(
 ):
     workspace = await _get_workspace(db, user.id, project_id)
     ensure_harness_structure(workspace, user.id, initialize_git=False)
-    _assert_write_allowed(path)
-    target_dir = _validate_path(workspace, path)
+    assert_write_allowed(path)
+    target_dir = validate_workspace_path(workspace, path)
     if not os.path.isdir(target_dir):
         raise HTTPException(status_code=404, detail="Directory not found")
 
@@ -326,13 +164,13 @@ async def upload_files(
     upload_items: list[tuple[str, bytes]] = []
     for upload in files:
         filename = upload.filename or ""
-        _validate_file_name(filename)
+        validate_file_name(filename)
         if filename in seen:
             raise HTTPException(status_code=400, detail=f"Duplicate upload name: {filename}")
         seen.add(filename)
         content = await upload.read()
-        if _is_excel_file(filename):
-            for relative_name, csv_content in _excel_to_csv_outputs(filename, content):
+        if is_excel_file(filename):
+            for relative_name, csv_content in excel_to_csv_outputs(filename, content):
                 upload_items.append((relative_name, csv_content))
         else:
             upload_items.append((filename, content))
@@ -340,8 +178,8 @@ async def upload_files(
     generated_paths: set[str] = set()
     existed_before: dict[str, bool] = {}
     for relative_name, _content in upload_items:
-        relative_path = _join_workspace_path(path, relative_name)
-        target_path = _validate_path(workspace, relative_path)
+        relative_path = join_workspace_path(path, relative_name)
+        target_path = validate_workspace_path(workspace, relative_path)
         if target_path in generated_paths:
             raise HTTPException(status_code=400, detail=f"Duplicate upload output: {relative_name}")
         generated_paths.add(target_path)
@@ -357,8 +195,8 @@ async def upload_files(
 
     uploaded: list[str] = []
     for relative_name, content in upload_items:
-        relative_path = _join_workspace_path(path, relative_name)
-        target_path = _validate_path(workspace, relative_path)
+        relative_path = join_workspace_path(path, relative_name)
+        target_path = validate_workspace_path(workspace, relative_path)
         os.makedirs(os.path.dirname(target_path), exist_ok=True)
         atomic_write_bytes(target_path, content)
         uploaded.append(relative_path)
@@ -376,15 +214,15 @@ async def get_file_content(
 ):
     workspace = await _get_workspace(db, user.id, project_id)
     ensure_harness_structure(workspace, user.id, initialize_git=False)
-    _assert_read_allowed(path)
-    full_path = _validate_path(workspace, path)
+    assert_read_allowed(path)
+    full_path = validate_workspace_path(workspace, path)
     if not os.path.isfile(full_path):
         raise HTTPException(status_code=404, detail="File not found")
 
     with open(full_path, "r", encoding="utf-8", errors="replace") as f:
         content = f.read()
 
-    language = _get_language(path)
+    language = get_language(path)
     return FileContentResponse(path=path, content=content, size=len(content), language=language)
 
 
@@ -398,8 +236,8 @@ async def update_file_content(
 ):
     workspace = await _get_workspace(db, user.id, project_id)
     ensure_harness_structure(workspace, user.id, initialize_git=False)
-    _assert_write_allowed(path)
-    full_path = _validate_path(workspace, path)
+    assert_write_allowed(path)
+    full_path = validate_workspace_path(workspace, path)
     if not os.path.isfile(full_path):
         raise HTTPException(status_code=404, detail="File not found")
 
@@ -412,6 +250,6 @@ async def update_file_content(
 
     await update_file_summary(workspace, path, "modified")
 
-    language = _get_language(path)
+    language = get_language(path)
     content = body.content
     return FileContentResponse(path=path, content=content, size=len(content), language=language)

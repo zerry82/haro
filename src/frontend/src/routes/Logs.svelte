@@ -6,6 +6,10 @@
 
   let { params = {} }: { params?: { sessionId?: string } } = $props();
 
+  function getInitialSessionId() {
+    return params.sessionId || null;
+  }
+
   interface LogEntry {
     id: string;
     round_index: number;
@@ -21,7 +25,7 @@
   }
 
   let sessions = $state<SessionItem[]>([]);
-  let selectedSessionId = $state<string | null>(params.sessionId || null);
+  let selectedSessionId = $state<string | null>(getInitialSessionId());
   let logs = $state<LogEntry[]>([]);
   let loading = $state(false);
   let expandedIds = $state<Set<string>>(new Set());

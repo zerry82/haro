@@ -2,7 +2,7 @@
 
 ## 1. 현재 범위
 
-현재 PoC에는 완전한 MCP 스킬 실행 시스템이 없다.
+현재 구현에는 완전한 MCP 스킬 실행 시스템이 없다.
 구현되어 있는 것은 **스킬 목록 조회용 레지스트리**와 `file_ops` seed 데이터다.
 
 실제 도구 실행은 `backend/app/services/agent.py`의 `execute_tool(...)` 함수가 직접 처리한다.

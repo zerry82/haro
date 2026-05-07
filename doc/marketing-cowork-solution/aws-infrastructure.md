@@ -1,10 +1,10 @@
 # AWS 인프라 구성안
 
-기준 문서: [technical-poc-concepts.md](technical-poc-concepts.md)
+기준 문서: [technical-core-concepts.md](technical-core-concepts.md)
 
 ## 1. 목적
 
-이 문서는 기술 POC가 성공했을 때 AWS에서 최소 인프라를 어떻게 구성할지 정리한다.
+이 문서는 기술 구현이 성공했을 때 AWS에서 최소 인프라를 어떻게 구성할지 정리한다.
 
 목표는 대규모 운영이 아니라 다음 루프를 AWS 위에서 반복 가능하게 만드는 것이다.
 
@@ -209,11 +209,11 @@ api container
 - sandbox container가 Traefik과 같은 Docker network에 붙을 수 있다.
 - sandbox 내부 웹서버를 외부 preview URL로 연결하기 쉽다.
 - 디버깅이 쉽다.
-- POC 구현 난이도가 낮다.
+- 현재 구현 난이도가 낮다.
 
 주의:
 
-Docker socket을 API container에 직접 마운트하면 강력한 권한을 갖게 된다. POC에서는 허용하되, 운영에서는 별도 sandbox controller process로 분리한다.
+Docker socket을 API container에 직접 마운트하면 강력한 권한을 갖게 된다. 현재 구현에서는 허용하되, 운영에서는 별도 sandbox controller process로 분리한다.
 
 운영에 가까워지면 다음 구조로 분리한다.
 
@@ -223,7 +223,7 @@ api container
   -> Docker Engine
 ```
 
-즉, POC에서는 빠르게 가기 위해 Docker socket을 사용하되, 이것이 최종 보안 구조는 아니다.
+즉, 현재 구현에서는 빠르게 가기 위해 Docker socket을 사용하되, 이것이 최종 보안 구조는 아니다.
 
 ## 8. Workspace 저장
 
@@ -287,7 +287,7 @@ postgres container
   -> EBS volume
 ```
 
-하지만 POC 이후에는 RDS로 옮기는 것이 좋다.
+하지만 현재 구현 이후에는 RDS로 옮기는 것이 좋다.
 
 초기 테이블:
 
@@ -321,7 +321,7 @@ project sandbox가 preview server를 시작하면 API가 Traefik에 라우팅 �
 
 Docker label 방식 또는 Traefik dynamic config file 방식을 사용할 수 있다.
 
-POC에서는 dynamic config file 방식이 디버깅하기 쉽다.
+현재 구현에서는 dynamic config file 방식이 디버깅하기 쉽다.
 
 외부 접속 흐름:
 
@@ -436,7 +436,7 @@ AWS SSM Parameter Store
 
 ## 16. 최소 AWS 단계
 
-### Phase A. 단일 EC2 POC 배포
+### Phase A. 단일 EC2 현재 구현 배포
 
 ```text
 EC2

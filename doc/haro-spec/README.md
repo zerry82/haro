@@ -49,4 +49,4 @@ haro는 특정 직종 전용 도구가 아니라, 화이트칼라 업무를 work
 - [../haro-project-spec.md](../haro-project-spec.md): 현재 구현 기반 스펙
 - [../marketing-cowork-solution/haro-main-features.md](../marketing-cowork-solution/haro-main-features.md): 업무규칙 학습과 기억 중심의 제품 정의
 - [../marketing-cowork-solution/user-scenario-haro.md](../marketing-cowork-solution/user-scenario-haro.md): 대행사/마케팅팀 사용자 시나리오
-- [../marketing-cowork-solution/technical-poc.md](../marketing-cowork-solution/technical-poc.md): 기술 POC 아이디어
+- [../marketing-cowork-solution/technical-implementation.md](../marketing-cowork-solution/technical-implementation.md): 기술 구현 아이디어

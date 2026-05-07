@@ -1,4 +1,4 @@
-# 1번째 개발 주기: Haro Harness Bootstrap MVP
+# 1번째 개발 주기: Haro Harness Bootstrap
 
 ## 목표
 

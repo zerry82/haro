@@ -7,9 +7,9 @@
 
 | 주기 | 문서 | 상태 | 핵심 목표 |
 | --- | --- | --- | --- |
-| 1 | [01-harness-bootstrap-mvp.md](./01-harness-bootstrap-mvp.md) | 구현 완료 / 수동 검증 대기 | 새 프로젝트가 haro 하네스 구조로 시작하고 Clean Room을 직접 수정하지 못하게 한다. |
-| 2 | [02-workspace-file-db-mvp.md](./02-workspace-file-db-mvp.md) | 구현 완료 / 부하·수동 검증 대기 | 파일 3,000개 이상에서도 파일명/요약 검색과 파일 변경 DB 동기화가 안정적으로 동작하게 한다. |
-| 3 | [03-debug-mode-mvp.md](./03-debug-mode-mvp.md) | 스펙 작성 완료 / 구현 대기 | 채팅 턴별 LLM 요청·응답·도구 실행 trace를 디버그 모드에서 확인하게 한다. |
+| 1 | [01-harness-bootstrap.md](./01-harness-bootstrap.md) | 구현 완료 / 수동 검증 대기 | 새 프로젝트가 haro 하네스 구조로 시작하고 Clean Room을 직접 수정하지 못하게 한다. |
+| 2 | [02-workspace-file-db.md](./02-workspace-file-db.md) | 구현 완료 / 부하·수동 검증 대기 | 파일 3,000개 이상에서도 파일명/요약 검색과 파일 변경 DB 동기화가 안정적으로 동작하게 한다. |
+| 3 | [03-debug-mode.md](./03-debug-mode.md) | 스펙 작성 완료 / 구현 대기 | 채팅 턴별 LLM 요청·응답·도구 실행 trace를 디버그 모드에서 확인하게 한다. |
 
 ## 검증 원칙
 

@@ -1,23 +1,19 @@
 <script lang="ts">
   import Router from 'svelte-spa-router';
-  import Login from './routes/Login.svelte';
-  import Register from './routes/Register.svelte';
-  import Dashboard from './routes/Dashboard.svelte';
-  import ProjectWorkspace from './routes/ProjectWorkspace.svelte';
-  import Logs from './routes/Logs.svelte';
+  import { wrap } from 'svelte-spa-router/wrap';
   import { checkAuth, isAuthenticated } from './stores/auth';
   import { push } from 'svelte-spa-router';
   import { onMount } from 'svelte';
 
   const routes = {
-    '/login': Login,
-    '/register': Register,
-    '/projects': Dashboard,
-    '/projects/:projectId': ProjectWorkspace,
-    '/projects/:projectId/chats/:chatId': ProjectWorkspace,
-    '/logs': Logs,
-    '/logs/:sessionId': Logs,
-    '*': Login,
+    '/login': wrap({ asyncComponent: () => import('./routes/Login.svelte') }),
+    '/register': wrap({ asyncComponent: () => import('./routes/Register.svelte') }),
+    '/projects': wrap({ asyncComponent: () => import('./routes/Dashboard.svelte') }),
+    '/projects/:projectId': wrap({ asyncComponent: () => import('./routes/ProjectWorkspace.svelte') }),
+    '/projects/:projectId/chats/:chatId': wrap({ asyncComponent: () => import('./routes/ProjectWorkspace.svelte') }),
+    '/logs': wrap({ asyncComponent: () => import('./routes/Logs.svelte') }),
+    '/logs/:sessionId': wrap({ asyncComponent: () => import('./routes/Logs.svelte') }),
+    '*': wrap({ asyncComponent: () => import('./routes/Login.svelte') }),
   };
 
   onMount(async () => {

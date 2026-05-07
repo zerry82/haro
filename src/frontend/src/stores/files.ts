@@ -1,68 +1,40 @@
 import { writable, get } from 'svelte/store';
 import { api } from '../lib/api';
+import type {
+  FileContentResponse,
+  FileListResponse,
+  FileMutationResponse,
+  FileSearchItem,
+  FileSearchResponse,
+  FileUploadResponse,
+  FolderCacheEntry,
+  LoadDirectoryOptions,
+  TreeNode,
+} from './fileTypes';
+import {
+  DIRECTORY_PAGE_SIZE,
+  collectExpandedPaths,
+  collectNodeMap,
+  getLanguageFromPath,
+  getParentPath,
+  insertChildren,
+  mapDirectoryItems,
+  normalizeWorkspacePath,
+  toggleNode,
+} from './fileTreeUtils';
 
-export interface TreeNode {
-  name: string;
-  type: string;
-  path: string;
-  size?: number;
-  children_count?: number;
-  children?: TreeNode[];
-  expanded?: boolean;
-  loaded?: boolean;
-}
-
-export interface FileContentResponse {
-  path: string;
-  content: string;
-  size: number;
-  language: string;
-}
-
-export interface FileMutationResponse {
-  path: string;
-  type: string;
-}
-
-export interface FileUploadResponse {
-  path: string;
-  uploaded: string[];
-}
-
-export interface FileSearchItem {
-  path: string;
-  name: string;
-  item_type: 'file' | 'directory';
-  language?: string;
-  extension?: string;
-  room: string;
-  access_policy: string;
-  summary_status: string;
-  summary_snippet: string;
-}
-
-export interface FileSearchResponse {
-  query: string;
-  status: 'ok' | 'search_unavailable';
-  items: FileSearchItem[];
-}
-
-const LANG_MAP: Record<string, string> = {
-  '.py': 'python',
-  '.js': 'javascript',
-  '.ts': 'typescript',
-  '.html': 'html',
-  '.css': 'css',
-  '.json': 'json',
-  '.csv': 'csv',
-  '.md': 'markdown',
-  '.yaml': 'yaml',
-  '.yml': 'yaml',
-  '.txt': 'plaintext',
-  '.svg': 'xml',
-};
+export type {
+  FileContentResponse,
+  FileMutationResponse,
+  FileSearchItem,
+  FileSearchResponse,
+  FileUploadResponse,
+  FolderCacheEntry,
+  TreeNode,
+} from './fileTypes';
 
 export const fileTree = writable<TreeNode[]>([]);
+export const folderCache = writable<Record<string, FolderCacheEntry>>({});
 export const selectedFilePath = writable<string | null>(null);
 export const fileContent = writable<string | null>(null);
 export const fileLanguage = writable<string>('plaintext');
@@ -71,63 +43,88 @@ export const loadingFilePath = writable<string | null>(null);
 
 let loadFileRequestSeq = 0;
 
-function getLanguageFromPath(path: string) {
-  const name = path.split('/').pop() || '';
-  const dotIndex = name.lastIndexOf('.');
-  const extension = dotIndex >= 0 ? name.slice(dotIndex).toLowerCase() : '';
-  return LANG_MAP[extension] || 'plaintext';
-}
-
 export async function loadFiles(projectId: string, path: string = '/') {
-  const res: any = await api(`/projects/${projectId}/files?path=${encodeURIComponent(path)}`);
-  const nodes: TreeNode[] = (res.items || []).map((item: any) => ({
-    ...item,
-    path: path === '/' ? `/${item.name}` : `${path}/${item.name}`,
-    expanded: false,
-    loaded: false,
-    children: item.type === 'directory' ? [] : undefined,
-  }));
-  if (path === '/') {
-    fileTree.set(nodes);
-  } else {
-    fileTree.update(tree => insertChildren(tree, path, nodes));
+  await loadDirectory(projectId, path);
+}
+export async function loadDirectory(projectId: string, path: string = '/', options: LoadDirectoryOptions = {}) {
+  const normalizedPath = normalizeWorkspacePath(path);
+  const cache = get(folderCache)[normalizedPath];
+  if (!options.append && !options.force && cache && !cache.dirty) {
+    applyDirectoryToTree(normalizedPath, cache.items, cache);
+    return cache;
+  }
+
+  const requestOffset = options.append && cache ? cache.offset : 0;
+  const limit = options.limit || DIRECTORY_PAGE_SIZE;
+  setFolderCacheLoading(normalizedPath, true);
+
+  try {
+    const res = await api<FileListResponse>(
+      `/projects/${projectId}/files?path=${encodeURIComponent(normalizedPath)}&limit=${limit}&offset=${requestOffset}`
+    );
+    const existingMap = collectNodeMap(get(fileTree));
+    const pageNodes = mapDirectoryItems(normalizedPath, res.items || [], existingMap);
+    const combinedItems = options.append && cache ? [...cache.items, ...pageNodes] : pageNodes;
+    const nextCache: FolderCacheEntry = {
+      items: combinedItems,
+      total: res.total ?? combinedItems.length,
+      offset: combinedItems.length,
+      has_more: Boolean(res.has_more),
+      loaded_at: Date.now(),
+      dirty: false,
+      loading: false,
+    };
+    folderCache.update((entries) => ({ ...entries, [normalizedPath]: nextCache }));
+    applyDirectoryToTree(normalizedPath, combinedItems, nextCache);
+    return nextCache;
+  } catch (error) {
+    setFolderCacheLoading(normalizedPath, false);
+    throw error;
   }
 }
-
-function insertChildren(nodes: TreeNode[], parentPath: string, children: TreeNode[]): TreeNode[] {
-  return nodes.map(node => {
-    if (node.path === parentPath) {
-      return { ...node, children, loaded: true, expanded: true };
-    }
-    if (node.children && node.children.length > 0) {
-      return { ...node, children: insertChildren(node.children, parentPath, children) };
-    }
-    return node;
+function setFolderCacheLoading(path: string, loading: boolean) {
+  const normalizedPath = normalizeWorkspacePath(path);
+  folderCache.update((entries) => {
+    const existing = entries[normalizedPath];
+    if (!existing && !loading) return entries;
+    return {
+      ...entries,
+      [normalizedPath]: {
+        items: existing?.items || [],
+        total: existing?.total || 0,
+        offset: existing?.offset || 0,
+        has_more: existing?.has_more || false,
+        loaded_at: existing?.loaded_at || 0,
+        dirty: existing?.dirty || false,
+        loading,
+      },
+    };
   });
+}
+
+function applyDirectoryToTree(path: string, items: TreeNode[], cache: FolderCacheEntry) {
+  if (path === '/') {
+    fileTree.set(items);
+  } else {
+    fileTree.update(tree => insertChildren(tree, path, items, cache));
+  }
 }
 
 export function toggleFolder(path: string) {
   fileTree.update(tree => toggleNode(tree, path));
 }
 
-function toggleNode(nodes: TreeNode[], path: string): TreeNode[] {
-  return nodes.map(node => {
-    if (node.path === path) {
-      return { ...node, expanded: !node.expanded };
-    }
-    if (node.children) {
-      return { ...node, children: toggleNode(node.children, path) };
-    }
-    return node;
-  });
-}
-
 export async function expandFolder(projectId: string, node: TreeNode) {
-  if (node.loaded) {
+  const cache = get(folderCache)[normalizeWorkspacePath(node.path)];
+  if (node.loaded && !cache?.dirty) {
     toggleFolder(node.path);
   } else {
-    await loadFiles(projectId, node.path);
+    await loadDirectory(projectId, node.path, { force: Boolean(cache?.dirty) });
   }
+}
+
+export async function loadMoreDirectory(projectId: string, path: string) {
+  return loadDirectory(projectId, path, { append: true });
 }
 
 export async function loadFileContent(projectId: string, path: string) {
@@ -154,7 +151,6 @@ export async function loadFileContent(projectId: string, path: string) {
     }
   }
 }
-
 export async function saveFileContent(projectId: string, path: string, content: string) {
   const res = await api<FileContentResponse>(`/projects/${projectId}/files/content?path=${encodeURIComponent(path)}`, {
     method: 'PUT',
@@ -198,22 +194,46 @@ export async function searchFiles(projectId: string, query: string, limit = 50) 
 
 export async function reloadAllExpanded(projectId: string) {
   const tree = get(fileTree);
-  await loadFiles(projectId, '/');
+  await loadDirectory(projectId, '/', { force: true });
   const expandedPaths = collectExpandedPaths(tree);
   for (const p of expandedPaths) {
-    await loadFiles(projectId, p);
+    await loadDirectory(projectId, p, { force: true });
   }
 }
 
-function collectExpandedPaths(nodes: TreeNode[]): string[] {
-  const paths: string[] = [];
-  for (const node of nodes) {
-    if (node.type === 'directory' && node.expanded) {
-      paths.push(node.path);
-      if (node.children) {
-        paths.push(...collectExpandedPaths(node.children));
+export async function refreshDirectory(projectId: string, path: string) {
+  return loadDirectory(projectId, path, { force: true });
+}
+
+export function markDirectoryDirty(path: string) {
+  const normalizedPath = normalizeWorkspacePath(path);
+  folderCache.update((entries) => {
+    const existing = entries[normalizedPath];
+    if (!existing || existing.dirty) return entries;
+    return { ...entries, [normalizedPath]: { ...existing, dirty: true } };
+  });
+}
+
+export async function refreshChangedPath(projectId: string, path: string, itemType?: string) {
+  const normalizedPath = normalizeWorkspacePath(path);
+  const affected = new Set<string>([getParentPath(normalizedPath)]);
+  if (itemType === 'directory' || itemType === 'dir') affected.add(normalizedPath);
+  for (const directoryPath of affected) markDirectoryDirty(directoryPath);
+
+  const cache = get(folderCache);
+  for (const directoryPath of affected) {
+    if (cache[directoryPath]) {
+      try {
+        await refreshDirectory(projectId, directoryPath);
+      } catch {
+        if (directoryPath !== getParentPath(normalizedPath)) {
+          folderCache.update((entries) => {
+            const next = { ...entries };
+            delete next[directoryPath];
+            return next;
+          });
+        }
       }
     }
   }
-  return paths;
 }

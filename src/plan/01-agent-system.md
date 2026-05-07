@@ -1,8 +1,8 @@
-﻿# 에이전트 시스템 현재 구현
+# 에이전트 시스템 현재 구현
 
 ## 1. 개요
 
-PoC에서는 팀장/팀원 에이전트를 분리하지 않는다.
+현재 구현에서는 팀장/팀원 에이전트를 분리하지 않는다.
 하나의 에이전트가 사용자 의도 분석, 작업 계획 설명, 도구 호출, 결과 보고를 모두 담당한다.
 
 구현 위치:
@@ -62,7 +62,7 @@ client.models.generate_content_stream(
 ## 4. 도구 호출 방식
 
 Gemini native function calling이나 MCP tools 파라미터를 쓰지 않는다.
-현재 PoC는 모델에게 아래 fenced block 형식으로 응답하도록 지시하고, 백엔드가 정규식으로 파싱한다.
+현재 구현은 모델에게 아래 fenced block 형식으로 응답하도록 지시하고, 백엔드가 정규식으로 파싱한다.
 
 ````markdown
 ```tool_call
@@ -111,6 +111,6 @@ Gemini native function calling이나 MCP tools 파라미터를 쓰지 않는다.
 
 ## 7. 현재 구현과 향후 확장
 
-현재 구현은 PoC를 빠르게 검증하기 위한 직접 도구 호출 구조다.
+현재 구현은 단순한 직접 도구 호출 구조다.
 초기 설계의 팀장/팀원 분리, MCP 기반 SkillManager, Gemini function declaration 변환은 아직 구현되어 있지 않다.
 Phase 2에서 추가하려면 `run_agent`의 도구 목록/호출 부분을 SkillManager로 교체하고, 역할 분리는 오케스트레이션 레이어에서 나누면 된다.

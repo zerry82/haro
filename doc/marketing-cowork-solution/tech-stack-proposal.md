@@ -1,10 +1,10 @@
 # 기술스택 결정안
 
-기준 문서: [technical-poc-concepts.md](technical-poc-concepts.md)
+기준 문서: [technical-core-concepts.md](technical-core-concepts.md)
 
 ## 1. 전제
 
-이번 POC는 수요검증이 아니다.
+현재 구현은 수요검증용 단계가 아니다.
 
 목표는 다음 기술 가능성을 확인하는 것이다.
 
@@ -110,7 +110,7 @@ Docker로 가능한 것:
 - workspace archive/restore
 - 장시간 호스팅 container 운영
 
-즉, POC와 초기 제품에 필요한 핵심 기능은 전부 Docker로 가능하다.
+즉, 현재 구현과 초기 제품에 필요한 핵심 기능은 전부 Docker로 가능하다.
 
 ## 5. VM/microVM은 언제 필요한가
 
@@ -196,7 +196,7 @@ project-sandbox-123:3000
   -> https://preview.example.com/p/project_123
 ```
 
-POC에서는 Docker socket mount를 허용한다. 다만 운영 단계에서는 API와 Docker 제어 권한을 분리하기 위해 별도 sandbox controller service로 옮긴다.
+현재 구현에서는 Docker socket mount를 허용한다. 다만 운영 단계에서는 API와 Docker 제어 권한을 분리하기 위해 별도 sandbox controller service로 옮긴다.
 
 ## 7. 사용자 경험 기준
 
@@ -291,7 +291,7 @@ Stagehand와 browser-use는 다음처럼 본다.
 | Stagehand | 추후 자연어 기반 `observe/act/extract` 상위 레이어로 검토 |
 | browser-use | 빠른 실험/벤치마크용 참고 구현 |
 
-POC의 결정은 다음이다.
+현재 결정은 다음이다.
 
 ```text
 Core Browser Runtime: Playwright 직접 구현
@@ -389,9 +389,9 @@ GET    /projects/:projectId/archives
 
 나중에 LLM은 이 API를 직접 호출하지 않고, 같은 기능을 감싼 tool interface를 사용한다.
 
-## 12. POC 단계
+## 12. 구현 단계
 
-이 단계들은 고객 반응을 확인하기 위한 MVP 단계가 아니다. 각 단계는 기술 가능성의 참/거짓을 확인하기 위한 실험이다.
+이 단계들은 고객 반응을 확인하기 위한 구현 단계가 아니다. 각 단계는 기술 가능성의 참/거짓을 확인하기 위한 실험이다.
 
 ### Phase 0. Control Plane과 Docker Sandbox 골격
 
@@ -516,9 +516,9 @@ GET    /projects/:projectId/archives
 - LLM이 overlay screenshot을 해석하고 DOM 기반 브라우저 액션을 수행한다.
 - LLM이 최종 결과물을 공유 가능한 보고서/대시보드로 포장한다.
 
-## 13. POC 성공 기준
+## 13. 구현 성공 기준
 
-기술 POC는 다음을 만족하면 성공이다. 여기서 성공은 사용자가 원한다는 뜻이 아니라, 우리가 상상한 실행환경이 실제로 구현 가능하다는 뜻이다.
+기술 구현는 다음을 만족하면 성공이다. 여기서 성공은 사용자가 원한다는 뜻이 아니라, 우리가 상상한 실행환경이 실제로 구현 가능하다는 뜻이다.
 
 1. 프로젝트 생성 시 Docker sandbox와 workspace가 생성된다.
 2. sandbox 내부에 기본 디렉터리 구조가 생성된다.
@@ -535,7 +535,7 @@ GET    /projects/:projectId/archives
 13. 재활성화 시 archive에서 workspace와 browser profile을 복구할 수 있다.
 14. LLM tool interface를 같은 API 위에 얹을 수 있다.
 
-## 14. 이번 POC에서 하지 않는 것
+## 14. 현재 구현에서 하지 않는 것
 
 이번 단계에서는 하지 않는다.
 
@@ -553,7 +553,7 @@ GET    /projects/:projectId/archives
 - 범용 원격 데스크톱 제품 수준의 browser takeover
 - 브라우저 anti-bot 회피 최적화
 
-이번 POC의 목표는 작고 명확하다.
+현재 구현 목표는 작고 명확하다.
 
 > Docker 기반 project sandbox로 마케터용 AI 작업공간의 최소 기술 루프를 증명한다.
 

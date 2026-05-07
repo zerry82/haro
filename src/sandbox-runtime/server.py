@@ -1,4 +1,4 @@
-"""샌드박스 코드 실행 POC — Docker 기반"""
+"""샌드박스 코드 실행 런타임 — Docker 기반"""
 from __future__ import annotations
 
 import os
@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-app = FastAPI(title="Sandbox POC")
+app = FastAPI(title="Sandbox Runtime")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 client = docker.from_env()
@@ -183,7 +183,7 @@ def cleanup():
 def index():
     return """
 <!DOCTYPE html>
-<html><head><title>Sandbox POC</title>
+<html><head><title>Sandbox Runtime</title>
 <style>
   body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 2rem; max-width: 800px; margin: 0 auto; }
   h1 { color: #e94560; }
@@ -193,7 +193,7 @@ def index():
   #output { min-height: 100px; }
   .session-id { color: #50c878; font-size: 1.2rem; }
 </style></head><body>
-<h1>🏗️ Sandbox POC</h1>
+<h1>🏗️ Sandbox Runtime</h1>
 <p>Docker 컨테이너 기반 코드 실행 샌드박스</p>
 
 <button onclick="createSession()">1. 세션 생성</button>

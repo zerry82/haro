@@ -1,0 +1,50 @@
+import type { FileSearchItem, FolderCacheEntry, TreeNode } from '../stores/files';
+import type { ExplorerRow } from '../lib/workspaceExplorerRows';
+
+export type SidePanelTab = 'files' | 'skills' | 'tools' | 'dataSources';
+export type SidePanelTabItem = { id: SidePanelTab; label: string };
+export type VirtualRows = { rows: ExplorerRow[]; totalHeight: number; translateY: number };
+export type SkillResponse = {
+  name: string;
+  version: string;
+  type: string;
+  status: string;
+  description: string | null;
+  tools: string[];
+};
+export type ToolCatalogItem = { name: string; signature: string; description: string };
+
+export type FileExplorerProps = {
+  fileActionBusy: boolean;
+  fileActionMessage: string;
+  fileSearchQuery: string;
+  fileSearchLoading: boolean;
+  fileSearchMessage: string;
+  fileSearchResults: FileSearchItem[];
+  draggingFiles: boolean;
+  creatingFolder: boolean;
+  creatingFolderParentPath: string;
+  newFolderName: string;
+  virtualRows: VirtualRows;
+  fileTreeIsEmpty: boolean;
+  rootHasMore: boolean;
+  folderCache: Record<string, FolderCacheEntry>;
+  selectedFilePath: string | null;
+  focusedExplorerNode: TreeNode | null;
+  onFileSearchInput: (value: string) => void;
+  onFileListElementChange: (element: HTMLDivElement | undefined) => void;
+  onFileListScroll: () => void;
+  onFileDragOver: (event: DragEvent, node?: TreeNode) => void;
+  onFileDragLeave: (event: DragEvent) => void;
+  onFileDrop: (event: DragEvent, node?: TreeNode) => void;
+  onNewFolderNameChange: (value: string) => void;
+  onCreateFolderKeydown: (event: KeyboardEvent) => void;
+  onSubmitCreateFolder: () => void;
+  onCancelCreateFolder: () => void;
+  onSearchResultClick: (item: FileSearchItem) => void;
+  onLoadMoreDirectory: (path: string) => void;
+  onNodeClick: (node: TreeNode) => void;
+  getRoomLabel: (room: string | null | undefined) => string;
+  getPathBadge: (path: string | null) => string | null;
+  isCleanRoomPath: (path: string | null) => boolean;
+};

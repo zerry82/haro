@@ -1,6 +1,6 @@
-﻿# POC 범위 현재 기준
+# 현재 구현 범위
 
-## 1. POC 목표
+## 1. 현재 구현 목표
 
 "사용자가 프로젝트 채팅으로 요청하면 AI 에이전트가 파일을 생성/수정하고, 3분할 화면에서 실시간으로 확인할 수 있다."
 
@@ -147,7 +147,7 @@ src/
 │   ├── package.json
 │   └── vite.config.ts
 ├── plan/
-└── sandbox-poc/                     # 별도 Docker 샌드박스 실험 코드
+└── sandbox-runtime/                     # 별도 Docker 샌드박스 실험 코드
 ```
 
 ## 8. SSE 구현 방식

@@ -6,7 +6,7 @@
 
 ## 한 줄 요약
 
-`src`는 haro MVP 구현이다. 사용자는 프로젝트를 만들고, 프로젝트마다 물리적인 파일 워크스페이스를 가진다. 각 프로젝트 안에는 여러 채팅이 있고, AI 에이전트는 Gemini 스트리밍 응답과 자체 도구 호출 규약을 이용해 파일 생성/수정/검색, Docker 샌드박스 코드 실행, 웹 프리뷰를 수행한다.
+`src`는 haro 제품 구현이다. 사용자는 프로젝트를 만들고, 프로젝트마다 물리적인 파일 워크스페이스를 가진다. 각 프로젝트 안에는 여러 채팅이 있고, AI 에이전트는 Gemini 스트리밍 응답과 자체 도구 호출 규약을 이용해 파일 생성/수정/검색, Docker 샌드박스 코드 실행, 웹 프리뷰를 수행한다.
 
 ## 폴더 구조
 
@@ -15,7 +15,7 @@ src/
   backend/           FastAPI 백엔드
   frontend/          Svelte 5 + Vite 프론트엔드
   sandbox-runtime/   별도 샌드박스 런타임 서버
-  plan/              MVP 설계/기획 문서
+  plan/              제품 설계/기획 문서
 ```
 
 ### `src/backend`
@@ -28,11 +28,11 @@ Svelte SPA다. 로그인/회원가입, 프로젝트 목록, 프로젝트 작업�
 
 ### `src/sandbox-runtime`
 
-Docker 컨테이너 기반 코드 실행 서버의 독립형 FastAPI 구현이다. 현재 메인 백엔드는 이 서버를 호출하기보다 `backend/app/services/container_manager.py`에서 Docker SDK를 직접 사용한다. 따라서 이 폴더는 실험/분리 런타임 성격이 강하다.
+Docker 컨테이너 기반 코드 실행 서버의 독립형 FastAPI 구현이다. 현재 메인 백엔드는 이 서버를 호출하기보다 `backend/app/services/container_manager.py`에서 Docker SDK를 직접 사용한다. 따라서 이 폴더는 분리 런타임 후보 성격이 강하다.
 
 ### `src/plan`
 
-프로젝트 설계 문서다. 현재 구현 기준 개요, 에이전트 시스템, API, 데이터 모델, 프론트엔드, SSE, 파일 워크스페이스, 스킬/플러그인, 대화 컨텍스트, MVP 범위를 정리한다.
+프로젝트 설계 문서다. 현재 구현 개요, 에이전트 시스템, API, 데이터 모델, 프론트엔드, SSE, 파일 워크스페이스, 스킬/플러그인, 대화 컨텍스트, 현재 구현 범위를 정리한다.
 
 ## 전체 실행 흐름
 
@@ -305,6 +305,14 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
 ```
 
+백엔드 단위 테스트:
+
+```bash
+cd src/backend
+pip install -r requirements-dev.txt
+pytest
+```
+
 프론트엔드:
 
 ```bash
@@ -313,11 +321,19 @@ npm install
 npm run dev -- --port 5174
 ```
 
+프론트엔드 단위 테스트와 빌드:
+
+```bash
+cd src/frontend
+npm test
+npm run build
+```
+
 샌드박스/코드 실행/프리뷰 기능에는 Docker가 필요하다. 백엔드 설정의 기본 CORS origin이 `http://localhost:5174`이므로 프론트엔드 개발 서버도 5174 포트를 쓰는 것이 가장 단순하다.
 
 ## 구현상 주의점
 
-- 현재 MVP는 MCP/FastMCP 플러그인 시스템을 실제 도구 실행 경로로 쓰지 않는다. 실제 도구 호출은 `tool_registry.py`와 `agent_tools.py`에 직접 구현되어 있다.
+- 현재 구현은 MCP/FastMCP 플러그인 시스템을 실제 도구 실행 경로로 쓰지 않는다. 실제 도구 호출은 `tool_registry.py`와 `agent_tools.py`에 직접 구현되어 있다.
 - `src/sandbox-runtime`은 독립형 런타임이며, 메인 FastAPI 앱의 코드 실행 경로는 `ContainerManager`다.
 - `Session`, `Todo`, `Chat.svelte`, `sessions.ts`는 레거시 성격이다. 새 흐름은 `Project` + `ChatSession`이다.
 - `files.py`와 `agent_tools.py` 모두 path traversal, `.haro` 보호, Clean Room 쓰기 금지를 처리한다.

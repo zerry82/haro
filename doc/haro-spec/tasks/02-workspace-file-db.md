@@ -1,4 +1,4 @@
-# 2번째 개발 주기: Workspace File DB + Search MVP
+# 2번째 개발 주기: Workspace File DB + Search
 
 ## 목표
 
