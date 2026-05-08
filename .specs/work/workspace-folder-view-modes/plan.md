@@ -264,6 +264,20 @@ git diff --check
 - `commits.md`에 연결 커밋 기록
 - 완료 시 `.specs/done/workspace-folder-view-modes/`로 이동
 
+## 10.5 도구 호출 파싱 오류 복구
+
+목표:
+
+- `tool_call` 블록이 있지만 JSON 파싱에 실패한 응답을 일반 답변으로 저장하지 않는다.
+- 파싱 오류를 debug trace와 intent event에 기록하고, 모델에 정확히 한 번 유효한 도구 호출 재작성을 요청한다.
+- 교정에 성공하면 기존 도구 실행 흐름을 유지하고, 반복 실패하면 사용자에게 작업 미실행을 알린 뒤 intent를 `failed`로 마감한다.
+
+검증:
+
+- invalid JSON `tool_call` 후 valid `tool_call`이 오면 도구가 1회 실행된다.
+- invalid JSON이 반복되면 파일 변경 없이 실패 메시지가 저장된다.
+- debug trace에 파싱 오류 위치가 남는다.
+
 ## 중단 또는 재설계 조건
 
 - workspace 초기화가 workspace root 밖 path를 건드릴 위험이 있는 경우

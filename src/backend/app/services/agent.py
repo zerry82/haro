@@ -265,7 +265,7 @@ async def run_agent(
             emitter,
             debug_enabled=debug_enabled,
         )
-        if loop_status == "blocked":
+        if loop_status in {"blocked", "failed"}:
             return
 
         if intent_turn:

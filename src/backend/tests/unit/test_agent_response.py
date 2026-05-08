@@ -7,6 +7,7 @@ from app.services.agent_response import (
     executor_routing_context,
     extract_text_without_tool_call,
     parse_tool_call,
+    parse_tool_call_result,
     routing_context_instruction,
 )
 
@@ -31,6 +32,53 @@ def test_parse_tool_call_returns_none_for_invalid_json() -> None:
 ```"""
 
     assert parse_tool_call(text) is None
+
+
+def test_parse_tool_call_result_detects_missing_block() -> None:
+    result = parse_tool_call_result("일반 답변입니다.")
+
+    assert result.has_block is False
+    assert result.tool_call is None
+    assert result.error is None
+    assert result.raw_block is None
+
+
+def test_parse_tool_call_result_reads_json_block() -> None:
+    text = """```tool_call
+{"tool": "file_read", "args": {"path": "/docs/guide.md"}}
+```"""
+
+    result = parse_tool_call_result(text)
+
+    assert result.has_block is True
+    assert result.tool_call == {"tool": "file_read", "args": {"path": "/docs/guide.md"}}
+    assert result.error is None
+    assert result.raw_block is not None
+
+
+def test_parse_tool_call_result_reports_invalid_json_block() -> None:
+    text = r"""```tool_call
+{"tool": "file_write", "args": {"content": ".card {\ padding: 1rem; }"}}
+```"""
+
+    result = parse_tool_call_result(text)
+
+    assert result.has_block is True
+    assert result.tool_call is None
+    assert result.error is not None
+    assert "line" in result.error
+    assert "column" in result.error
+    assert result.raw_block is not None
+
+
+def test_parse_tool_call_result_rejects_non_object_json() -> None:
+    result = parse_tool_call_result("""```tool_call
+["file_read"]
+```""")
+
+    assert result.has_block is True
+    assert result.tool_call is None
+    assert result.error == "tool_call JSON must be an object"
 
 
 def test_extract_text_without_tool_call_removes_tool_block() -> None:

@@ -193,6 +193,8 @@ def build_tool_descriptions(selected_tools: list[str] | None) -> str:
         "- code fence 바깥 일반 문장, 제목, 목록, 설명 안에 `tool_call`이라는 단어를 쓰지 마세요.",
         "- 도구 호출 block 뒤에는 어떤 문장도 덧붙이지 말고 즉시 응답을 끝내세요.",
         "- 한 번의 응답에는 정확히 하나의 도구 호출 block만 포함하세요.",
+        "- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.",
+        "- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.",
         "",
         "허용되는 유일한 형식:",
         "```tool_call",

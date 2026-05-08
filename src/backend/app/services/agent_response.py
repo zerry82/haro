@@ -4,23 +4,52 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import dataclass
 from typing import Any
 
 
+TOOL_CALL_PATTERN = r"```tool_call\s*\n?(.*?)\n?```"
+
+
+@dataclass(frozen=True)
+class ToolCallParseResult:
+    has_block: bool
+    tool_call: dict | None = None
+    error: str | None = None
+    raw_block: str | None = None
+
+
+def parse_tool_call_result(text: str) -> ToolCallParseResult:
+    match = re.search(TOOL_CALL_PATTERN, text, re.DOTALL)
+    if not match:
+        return ToolCallParseResult(has_block=False)
+
+    raw_block = match.group(1).strip()
+    try:
+        parsed = json.loads(raw_block)
+    except json.JSONDecodeError as exc:
+        return ToolCallParseResult(
+            has_block=True,
+            error=f"{exc.msg} at line {exc.lineno} column {exc.colno} (char {exc.pos})",
+            raw_block=raw_block,
+        )
+
+    if not isinstance(parsed, dict):
+        return ToolCallParseResult(
+            has_block=True,
+            error="tool_call JSON must be an object",
+            raw_block=raw_block,
+        )
+
+    return ToolCallParseResult(has_block=True, tool_call=parsed, raw_block=raw_block)
+
+
 def parse_tool_call(text: str) -> dict | None:
-    pattern = r"```tool_call\s*\n?(.*?)\n?```"
-    match = re.search(pattern, text, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group(1).strip())
-        except json.JSONDecodeError:
-            return None
-    return None
+    return parse_tool_call_result(text).tool_call
 
 
 def extract_text_without_tool_call(text: str) -> str:
-    pattern = r"```tool_call\s*\n?.*?\n?```"
-    return re.sub(pattern, "", text, flags=re.DOTALL).strip()
+    return re.sub(TOOL_CALL_PATTERN, "", text, flags=re.DOTALL).strip()
 
 
 def blocked_tool_result(tool_name: str, selected_tools: list[str]) -> str:

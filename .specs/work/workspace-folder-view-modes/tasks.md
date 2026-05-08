@@ -239,3 +239,27 @@ git diff --check
 - `cd src/backend; .\.venv\Scripts\python.exe -m pytest` → 65 passed, 1 skipped
 - `cd src/frontend; npm test -- --run` → 47 passed
 - `cd src/frontend; npm run build` → passed
+
+## 13. 도구 호출 파싱 오류 자동 교정
+
+- [x] `tool_call` 블록 없음과 `tool_call` JSON 파싱 실패를 구분한다.
+- [x] 파싱 실패 시 debug trace에 오류 위치와 raw block preview를 남긴다.
+- [x] 파싱 실패를 일반 planner 메시지로 저장하지 않고 1회 교정 라운드를 실행한다.
+- [x] 교정된 도구 호출이 유효하면 기존 도구 실행 흐름으로 이어간다.
+- [x] 교정도 실패하면 사용자에게 작업 미실행을 알리고 intent를 `failed`로 둔다.
+- [x] 도구 호출 JSON escaping 규칙을 system prompt와 tool contract에 명시한다.
+- [x] parser와 tool loop 단위 테스트를 추가한다.
+
+검증:
+
+```powershell
+cd src/backend
+.\.venv\Scripts\python.exe -m pytest
+
+git diff --check
+```
+
+검증 결과:
+
+- `cd src/backend; .\.venv\Scripts\python.exe -m pytest` → 73 passed, 1 skipped
+- `git diff --check` → passed
