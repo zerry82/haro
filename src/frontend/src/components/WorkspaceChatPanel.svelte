@@ -24,6 +24,7 @@
     onSummarizeChat,
     onMessagesElementChange,
     renderChatMarkdown,
+    formatToolStepContent,
     isDebugInspectable,
     onOpenDebugTrace,
     onDebugMessageKeydown,
@@ -49,6 +50,7 @@
     onSummarizeChat: () => void;
     onMessagesElementChange: (element: HTMLElement | undefined) => void;
     renderChatMarkdown: (content: string | null) => string;
+    formatToolStepContent: (content: string | null, metadata: any) => string;
     isDebugInspectable: (message: ChatMessage) => boolean;
     onOpenDebugTrace: (message: ChatMessage) => void;
     onDebugMessageKeydown: (event: KeyboardEvent, message: ChatMessage) => void;
@@ -119,7 +121,7 @@
       {#each messages as msg}
         {#if msg.role === 'tool_step'}
           <div class="tool-step-inline">
-            <span class="step-text">{msg.content}</span>
+            <span class="step-text">{formatToolStepContent(msg.content, msg.metadata)}</span>
           </div>
         {:else}
           <div class="message" class:user={msg.role === 'user'} class:assistant={msg.role !== 'user'}>

@@ -49,17 +49,26 @@ function appendExplorerRows(
   creatingFolder: boolean,
   creatingFolderParentPath: string,
   depth: number,
+  parentKey = '',
 ) {
-  for (const item of nodes) {
-    rows.push({ key: `node:${item.path}`, kind: 'node', node: item, depth });
+  for (const [index, item] of nodes.entries()) {
+    const itemKey = getNodeRowKey(item, parentKey, index);
+    rows.push({ key: `node:${itemKey}`, kind: 'node', node: item, depth });
     if (creatingFolder && item.type === 'directory' && item.path === creatingFolderParentPath) {
-      rows.push({ key: `new-folder:${item.path}`, kind: 'new-folder', depth: depth + 1 });
+      rows.push({ key: `new-folder:${itemKey}`, kind: 'new-folder', depth: depth + 1 });
     }
     if (item.type === 'directory' && item.expanded && item.children) {
-      appendExplorerRows(rows, item.children, folderCache, creatingFolder, creatingFolderParentPath, depth + 1);
+      appendExplorerRows(rows, item.children, folderCache, creatingFolder, creatingFolderParentPath, depth + 1, itemKey);
       if (folderCache[item.path]?.has_more || item.has_more) {
-        rows.push({ key: `load-more:${item.path}`, kind: 'load-more', path: item.path, depth: depth + 1 });
+        rows.push({ key: `load-more:${itemKey}`, kind: 'load-more', path: item.path, depth: depth + 1 });
       }
     }
   }
+}
+
+function getNodeRowKey(node: TreeNode, parentKey: string, index: number) {
+  if (node.aliasPath) return node.aliasPath;
+  if (node.path) return node.path;
+  const parentPrefix = parentKey ? `${parentKey}>` : '';
+  return `${parentPrefix}${node.name}:${index}`;
 }

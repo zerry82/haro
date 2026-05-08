@@ -27,7 +27,13 @@ export function normalizeFileChangedDetail(detail: unknown): FileChangedDetail {
 
 export function getAffectedRefreshDirectories(path: string, itemType?: string) {
   const normalized = normalizeWorkspacePath(path);
-  const affected = new Set<string>([getParentPath(normalized)]);
+  const affected = new Set<string>();
+  let current = getParentPath(normalized);
+  while (current) {
+    affected.add(current);
+    if (current === '/') break;
+    current = getParentPath(current);
+  }
   if (itemType === 'directory' || itemType === 'dir') {
     affected.add(normalized);
   }

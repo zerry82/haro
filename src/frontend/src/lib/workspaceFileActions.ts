@@ -1,6 +1,7 @@
 import {
   getParentPath,
   isCleanRoomPath,
+  isSystemManagedPath,
 } from './workspaceUtils';
 
 export type WorkspaceTargetNode = {
@@ -14,7 +15,7 @@ export type FolderNameValidation =
 
 export function validateNewFolderName(name: string): FolderNameValidation {
   const trimmed = name.trim();
-  if (!trimmed || trimmed === '.' || trimmed === '..' || trimmed.includes('/') || trimmed.includes('\\')) {
+  if (!trimmed || trimmed === '.' || trimmed === '..' || trimmed.startsWith('.') || trimmed.includes('/') || trimmed.includes('\\')) {
     return { ok: false, message: '올바른 폴더 이름을 입력하세요.' };
   }
   return { ok: true, name: trimmed };
@@ -41,7 +42,7 @@ export function getNodeTargetDir(node: WorkspaceTargetNode | null, fallback: str
 }
 
 export function isReadOnlyMutationTarget(path: string | null) {
-  return isCleanRoomPath(path);
+  return isCleanRoomPath(path) || isSystemManagedPath(path);
 }
 
 export function hasDraggedFiles(types: ArrayLike<string> | Iterable<string> | null | undefined) {

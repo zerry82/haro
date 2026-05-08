@@ -55,6 +55,7 @@
     onSearchResultClick,
     onLoadMoreDirectory,
     onNodeClick,
+    getDisplayPath,
     getRoomLabel,
     getPathBadge,
     isCleanRoomPath,
@@ -101,6 +102,7 @@
     onSearchResultClick: (item: FileSearchItem) => void;
     onLoadMoreDirectory: (path: string) => void;
     onNodeClick: (node: TreeNode) => void;
+    getDisplayPath: (path: string | null | undefined) => string;
     getRoomLabel: (room: string | null | undefined) => string;
     getPathBadge: (path: string | null) => string | null;
     isCleanRoomPath: (path: string | null) => boolean;
@@ -180,6 +182,7 @@
         {onSearchResultClick}
         {onLoadMoreDirectory}
         {onNodeClick}
+        {getDisplayPath}
         {getRoomLabel}
         {getPathBadge}
         {isCleanRoomPath}

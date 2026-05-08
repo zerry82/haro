@@ -10,8 +10,11 @@ from app.models.message import Message
 from app.models.project import Project
 from app.models.chat_session import ChatSession
 from app.services.chat_workspace import load_chat_context
+from app.services.chat_workspace_paths import user_result_root_path
+from app.services.harness import ensure_harness_structure_synced
 from app.services.workspace_file_db import read_workspace_briefing_counts
 from app.services.workspace_index import LEGACY_META_DIR, META_DIR
+from app.services.workspace_instruction_files import load_user_instruction_context
 
 RECENT_MESSAGE_COUNT = 20
 HARNESS_BRIEFING_MAX_CHARS = 4000
@@ -36,7 +39,8 @@ SYSTEM_PROMPT = """당신은 haro AI 에이전트입니다.
 - 한국어로 응답하세요.
 - 작업 계획을 먼저 설명한 후 도구를 호출하세요.
 - 코드 실행 도구가 제공된 경우 기본적으로 TypeScript를 사용하고 filename은 `.ts` 확장자로 작성하세요.
-- 사용자가 파일 저장 위치를 명확히 말하지 않았다면 현재 채팅 작업공간에 저장하세요.
+- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.
+- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.
 - 사용자가 `/playground/...`처럼 명시한 합법 경로는 그대로 따르세요.
 - Clean Room과 `.haro` 내부 메타데이터는 직접 수정하지 마세요.
 - 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.
@@ -48,7 +52,11 @@ SYSTEM_PROMPT = """당신은 haro AI 에이전트입니다.
 
 async def build_context(db: AsyncSession, project: Project, chat_session: ChatSession | None = None) -> list[str]:
     """LLM에 전달할 시스템 컨텍스트를 하나의 문자열 리스트로 조립."""
+    ensure_harness_structure_synced(project.workspace_path, project.user_id, initialize_git=False)
     parts = [SYSTEM_PROMPT]
+    instruction_context = load_user_instruction_context(project.workspace_path, project.user_id)
+    if instruction_context:
+        parts.append(instruction_context)
     parts.append(build_harness_briefing(project, chat_session))
 
     # 대화 요약
@@ -78,10 +86,14 @@ def build_harness_briefing(project: Project, chat_session: ChatSession | None = 
     ]
 
     if chat_path:
+        result_path = user_result_root_path(project.user_id)
         lines.extend([
             f"- 현재 채팅 작업공간: {chat_path}",
-            f"- 명시 경로가 없는 새 파일은 {chat_path}/outputs 또는 {chat_path}/working 아래에 저장합니다.",
-            "- 다른 Playground 폴더로 보내야 할 때는 사용자의 명시 요청과 내보내기 절차가 필요합니다.",
+            f"- 사용자 결과 폴더 root는 {result_path} 입니다.",
+            "- 최종 산출물 저장 위치가 명확하지 않으면 저장 전에 사용자에게 확인 질문을 하세요. 추천 경로는 `내 폴더/결과/{주제}/{파일명}`처럼 주제 기반 이름을 사용합니다.",
+            "- 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.",
+            f"- {chat_path}/outputs 또는 {chat_path}/working은 임시/중간 파일이 필요할 때만 사용합니다.",
+            "- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자 결과 폴더를 의미합니다.",
         ])
     else:
         lines.append("- 현재 채팅 작업공간이 아직 지정되지 않았습니다.")

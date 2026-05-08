@@ -1,4 +1,11 @@
+from pathlib import Path
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_WORKSPACE_ROOT = str(PROJECT_ROOT / "runtime" / "workspaces")
 
 
 class Settings(BaseSettings):
@@ -6,7 +13,7 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me"
     jwt_expire_minutes: int = 1440
     db_data_dir: str = "./data/pgdata"
-    workspace_root: str = "./data/workspaces"
+    workspace_root: str = DEFAULT_WORKSPACE_ROOT
     host: str = "0.0.0.0"
     port: int = 8001
     cors_origins: str = "http://localhost:5174"
@@ -26,6 +33,14 @@ class Settings(BaseSettings):
     sandbox_default_node_max_containers: int = 10
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+
+    @field_validator("workspace_root")
+    @classmethod
+    def resolve_workspace_root(cls, value: str) -> str:
+        path = Path(value).expanduser()
+        if not path.is_absolute():
+            path = PROJECT_ROOT / path
+        return str(path.resolve())
 
 
 settings = Settings()

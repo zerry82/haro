@@ -9,6 +9,7 @@
     isEditableTextFile,
     isHtmlFile,
     isMarkdownFile,
+    isSystemManagedPath,
     type ViewerTab,
   } from '../lib/workspaceUtils';
 
@@ -65,6 +66,14 @@
     onSaveFile: () => void;
     onEditorChange: (value: string) => void;
   } = $props();
+
+  function isReadonlyPath(path: string | null) {
+    return isCleanRoomPath(path) || isSystemManagedPath(path);
+  }
+
+  function readonlyMessage(path: string | null) {
+    return isSystemManagedPath(path) ? '시스템 파일은 직접 수정할 수 없습니다.' : 'Clean Room은 직접 수정할 수 없습니다.';
+  }
 </script>
 
 <div class="panel viewer-panel">
@@ -143,8 +152,8 @@
         <div class="editor-pane">
           <div class="editor-toolbar">
             <span class="editor-status" class:dirty={hasUnsavedChanges} class:warning={externalFileChanged}>
-              {#if isCleanRoomPath(selectedFilePath)}
-                Clean Room은 직접 수정할 수 없습니다.
+              {#if isReadonlyPath(selectedFilePath)}
+                {readonlyMessage(selectedFilePath)}
               {:else if externalFileChanged}
                 외부 변경 있음
               {:else if hasUnsavedChanges}
@@ -159,8 +168,8 @@
             {#if externalFileChanged}
               <button type="button" class="editor-action" onclick={onReloadCurrentFile}>다시 불러오기</button>
             {/if}
-            <button type="button" class="editor-action" onclick={onRevertFile} disabled={isCleanRoomPath(selectedFilePath) || !hasUnsavedChanges || savingFile}>되돌리기</button>
-            <button type="button" class="editor-save" onclick={onSaveFile} disabled={isCleanRoomPath(selectedFilePath) || !hasUnsavedChanges || savingFile}>
+            <button type="button" class="editor-action" onclick={onRevertFile} disabled={isReadonlyPath(selectedFilePath) || !hasUnsavedChanges || savingFile}>되돌리기</button>
+            <button type="button" class="editor-save" onclick={onSaveFile} disabled={isReadonlyPath(selectedFilePath) || !hasUnsavedChanges || savingFile}>
               {savingFile ? '저장 중...' : '저장'}
             </button>
           </div>
@@ -182,7 +191,7 @@
                         <td>
                           <input
                             value={cell}
-                            disabled={isCleanRoomPath(selectedFilePath)}
+                            disabled={isReadonlyPath(selectedFilePath)}
                             aria-label={`CSV ${rowIndex + 1}행 ${cellIndex + 1}열`}
                             oninput={(event) => onCsvCellInput(rowIndex, cellIndex, event)}
                           />
@@ -199,8 +208,8 @@
         <div class="editor-pane">
           <div class="editor-toolbar">
             <span class="editor-status" class:dirty={hasUnsavedChanges} class:warning={externalFileChanged}>
-              {#if isCleanRoomPath(selectedFilePath)}
-                Clean Room은 직접 수정할 수 없습니다.
+              {#if isReadonlyPath(selectedFilePath)}
+                {readonlyMessage(selectedFilePath)}
               {:else if externalFileChanged}
                 외부 변경 있음
               {:else if hasUnsavedChanges}
@@ -215,8 +224,8 @@
             {#if externalFileChanged}
               <button type="button" class="editor-action" onclick={onReloadCurrentFile}>다시 불러오기</button>
             {/if}
-            <button type="button" class="editor-action" onclick={onRevertFile} disabled={isCleanRoomPath(selectedFilePath) || !hasUnsavedChanges || savingFile}>되돌리기</button>
-            <button type="button" class="editor-save" onclick={onSaveFile} disabled={isCleanRoomPath(selectedFilePath) || !hasUnsavedChanges || savingFile}>
+            <button type="button" class="editor-action" onclick={onRevertFile} disabled={isReadonlyPath(selectedFilePath) || !hasUnsavedChanges || savingFile}>되돌리기</button>
+            <button type="button" class="editor-save" onclick={onSaveFile} disabled={isReadonlyPath(selectedFilePath) || !hasUnsavedChanges || savingFile}>
               {savingFile ? '저장 중...' : '저장'}
             </button>
           </div>
@@ -224,7 +233,7 @@
             <CodeEditor
               value={editorContent}
               language={fileLanguage}
-              readonly={isCleanRoomPath(selectedFilePath)}
+              readonly={isReadonlyPath(selectedFilePath)}
               onchange={onEditorChange}
             />
           </div>

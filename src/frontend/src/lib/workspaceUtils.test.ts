@@ -18,6 +18,7 @@ import {
   isHtmlFile,
   isMarkdownFile,
   isOwnPlaygroundPath,
+  isSystemManagedPath,
   joinExplorerPath,
   normalizeWorkspacePath,
 } from './workspaceUtils';
@@ -33,10 +34,13 @@ describe('workspaceUtils path helpers', () => {
   it('detects path ownership and badges', () => {
     expect(isCleanRoomPath('/clean-room/data/source.csv')).toBe(true);
     expect(isCleanRoomPath('/playground/users/u1/00_inbox/a.txt')).toBe(false);
+    expect(isSystemManagedPath('/playground/users/u1/.HARO.md')).toBe(true);
+    expect(isSystemManagedPath('/playground/users/u1/AGENTS.md')).toBe(false);
     expect(getDefaultPlaygroundInbox('u1')).toBe('/playground/users/u1/00_inbox');
     expect(isOwnPlaygroundPath('/playground/users/u1/20_working/a.txt', 'u1')).toBe(true);
     expect(isOwnPlaygroundPath('/playground/users/u2/20_working/a.txt', 'u1')).toBe(false);
     expect(getPathBadge('/clean-room/data/source.csv', 'u1')).toBe('읽기 전용');
+    expect(getPathBadge('/playground/users/u1/.HARO.md', 'u1')).toBe('시스템');
     expect(getPathBadge('/playground/users/u1/20_working/a.txt', 'u1')).toBe('내 작업공간');
   });
 

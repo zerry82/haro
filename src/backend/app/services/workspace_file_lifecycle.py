@@ -129,6 +129,7 @@ def update_workspace_item_summary(workspace: str, requested_path: str, summary_t
             if not os.path.exists(full):
                 return
             with conn:
+                sync_path_with_parents(conn, workspace, normalized, source_kind="local", chat_id=None)
                 item_id = upsert_item(
                     conn,
                     workspace,
@@ -154,6 +155,7 @@ def mark_workspace_summary_stale(workspace: str, requested_path: str) -> None:
             if not os.path.exists(full):
                 return
             with conn:
+                sync_path_with_parents(conn, workspace, normalized, source_kind="local", chat_id=None)
                 item_id = upsert_item(
                     conn,
                     workspace,

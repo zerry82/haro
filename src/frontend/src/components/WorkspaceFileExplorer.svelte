@@ -33,6 +33,7 @@
     onSearchResultClick,
     onLoadMoreDirectory,
     onNodeClick,
+    getDisplayPath,
     getRoomLabel,
     getPathBadge,
     isCleanRoomPath,
@@ -108,7 +109,7 @@
             onclick={() => onSearchResultClick(item)}
           >
             <span class="search-result-name">{item.name}</span>
-            <span class="search-result-path">{item.path}</span>
+            <span class="search-result-path">{getDisplayPath(item.path)}</span>
             <span class="search-result-meta">
               <span>{getRoomLabel(item.room)}</span>
               <span>{item.item_type === 'directory' ? '폴더' : item.language || 'file'}</span>

@@ -49,4 +49,47 @@ describe('workspaceExplorerRows', () => {
     expect(virtual.totalHeight).toBe(3000);
     expect(virtual.translateY).toBe(240);
   });
+
+  it('keeps row keys unique when alias shortcuts point at the same canonical path', () => {
+    const nodes: TreeNode[] = [
+      {
+        name: '팀 폴더',
+        type: 'directory',
+        path: '/clean-room',
+        aliasPath: '팀 폴더',
+        expanded: true,
+        children: [
+          {
+            name: '데이터',
+            type: 'directory',
+            path: '/clean-room/data',
+            aliasPath: '팀 폴더/데이터',
+            expanded: true,
+            children: [
+              {
+                name: '30_outputs',
+                type: 'directory',
+                path: '/clean-room/data/30_outputs',
+                expanded: false,
+              },
+            ],
+          },
+          {
+            name: '공유 결과',
+            type: 'directory',
+            path: '/clean-room/data/30_outputs',
+            aliasPath: '팀 폴더/공유 결과',
+            expanded: false,
+          },
+        ],
+      },
+    ];
+
+    const rows = buildExplorerRows(nodes, {}, false, '/');
+    const keys = rows.map((row) => row.key);
+
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(keys).toContain('node:팀 폴더/공유 결과');
+    expect(keys).toContain('node:/clean-room/data/30_outputs');
+  });
 });

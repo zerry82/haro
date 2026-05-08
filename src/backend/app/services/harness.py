@@ -8,6 +8,7 @@ import subprocess
 from datetime import datetime, timezone
 
 from app.services.workspace_index import LEGACY_META_DIR, META_DIR
+from app.services.workspace_instruction_files import ensure_user_instruction_files
 
 logger = logging.getLogger(__name__)
 
@@ -45,9 +46,20 @@ def get_playground_inbox_path(user_id: str) -> str:
 def ensure_harness_structure(workspace: str, user_id: str, initialize_git: bool = True) -> None:
     for relative_path in _harness_directories(user_id):
         os.makedirs(os.path.join(workspace, *relative_path.split("/")), exist_ok=True)
+    ensure_user_instruction_files(workspace, user_id)
 
     if initialize_git:
         _ensure_clean_room_git(workspace)
+
+
+def ensure_harness_structure_synced(workspace: str, user_id: str, initialize_git: bool = True) -> None:
+    ensure_harness_structure(workspace, user_id, initialize_git=initialize_git)
+
+    from app.services.workspace_file_db import sync_workspace_path
+    from app.services.workspace_instruction_files import user_agents_path, user_haro_path
+
+    sync_workspace_path(workspace, user_haro_path(user_id), source_kind="system")
+    sync_workspace_path(workspace, user_agents_path(user_id), source_kind="user")
 
 
 def _harness_directories(user_id: str) -> list[str]:

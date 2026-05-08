@@ -15,6 +15,7 @@ describe('workspaceFileActions', () => {
     expect(validateNewFolderName('')).toEqual({ ok: false, message: '올바른 폴더 이름을 입력하세요.' });
     expect(validateNewFolderName('.')).toEqual({ ok: false, message: '올바른 폴더 이름을 입력하세요.' });
     expect(validateNewFolderName('..')).toEqual({ ok: false, message: '올바른 폴더 이름을 입력하세요.' });
+    expect(validateNewFolderName('.cache')).toEqual({ ok: false, message: '올바른 폴더 이름을 입력하세요.' });
     expect(validateNewFolderName('docs/guide')).toEqual({ ok: false, message: '올바른 폴더 이름을 입력하세요.' });
     expect(validateNewFolderName('docs\\guide')).toEqual({ ok: false, message: '올바른 폴더 이름을 입력하세요.' });
   });
@@ -50,6 +51,8 @@ describe('workspaceFileActions', () => {
 
   it('detects readonly targets and dragged files', () => {
     expect(isReadOnlyMutationTarget('/clean-room/data/source.csv')).toBe(true);
+    expect(isReadOnlyMutationTarget('/playground/users/u1/.HARO.md')).toBe(true);
+    expect(isReadOnlyMutationTarget('/playground/users/u1/AGENTS.md')).toBe(false);
     expect(isReadOnlyMutationTarget('/playground/users/u1/file.md')).toBe(false);
     expect(hasDraggedFiles(['text/plain', 'Files'])).toBe(true);
     expect(hasDraggedFiles(['text/plain'])).toBe(false);

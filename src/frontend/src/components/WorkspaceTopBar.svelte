@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Code2 } from 'lucide-svelte';
   import type { RuntimeMode } from '../lib/workspaceUtils';
 
   let {
@@ -9,9 +10,11 @@
     previewUrl,
     deployBusy,
     deployMessage,
+    developerMode,
     userName,
     onBack,
     onDeployToggle,
+    onDeveloperModeChange,
   }: {
     projectTitle: string;
     projectRuntimeMode: RuntimeMode;
@@ -20,9 +23,11 @@
     previewUrl: string;
     deployBusy: boolean;
     deployMessage: string;
+    developerMode: boolean;
     userName: string | null | undefined;
     onBack: () => void;
     onDeployToggle: () => void;
+    onDeveloperModeChange: (value: boolean) => void;
   } = $props();
 </script>
 
@@ -47,6 +52,18 @@
     <span class="deploy-message" class:error={deployMessage.includes('실패') || deployMessage.includes('failed')}>{deployMessage}</span>
   {/if}
   <span class="spacer"></span>
+  <button
+    type="button"
+    class="developer-toggle"
+    class:active={developerMode}
+    title="개발자 모드"
+    aria-label="개발자 모드"
+    aria-pressed={developerMode}
+    onclick={() => onDeveloperModeChange(!developerMode)}
+  >
+    <Code2 size={14} />
+    <span>{developerMode ? '개발자' : '사용자'}</span>
+  </button>
   <span class="user-name">{userName}</span>
 </header>
 
@@ -60,9 +77,11 @@
   .runtime-badge.deploy { background: var(--color-pink-soft); color: #be185d; }
   .container-badge { background: var(--color-sidebar-strong); color: var(--color-text-muted); }
   .container-badge.running { color: var(--color-accent-strong); }
-  .deploy-btn, .preview-link { flex-shrink: 0; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: transparent; color: var(--color-text-muted); padding: 0.25rem 0.55rem; font: inherit; font-size: 0.75rem; cursor: pointer; text-decoration: none; }
-  .deploy-btn:hover:not(:disabled), .preview-link:hover { border-color: var(--color-accent); color: var(--color-accent-strong); background: var(--color-accent-soft); }
+  .deploy-btn, .preview-link, .developer-toggle { flex-shrink: 0; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: transparent; color: var(--color-text-muted); padding: 0.25rem 0.55rem; font: inherit; font-size: 0.75rem; cursor: pointer; text-decoration: none; }
+  .deploy-btn:hover:not(:disabled), .preview-link:hover, .developer-toggle:hover { border-color: var(--color-accent); color: var(--color-accent-strong); background: var(--color-accent-soft); }
   .deploy-btn:disabled { cursor: default; opacity: 0.55; }
+  .developer-toggle { display: inline-flex; align-items: center; gap: 0.3rem; }
+  .developer-toggle.active { border-color: var(--color-info); color: var(--color-info); background: var(--color-info-soft); }
   .deploy-message { flex-shrink: 1; min-width: 0; color: var(--color-accent-strong); font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .deploy-message.error { color: var(--color-danger); }
   .spacer { flex: 1; }

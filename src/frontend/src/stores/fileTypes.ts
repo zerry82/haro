@@ -1,7 +1,11 @@
+export type WorkspaceExplorerMode = 'user' | 'developer';
+
 export interface TreeNode {
   name: string;
   type: string;
   path: string;
+  aliasPath?: string;
+  virtual?: boolean;
   size?: number;
   children_count?: number;
   total?: number;
@@ -75,4 +79,6 @@ export interface LoadDirectoryOptions {
   append?: boolean;
   force?: boolean;
   limit?: number;
+  mode?: WorkspaceExplorerMode;
+  includeHidden?: boolean;
 }

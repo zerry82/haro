@@ -84,6 +84,10 @@ export function isCleanRoomPath(path: string | null) {
   return normalized === '/clean-room' || normalized.startsWith('/clean-room/');
 }
 
+export function isSystemManagedPath(path: string | null) {
+  return normalizeWorkspacePath(path).endsWith('/.HARO.md');
+}
+
 export function getDefaultPlaygroundInbox(userId: string | null | undefined) {
   return userId ? `/playground/users/${userId}/00_inbox` : '/';
 }
@@ -95,6 +99,7 @@ export function isOwnPlaygroundPath(path: string | null, userId: string | null |
 }
 
 export function getPathBadge(path: string | null, userId: string | null | undefined) {
+  if (isSystemManagedPath(path)) return '시스템';
   if (isCleanRoomPath(path)) return '읽기 전용';
   if (isOwnPlaygroundPath(path, userId)) return '내 작업공간';
   return '';

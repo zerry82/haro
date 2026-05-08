@@ -15,7 +15,9 @@ from app.services.chat_workspace import (
     record_file_reference,
     record_preview_reference,
 )
-from app.services.harness import is_clean_room_path, is_haro_internal_path
+from app.services.chat_workspace_paths import ResultPathRequiredError
+from app.services.file_path_policy import assert_read_allowed, assert_write_allowed
+from app.services.workspace_aliases import resolve_workspace_alias_path
 from app.services.sse import SSEEmitter
 from app.services.workspace_file_db import (
     WorkspaceSearchUnavailable,
@@ -36,15 +38,12 @@ def _validate_path(workspace: str, requested: str) -> str:
     return full
 
 
-def _assert_tool_read_allowed(path: str) -> None:
-    if is_haro_internal_path(path):
-        raise PermissionError("Haro internal metadata is not accessible")
+def _assert_tool_read_allowed(path: str, user_id: str | None = None) -> None:
+    assert_read_allowed(path, user_id)
 
 
-def _assert_tool_write_allowed(path: str) -> None:
-    _assert_tool_read_allowed(path)
-    if is_clean_room_path(path):
-        raise PermissionError("Clean Room is read-only")
+def _assert_tool_write_allowed(path: str, user_id: str | None = None) -> None:
+    assert_write_allowed(path, user_id)
 
 
 def _as_bool(value: object) -> bool:
@@ -100,17 +99,19 @@ async def execute_tool(
         if tool_name == "file_export":
             if chat_session is None:
                 return "도구 실행 에러: file_export requires chat context"
-            source_path = args.get("source_path", "")
-            target_path = args.get("target_path", "")
-            _assert_tool_read_allowed(source_path)
-            _assert_tool_write_allowed(target_path)
+            user_id = project.user_id if project else None
+            source_path = _resolve_tool_path(args.get("source_path", ""), user_id)
+            target_path = _resolve_tool_path(args.get("target_path", ""), user_id)
+            _assert_tool_read_allowed(source_path, user_id)
+            _assert_tool_write_allowed(target_path, user_id)
             exported_path = export_chat_file(workspace, chat_session, source_path, target_path)
             emitter.emit("file_changed", {"action": "created", "path": exported_path, "type": "file"})
             await update_file_summary(workspace, exported_path, "created")
             append_agent_log(workspace, chat_session, "file_export", f"{source_path} -> {exported_path}")
             return f"파일 내보내기 완료: {source_path} -> {exported_path}"
 
-        path = args.get("path", "/")
+        user_id = project.user_id if project else None
+        path = _resolve_tool_path(args.get("path", "/"), user_id)
         if tool_name == "file_search":
             query = args.get("query") or args.get("q") or ""
             limit = int(args.get("limit") or 10)
@@ -137,7 +138,7 @@ async def execute_tool(
         if tool_name == "file_count":
             item_type = args.get("item_type") or args.get("type")
             recursive = _as_bool(args.get("recursive", False))
-            _assert_tool_read_allowed(path)
+            _assert_tool_read_allowed(path, user_id)
             full_path = _validate_path(workspace, path)
             if not os.path.isdir(full_path):
                 return f"디렉토리 없음: {path}"
@@ -159,12 +160,12 @@ async def execute_tool(
             return f"{path}의 {scope} {type_label} 수: {count}"
 
         if chat_session and tool_name in {"file_create", "file_write", "dir_create"}:
-            path = get_chat_default_write_path(chat_session, path, tool_name)
-        _assert_tool_read_allowed(path)
+            path = get_chat_default_write_path(chat_session, path, tool_name, user_id)
+        _assert_tool_read_allowed(path, user_id)
         full_path = _validate_path(workspace, path)
 
         if tool_name == "file_create":
-            _assert_tool_write_allowed(path)
+            _assert_tool_write_allowed(path, user_id)
             os.makedirs(os.path.dirname(full_path) or full_path, exist_ok=True)
             atomic_write_text(full_path, args.get("content", ""))
             emitter.emit("file_changed", {"action": "created", "path": path, "type": "file"})
@@ -182,7 +183,7 @@ async def execute_tool(
             return content
 
         if tool_name == "file_write":
-            _assert_tool_write_allowed(path)
+            _assert_tool_write_allowed(path, user_id)
             atomic_write_text(full_path, args.get("content", ""))
             mark_workspace_summary_stale(workspace, path)
             emitter.emit("file_changed", {"action": "modified", "path": path, "type": "file"})
@@ -193,7 +194,7 @@ async def execute_tool(
             return f"파일 수정 완료: {path}"
 
         if tool_name == "file_delete":
-            _assert_tool_write_allowed(path)
+            _assert_tool_write_allowed(path, user_id)
             os.remove(full_path)
             emitter.emit("file_changed", {"action": "deleted", "path": path, "type": "file"})
             await update_file_summary(workspace, path, "deleted")
@@ -219,7 +220,7 @@ async def execute_tool(
             return f"디렉토리 목록 ({path}, 폴더 {dir_count}개, 파일 {file_count}개):\n" + "\n".join(lines)
 
         if tool_name == "dir_create":
-            _assert_tool_write_allowed(path)
+            _assert_tool_write_allowed(path, user_id)
             os.makedirs(full_path, exist_ok=True)
             sync_workspace_path(workspace, path, source_kind="agent", chat_id=chat_session.id if chat_session else None)
             emitter.emit("file_changed", {"action": "created", "path": path, "type": "directory"})
@@ -229,5 +230,14 @@ async def execute_tool(
 
         return f"알 수 없는 도구: {tool_name}"
 
+    except ResultPathRequiredError as e:
+        return str(e)
     except Exception as e:
         return f"도구 실행 에러: {str(e)}"
+
+
+def _resolve_tool_path(path: object, user_id: str | None) -> str:
+    value = str(path or "")
+    if not user_id:
+        return value
+    return resolve_workspace_alias_path(value, user_id)

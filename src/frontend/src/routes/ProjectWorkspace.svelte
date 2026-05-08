@@ -8,6 +8,7 @@
   import {
     fileTree,
     folderCache,
+    selectFolderCacheForMode,
     loadDirectory,
     loadMoreDirectory,
     loadFileContent,
@@ -25,7 +26,8 @@
     reloadAllExpanded,
     markDirectoryDirty,
     type FileSearchItem,
-    type TreeNode
+    type TreeNode,
+    type WorkspaceExplorerMode,
   } from '../stores/files';
   import { api } from '../lib/api';
   import {
@@ -43,6 +45,7 @@
     isEditableTextFile,
     isHtmlFile,
     isMarkdownFile,
+    isSystemManagedPath,
     joinExplorerPath,
     type RuntimeMode,
     type ViewerTab,
@@ -74,6 +77,16 @@
     saveStoredBool,
     saveStoredPanelWidth,
   } from '../lib/panelPreferences';
+  import {
+    formatChatMessageContent,
+    formatToolStepContent as formatChatToolStepContent,
+  } from '../lib/chatDisplay';
+  import {
+    createUserModeRootNodes,
+    displayPathForMode,
+    getDeveloperModeStorageKey,
+    userModeMutationTarget,
+  } from '../lib/workspaceFolderView';
   import {
     computePanelResize,
     type ResizePanel,
@@ -160,6 +173,7 @@
   let filePanelWidth = $state(loadStoredPanelWidth('haro:filePanelWidth', 260));
   let chatPanelWidth = $state(loadStoredPanelWidth('haro:chatPanelWidth', 400));
   let debugMode = $state(loadStoredBool('haro:debugMode', false));
+  let developerMode = $state(false);
   let debugTraceOpen = $state(false);
   let debugTraceLoading = $state(false);
   let debugTraceError = $state('');
@@ -184,6 +198,22 @@
     return getDebugModeStorageKey($user?.id);
   }
 
+  function getCurrentDeveloperModeStorageKey() {
+    return getDeveloperModeStorageKey($user?.id);
+  }
+
+  function getExplorerMode(): WorkspaceExplorerMode {
+    return developerMode ? 'developer' : 'user';
+  }
+
+  function getDirectoryLoadOptions() {
+    return { mode: getExplorerMode(), includeHidden: developerMode };
+  }
+
+  function getModeFolderCache() {
+    return selectFolderCacheForMode($folderCache, getExplorerMode());
+  }
+
   function hasUnsavedChanges() {
     return $fileContent !== null && editorContent !== editorBaseContent;
   }
@@ -193,7 +223,7 @@
   }
 
   function getExplorerRows() {
-    return buildExplorerRows($fileTree, $folderCache, creatingFolder, creatingFolderParentPath);
+    return buildExplorerRows($fileTree, getModeFolderCache(), creatingFolder, creatingFolderParentPath);
   }
 
   function getVirtualExplorerRows() {
@@ -214,16 +244,34 @@
     return getWorkspacePathBadge(path, $user?.id);
   }
 
+  function getDisplayPath(path: string | null | undefined) {
+    return displayPathForMode(path, getExplorerMode(), $user?.id);
+  }
+
+  function shouldShowRawChatDetails() {
+    return developerMode || debugMode;
+  }
+
+  function renderWorkspaceChatMarkdown(content: string | null) {
+    return renderChatMarkdown(formatChatMessageContent(content, $user?.id, shouldShowRawChatDetails()));
+  }
+
+  function formatWorkspaceToolStep(content: string | null, metadata: any) {
+    return formatChatToolStepContent(content, metadata, shouldShowRawChatDetails());
+  }
+
   function getExplorerTargetDir() {
-    return resolveExplorerTargetDir({
+    const target = resolveExplorerTargetDir({
       focusedNode: focusedExplorerNode,
       selectedFilePath: $selectedFilePath,
       defaultInbox: getDefaultPlaygroundInbox(),
     });
+    return getExplorerMode() === 'user' ? userModeMutationTarget(target, $user?.id) : target;
   }
 
   function getNodeTargetDir(node: TreeNode | null) {
-    return resolveNodeTargetDir(node, getExplorerTargetDir());
+    const target = resolveNodeTargetDir(node, getExplorerTargetDir());
+    return getExplorerMode() === 'user' ? userModeMutationTarget(target, $user?.id) : target;
   }
 
   function isExplorerTargetReadOnly() {
@@ -231,18 +279,26 @@
   }
 
   async function refreshExplorerAfterMutation(projectId: string, targetDir: string) {
-    await refreshDirectory(projectId, targetDir || '/');
+    await refreshDirectory(projectId, targetDir || '/', getDirectoryLoadOptions());
     if (fileSearchQuery.trim()) {
       await runFileSearch();
     }
   }
 
-  async function loadDefaultHarnessTree(projectId: string) {
-    await loadDirectory(projectId, '/');
+  async function loadWorkspaceTree(projectId: string) {
+    focusedExplorerNode = null;
+    if (!developerMode) {
+      fileTree.set(createUserModeRootNodes($user?.id));
+      return;
+    }
+
+    fileTree.set([]);
+    const freshDeveloperLoad = { ...getDirectoryLoadOptions(), force: true };
+    await loadDirectory(projectId, '/', freshDeveloperLoad);
     if (!$user?.id) return;
-    await loadDirectory(projectId, '/playground');
-    await loadDirectory(projectId, '/playground/users');
-    await loadDirectory(projectId, `/playground/users/${$user.id}`);
+    await loadDirectory(projectId, '/playground', freshDeveloperLoad);
+    await loadDirectory(projectId, '/playground/users', freshDeveloperLoad);
+    await loadDirectory(projectId, `/playground/users/${$user.id}`, freshDeveloperLoad);
   }
 
   function getRuntimeModeLabel() {
@@ -262,7 +318,7 @@
 
     fileSearchLoading = true;
     try {
-      const res = await searchFiles(pid, query, 50);
+      const res = await searchFiles(pid, query, 50, { includeHidden: developerMode });
       if (seq !== fileSearchSeq) return;
       if (res.status === 'search_unavailable') {
         fileSearchResults = [];
@@ -476,6 +532,7 @@
     const pid = params.projectId;
     if (!pid) { push('/projects'); return; }
     debugMode = loadStoredBool(getCurrentDebugModeStorageKey(), false);
+    developerMode = loadStoredBool(getCurrentDeveloperModeStorageKey(), false);
 
     currentProjectId.set(pid);
 
@@ -508,7 +565,7 @@
 
     currentChatId.set(chatId!);
     await loadMessages(pid, chatId!);
-    await loadDefaultHarnessTree(pid);
+    await loadWorkspaceTree(pid);
 
     // Update URL if needed
     if (!params.chatId || params.chatId !== chatId) {
@@ -521,7 +578,7 @@
     if (!pid) return;
     pendingFileRefreshPaths = mergeRefreshQueue(pendingFileRefreshPaths, path, itemType);
     for (const directoryPath of getAffectedRefreshDirectories(path, itemType)) {
-      markDirectoryDirty(directoryPath);
+      markDirectoryDirty(directoryPath, getExplorerMode());
     }
     if (fileRefreshTimer) clearTimeout(fileRefreshTimer);
     fileRefreshTimer = setTimeout(() => {
@@ -536,7 +593,7 @@
     pendingFileRefreshPaths.clear();
     fileRefreshTimer = null;
     for (const [path, itemType] of entries) {
-      await refreshChangedPath(pid, path, itemType);
+      await refreshChangedPath(pid, path, itemType, getDirectoryLoadOptions());
     }
     if (fileSearchQuery.trim()) {
       await runFileSearch();
@@ -601,8 +658,8 @@
     messages.set([]);
     showChatList = false;
     if ($user?.id) {
-      await refreshDirectory(pid, `/playground/users/${$user.id}`);
-      await refreshDirectory(pid, `/playground/users/${$user.id}/50_chats`);
+      await refreshDirectory(pid, `/playground/users/${$user.id}`, getDirectoryLoadOptions());
+      await refreshDirectory(pid, `/playground/users/${$user.id}/50_chats`, getDirectoryLoadOptions());
     }
     push(`/projects/${pid}/chats/${id}`);
   }
@@ -635,6 +692,13 @@
 
   function handleDebugModeChange() {
     saveStoredBool(getCurrentDebugModeStorageKey(), debugMode);
+  }
+
+  async function handleDeveloperModeChange(value: boolean) {
+    developerMode = value;
+    saveStoredBool(getCurrentDeveloperModeStorageKey(), developerMode);
+    const pid = $currentProjectId;
+    if (pid) await loadWorkspaceTree(pid);
   }
 
   function isDebugInspectable(msg: ChatMessage) {
@@ -724,7 +788,9 @@
     const path = $selectedFilePath;
     if (!pid || !path || savingFile || !isEditableTextFile(path, $fileLanguage)) return;
     if (isReadOnlyMutationTarget(path)) {
-      saveStatus = 'Clean Room은 직접 수정할 수 없습니다.';
+      saveStatus = isSystemManagedPath(path)
+        ? '시스템 파일은 직접 수정할 수 없습니다.'
+        : 'Clean Room은 직접 수정할 수 없습니다.';
       return;
     }
     savingFile = true;
@@ -903,7 +969,9 @@
     if (!path || !isEditableTextFile(path, $fileLanguage)) return;
     event.preventDefault();
     if (isReadOnlyMutationTarget(path)) {
-      saveStatus = 'Clean Room은 직접 수정할 수 없습니다.';
+      saveStatus = isSystemManagedPath(path)
+        ? '시스템 파일은 직접 수정할 수 없습니다.'
+        : 'Clean Room은 직접 수정할 수 없습니다.';
       return;
     }
     if (hasUnsavedChanges() && !savingFile) handleSaveFile();
@@ -953,7 +1021,7 @@
     focusedExplorerNode = node;
     fileActionMessage = '';
     if (node.type === 'directory') {
-      await expandFolder(pid, node);
+      await expandFolder(pid, node, getDirectoryLoadOptions());
     } else {
       const reselectingCurrentHtml = node.path === $selectedFilePath && isHtmlFile(node.path, $fileLanguage);
       if (shouldConfirmDiscardUnsaved(node.path, $selectedFilePath, hasUnsavedChanges()) &&
@@ -968,7 +1036,7 @@
   async function handleLoadMoreDirectory(path: string) {
     const pid = $currentProjectId;
     if (!pid) return;
-    await loadMoreDirectory(pid, path);
+    await loadMoreDirectory(pid, path, getDirectoryLoadOptions());
     updateFileListViewport();
   }
 
@@ -980,7 +1048,7 @@
     focusedExplorerNode = node;
     if (isDirectorySearchResult(item)) {
       activeSideTab = 'files';
-      await loadDirectory(pid, item.path, { force: true });
+      await loadDirectory(pid, item.path, { ...getDirectoryLoadOptions(), force: true });
       return;
     }
     if (shouldConfirmDiscardUnsaved(item.path, $selectedFilePath, hasUnsavedChanges()) &&
@@ -1007,9 +1075,11 @@
     {previewUrl}
     {deployBusy}
     {deployMessage}
+    {developerMode}
     userName={$user?.name}
     onBack={() => push('/projects')}
     onDeployToggle={handleDeployToggle}
+    onDeveloperModeChange={handleDeveloperModeChange}
   />
 
   <div class="workspace" class:resizing={resizingPanel !== null} bind:this={workspaceElement}>
@@ -1034,8 +1104,8 @@
       {newFolderName}
       virtualRows={getVirtualExplorerRows()}
       fileTreeIsEmpty={$fileTree.length === 0}
-      rootHasMore={Boolean($folderCache['/']?.has_more)}
-      folderCache={$folderCache}
+      rootHasMore={Boolean(getModeFolderCache()['/']?.has_more)}
+      folderCache={getModeFolderCache()}
       selectedFilePath={$selectedFilePath}
       {focusedExplorerNode}
       explorerTargetReadOnly={isExplorerTargetReadOnly()}
@@ -1061,6 +1131,7 @@
       onNodeClick={handleNodeClick}
       {getRoomLabel}
       {getPathBadge}
+      {getDisplayPath}
       {isCleanRoomPath}
     />
 
@@ -1134,7 +1205,8 @@
       onSend={handleSend}
       onSummarizeChat={handleSummarizeChat}
       onMessagesElementChange={(element) => { chatContainer = element; }}
-      {renderChatMarkdown}
+      renderChatMarkdown={renderWorkspaceChatMarkdown}
+      formatToolStepContent={formatWorkspaceToolStep}
       {isDebugInspectable}
       onOpenDebugTrace={openDebugTrace}
       onDebugMessageKeydown={handleDebugMessageKeydown}

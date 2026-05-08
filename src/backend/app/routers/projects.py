@@ -20,7 +20,7 @@ from app.models.project import Project
 from app.models.user import User
 from app.services.container_manager import ContainerManager
 from app.services.chat_workspace import ensure_chat_workspace
-from app.services.harness import ensure_harness_structure
+from app.services.harness import ensure_harness_structure_synced
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ async def create_project(body: CreateProjectRequest, user: User = Depends(get_cu
     pid = str(uuid.uuid4())
     workspace = os.path.join(settings.workspace_root, user.id, pid)
     os.makedirs(workspace, exist_ok=True)
-    ensure_harness_structure(workspace, user.id)
+    ensure_harness_structure_synced(workspace, user.id)
 
     project = Project(id=pid, user_id=user.id, title=body.title, workspace_path=workspace)
     db.add(project)

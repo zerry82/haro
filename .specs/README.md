@@ -8,18 +8,24 @@
 .specs/draft/{spec}/
   spec.md
   design.md
+  plan.md
+  tasks.md
   implementation.md
   commits.md
 
 .specs/work/{spec}/
   spec.md
   design.md
+  plan.md
+  tasks.md
   implementation.md
   commits.md
 
 .specs/done/{spec}/
   spec.md
   design.md
+  plan.md
+  tasks.md
   implementation.md
   commits.md
 ```
@@ -38,6 +44,8 @@
 
 - `spec.md`: 문제, 목표, 비목표, 사용자 흐름, 성공 기준
 - `design.md`: 아키텍처, 데이터 모델, API/SSE 계약, UI 영향, 대안과 결정 이유
+- `plan.md`: 단계별 구현 순서, 검증 명령, 중단 조건
+- `tasks.md`: 실제 구현 진행을 추적하는 체크리스트
 - `implementation.md`: 구현 결과, 변경 파일, 검증 결과, 남은 작업
 - `commits.md`: 연결된 커밋 해시, 브랜치, PR, 배포/릴리즈 기록
 

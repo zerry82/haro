@@ -6,7 +6,7 @@ import logging
 from sqlalchemy import select
 
 from app.config import settings
-from app.database import async_session_factory
+import app.database as db_module
 from app.models.sandbox_node import SandboxNode
 from app.models.skill import InstalledSkill
 
@@ -29,7 +29,7 @@ def builtin_file_ops_manifest() -> dict:
 
 
 async def seed_builtin_skills() -> None:
-    async with async_session_factory() as db:
+    async with db_module.async_session_factory() as db:
         result = await db.execute(select(InstalledSkill).where(InstalledSkill.name == "file_ops"))
         existing = result.scalar_one_or_none()
         manifest = builtin_file_ops_manifest()
@@ -62,7 +62,7 @@ async def seed_builtin_skills() -> None:
 
 async def seed_sandbox_node() -> None:
     """Seed default SandboxNode if none exists."""
-    async with async_session_factory() as db:
+    async with db_module.async_session_factory() as db:
         result = await db.execute(select(SandboxNode).limit(1))
         if not result.scalar_one_or_none():
             node = SandboxNode(

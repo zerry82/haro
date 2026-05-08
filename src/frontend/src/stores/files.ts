@@ -10,6 +10,7 @@ import type {
   FolderCacheEntry,
   LoadDirectoryOptions,
   TreeNode,
+  WorkspaceExplorerMode,
 } from './fileTypes';
 import {
   DIRECTORY_PAGE_SIZE,
@@ -31,6 +32,7 @@ export type {
   FileUploadResponse,
   FolderCacheEntry,
   TreeNode,
+  WorkspaceExplorerMode,
 } from './fileTypes';
 
 export const fileTree = writable<TreeNode[]>([]);
@@ -42,13 +44,35 @@ export const fileLoading = writable(false);
 export const loadingFilePath = writable<string | null>(null);
 
 let loadFileRequestSeq = 0;
+const DEFAULT_EXPLORER_MODE: WorkspaceExplorerMode = 'developer';
+
+export function getFolderCacheKey(mode: WorkspaceExplorerMode, path: string) {
+  return `${mode}:${normalizeWorkspacePath(path)}`;
+}
+
+export function selectFolderCacheForMode(
+  entries: Record<string, FolderCacheEntry>,
+  mode: WorkspaceExplorerMode,
+) {
+  const prefix = `${mode}:`;
+  const result: Record<string, FolderCacheEntry> = {};
+  for (const [key, value] of Object.entries(entries)) {
+    if (key.startsWith(prefix)) {
+      result[key.slice(prefix.length)] = value;
+    }
+  }
+  return result;
+}
 
 export async function loadFiles(projectId: string, path: string = '/') {
   await loadDirectory(projectId, path);
 }
 export async function loadDirectory(projectId: string, path: string = '/', options: LoadDirectoryOptions = {}) {
   const normalizedPath = normalizeWorkspacePath(path);
-  const cache = get(folderCache)[normalizedPath];
+  const mode = options.mode || DEFAULT_EXPLORER_MODE;
+  const includeHidden = options.includeHidden ?? mode === 'developer';
+  const cacheKey = getFolderCacheKey(mode, normalizedPath);
+  const cache = get(folderCache)[cacheKey];
   if (!options.append && !options.force && cache && !cache.dirty) {
     applyDirectoryToTree(normalizedPath, cache.items, cache);
     return cache;
@@ -56,11 +80,11 @@ export async function loadDirectory(projectId: string, path: string = '/', optio
 
   const requestOffset = options.append && cache ? cache.offset : 0;
   const limit = options.limit || DIRECTORY_PAGE_SIZE;
-  setFolderCacheLoading(normalizedPath, true);
+  setFolderCacheLoading(normalizedPath, true, mode);
 
   try {
     const res = await api<FileListResponse>(
-      `/projects/${projectId}/files?path=${encodeURIComponent(normalizedPath)}&limit=${limit}&offset=${requestOffset}`
+      `/projects/${projectId}/files?path=${encodeURIComponent(normalizedPath)}&include_hidden=${includeHidden}&limit=${limit}&offset=${requestOffset}`
     );
     const existingMap = collectNodeMap(get(fileTree));
     const pageNodes = mapDirectoryItems(normalizedPath, res.items || [], existingMap);
@@ -74,22 +98,23 @@ export async function loadDirectory(projectId: string, path: string = '/', optio
       dirty: false,
       loading: false,
     };
-    folderCache.update((entries) => ({ ...entries, [normalizedPath]: nextCache }));
+    folderCache.update((entries) => ({ ...entries, [cacheKey]: nextCache }));
     applyDirectoryToTree(normalizedPath, combinedItems, nextCache);
     return nextCache;
   } catch (error) {
-    setFolderCacheLoading(normalizedPath, false);
+    setFolderCacheLoading(normalizedPath, false, mode);
     throw error;
   }
 }
-function setFolderCacheLoading(path: string, loading: boolean) {
+function setFolderCacheLoading(path: string, loading: boolean, mode: WorkspaceExplorerMode = DEFAULT_EXPLORER_MODE) {
   const normalizedPath = normalizeWorkspacePath(path);
+  const cacheKey = getFolderCacheKey(mode, normalizedPath);
   folderCache.update((entries) => {
-    const existing = entries[normalizedPath];
+    const existing = entries[cacheKey];
     if (!existing && !loading) return entries;
     return {
       ...entries,
-      [normalizedPath]: {
+      [cacheKey]: {
         items: existing?.items || [],
         total: existing?.total || 0,
         offset: existing?.offset || 0,
@@ -114,17 +139,18 @@ export function toggleFolder(path: string) {
   fileTree.update(tree => toggleNode(tree, path));
 }
 
-export async function expandFolder(projectId: string, node: TreeNode) {
-  const cache = get(folderCache)[normalizeWorkspacePath(node.path)];
+export async function expandFolder(projectId: string, node: TreeNode, options: LoadDirectoryOptions = {}) {
+  const mode = options.mode || DEFAULT_EXPLORER_MODE;
+  const cache = get(folderCache)[getFolderCacheKey(mode, normalizeWorkspacePath(node.path))];
   if (node.loaded && !cache?.dirty) {
     toggleFolder(node.path);
   } else {
-    await loadDirectory(projectId, node.path, { force: Boolean(cache?.dirty) });
+    await loadDirectory(projectId, node.path, { ...options, force: Boolean(cache?.dirty) });
   }
 }
 
-export async function loadMoreDirectory(projectId: string, path: string) {
-  return loadDirectory(projectId, path, { append: true });
+export async function loadMoreDirectory(projectId: string, path: string, options: LoadDirectoryOptions = {}) {
+  return loadDirectory(projectId, path, { ...options, append: true });
 }
 
 export async function loadFileContent(projectId: string, path: string) {
@@ -186,50 +212,59 @@ export async function uploadFiles(projectId: string, targetDir: string, files: F
   );
 }
 
-export async function searchFiles(projectId: string, query: string, limit = 50) {
+export async function searchFiles(
+  projectId: string,
+  query: string,
+  limit = 50,
+  options: { includeHidden?: boolean } = {},
+) {
+  const includeHidden = options.includeHidden ?? true;
   return api<FileSearchResponse>(
-    `/projects/${projectId}/files/search?q=${encodeURIComponent(query)}&limit=${limit}`
+    `/projects/${projectId}/files/search?q=${encodeURIComponent(query)}&include_hidden=${includeHidden}&limit=${limit}`
   );
 }
 
-export async function reloadAllExpanded(projectId: string) {
+export async function reloadAllExpanded(projectId: string, options: LoadDirectoryOptions = {}) {
   const tree = get(fileTree);
-  await loadDirectory(projectId, '/', { force: true });
+  await loadDirectory(projectId, '/', { ...options, force: true });
   const expandedPaths = collectExpandedPaths(tree);
   for (const p of expandedPaths) {
-    await loadDirectory(projectId, p, { force: true });
+    await loadDirectory(projectId, p, { ...options, force: true });
   }
 }
 
-export async function refreshDirectory(projectId: string, path: string) {
-  return loadDirectory(projectId, path, { force: true });
+export async function refreshDirectory(projectId: string, path: string, options: LoadDirectoryOptions = {}) {
+  return loadDirectory(projectId, path, { ...options, force: true });
 }
 
-export function markDirectoryDirty(path: string) {
+export function markDirectoryDirty(path: string, mode: WorkspaceExplorerMode = DEFAULT_EXPLORER_MODE) {
   const normalizedPath = normalizeWorkspacePath(path);
+  const cacheKey = getFolderCacheKey(mode, normalizedPath);
   folderCache.update((entries) => {
-    const existing = entries[normalizedPath];
+    const existing = entries[cacheKey];
     if (!existing || existing.dirty) return entries;
-    return { ...entries, [normalizedPath]: { ...existing, dirty: true } };
+    return { ...entries, [cacheKey]: { ...existing, dirty: true } };
   });
 }
 
-export async function refreshChangedPath(projectId: string, path: string, itemType?: string) {
+export async function refreshChangedPath(projectId: string, path: string, itemType?: string, options: LoadDirectoryOptions = {}) {
+  const mode = options.mode || DEFAULT_EXPLORER_MODE;
   const normalizedPath = normalizeWorkspacePath(path);
   const affected = new Set<string>([getParentPath(normalizedPath)]);
   if (itemType === 'directory' || itemType === 'dir') affected.add(normalizedPath);
-  for (const directoryPath of affected) markDirectoryDirty(directoryPath);
+  for (const directoryPath of affected) markDirectoryDirty(directoryPath, mode);
 
   const cache = get(folderCache);
   for (const directoryPath of affected) {
-    if (cache[directoryPath]) {
+    const cacheKey = getFolderCacheKey(mode, directoryPath);
+    if (cache[cacheKey]) {
       try {
-        await refreshDirectory(projectId, directoryPath);
+        await refreshDirectory(projectId, directoryPath, options);
       } catch {
         if (directoryPath !== getParentPath(normalizedPath)) {
           folderCache.update((entries) => {
             const next = { ...entries };
-            delete next[directoryPath];
+            delete next[cacheKey];
             return next;
           });
         }

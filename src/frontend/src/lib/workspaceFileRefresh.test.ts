@@ -22,9 +22,17 @@ describe('workspaceFileRefresh', () => {
   });
 
   it('computes affected directories for files and directories', () => {
-    expect(getAffectedRefreshDirectories('/docs/guide.md', 'file')).toEqual(['/docs']);
-    expect(getAffectedRefreshDirectories('/docs/reference', 'directory')).toEqual(['/docs', '/docs/reference']);
-    expect(getAffectedRefreshDirectories('/docs/reference', 'dir')).toEqual(['/docs', '/docs/reference']);
+    expect(getAffectedRefreshDirectories('/docs/guide.md', 'file')).toEqual(['/docs', '/']);
+    expect(getAffectedRefreshDirectories('/docs/reference', 'directory')).toEqual(['/docs', '/', '/docs/reference']);
+    expect(getAffectedRefreshDirectories('/docs/reference', 'dir')).toEqual(['/docs', '/', '/docs/reference']);
+    expect(getAffectedRefreshDirectories('/playground/users/u1/30_outputs/report/index.html', 'file')).toEqual([
+      '/playground/users/u1/30_outputs/report',
+      '/playground/users/u1/30_outputs',
+      '/playground/users/u1',
+      '/playground/users',
+      '/playground',
+      '/',
+    ]);
   });
 
   it('decides whether the selected file should reload', () => {
