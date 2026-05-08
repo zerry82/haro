@@ -47,6 +47,28 @@ describe('fileTreeUtils', () => {
     expect(nodes[0].children).toEqual(existing.children);
   });
 
+  it('preserves alias labels when a user-mode virtual child is refreshed by canonical path', () => {
+    const existing: TreeNode = {
+      name: '결과',
+      type: 'directory',
+      path: '/playground/users/u1/30_outputs',
+      aliasPath: '내 폴더/결과',
+      expanded: true,
+      loaded: true,
+      children: [{ name: 'report.html', type: 'file', path: '/playground/users/u1/30_outputs/report.html' }],
+    };
+
+    const nodes = mapDirectoryItems(
+      '/playground/users/u1',
+      [{ name: '30_outputs', type: 'directory' }],
+      collectNodeMap([existing]),
+    );
+
+    expect(nodes[0].name).toBe('결과');
+    expect(nodes[0].aliasPath).toBe('내 폴더/결과');
+    expect(nodes[0].children).toEqual(existing.children);
+  });
+
   it('inserts children, toggles nodes, and collects expanded paths', () => {
     const tree: TreeNode[] = [{ name: 'docs', type: 'directory', path: '/docs', expanded: false }];
     const withChildren = insertChildren(tree, '/docs', [{ name: 'a.md', type: 'file', path: '/docs/a.md' }], cache);

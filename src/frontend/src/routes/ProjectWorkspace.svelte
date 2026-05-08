@@ -607,7 +607,11 @@
     if (pid && detail.path) {
       queueExplorerRefresh(detail.path, detail.itemType);
     } else if (pid) {
-      void reloadAllExpanded(pid);
+      if (developerMode) {
+        void reloadAllExpanded(pid, getDirectoryLoadOptions());
+      } else {
+        void loadWorkspaceTree(pid);
+      }
     }
     const sp = $selectedFilePath;
     const decision = getSelectedFileRefreshDecision({
@@ -657,7 +661,7 @@
     currentChatId.set(id);
     messages.set([]);
     showChatList = false;
-    if ($user?.id) {
+    if (developerMode && $user?.id) {
       await refreshDirectory(pid, `/playground/users/${$user.id}`, getDirectoryLoadOptions());
       await refreshDirectory(pid, `/playground/users/${$user.id}/50_chats`, getDirectoryLoadOptions());
     }

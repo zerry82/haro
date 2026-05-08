@@ -57,7 +57,10 @@ export function mapDirectoryItems(basePath: string, items: FileListResponse['ite
     const isDirectory = item.type === 'directory';
     return {
       ...item,
+      name: existing?.aliasPath ? existing.name : item.name,
       path,
+      aliasPath: existing?.aliasPath,
+      virtual: existing?.virtual,
       expanded: existing?.expanded || false,
       loaded: existing?.loaded || false,
       children: isDirectory ? existing?.children || [] : undefined,
