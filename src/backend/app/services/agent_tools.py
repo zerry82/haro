@@ -29,6 +29,12 @@ from app.services.workspace_file_db import (
     sync_workspace_path,
 )
 from app.services.workspace_index import update_file_summary
+from app.services.web_search import (
+    WebSearchProviderError,
+    WebSearchTimeoutError,
+    WebSearchUnavailableError,
+    search_web,
+)
 
 
 def _validate_path(workspace: str, requested: str) -> str:
@@ -109,6 +115,9 @@ async def execute_tool(
             await update_file_summary(workspace, exported_path, "created")
             append_agent_log(workspace, chat_session, "file_export", f"{source_path} -> {exported_path}")
             return f"파일 내보내기 완료: {source_path} -> {exported_path}"
+
+        if tool_name == "web_search":
+            return await _execute_web_search(args)
 
         user_id = project.user_id if project else None
         path = _resolve_tool_path(args.get("path", "/"), user_id)
@@ -241,3 +250,44 @@ def _resolve_tool_path(path: object, user_id: str | None) -> str:
     if not user_id:
         return value
     return resolve_workspace_alias_path(value, user_id)
+
+
+async def _execute_web_search(args: dict) -> str:
+    query = " ".join(str(args.get("query") or args.get("q") or "").split())
+    if not query:
+        return "웹 검색을 실행할 수 없습니다: query가 비어 있습니다."
+    try:
+        limit = int(args.get("limit") or 5)
+    except Exception:
+        limit = 5
+    try:
+        recency_days = int(args["recency_days"]) if args.get("recency_days") is not None else None
+    except Exception:
+        recency_days = None
+    domains = args.get("domains") if isinstance(args.get("domains"), list) else None
+
+    try:
+        results = await search_web(query, limit=limit, recency_days=recency_days, domains=domains)
+    except ValueError as exc:
+        return f"웹 검색을 실행할 수 없습니다: {exc}"
+    except WebSearchUnavailableError as exc:
+        return f"웹 검색을 사용할 수 없습니다: {exc}"
+    except WebSearchTimeoutError:
+        return "웹 검색 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요."
+    except WebSearchProviderError as exc:
+        return f"웹 검색 제공자 오류: {exc}"
+
+    if not results:
+        return f"웹 검색 결과 없음: {query}"
+
+    lines = [f"웹 검색 결과 ({query}):"]
+    for index, result in enumerate(results, start=1):
+        lines.append(f"{index}. {result.title}")
+        lines.append(f"   URL: {result.url}")
+        if result.snippet:
+            lines.append(f"   요약: {result.snippet}")
+        if result.published_at:
+            lines.append(f"   날짜: {result.published_at}")
+        if result.source:
+            lines.append(f"   출처: {result.source}")
+    return "\n".join(lines)

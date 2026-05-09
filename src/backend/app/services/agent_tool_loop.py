@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import threading
 import time
 import uuid
+from collections.abc import AsyncIterator
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -51,7 +53,6 @@ async def run_tool_call_loop(
     recent = await get_recent_messages(db, chat_session.id)
     contents = build_model_contents(recent, user_content)
 
-    client = get_client()
     generation_config = {"system_instruction": system_instruction, "temperature": 0.7}
     parse_repair_attempts = 0
     expecting_parse_repair = False
@@ -269,6 +270,60 @@ def build_model_contents(recent: list[dict], user_content: str) -> list[dict]:
     return contents
 
 
+async def stream_llm_chunks_nonblocking(
+    contents: list[dict],
+    generation_config: dict,
+    *,
+    model_name: str = MODEL_NAME,
+) -> AsyncIterator[str]:
+    queue: asyncio.Queue[tuple[str, str | Exception | None]] = asyncio.Queue()
+    loop = asyncio.get_running_loop()
+    stopped = threading.Event()
+
+    def put_item(item: tuple[str, str | Exception | None]) -> None:
+        if stopped.is_set():
+            return
+        try:
+            loop.call_soon_threadsafe(queue.put_nowait, item)
+        except RuntimeError:
+            stopped.set()
+
+    def consume_stream() -> None:
+        try:
+            stream = get_client().models.generate_content_stream(
+                model=model_name,
+                contents=contents,
+                config=generation_config,
+            )
+            for chunk in stream:
+                if stopped.is_set():
+                    break
+                chunk_text = getattr(chunk, "text", None)
+                if chunk_text:
+                    put_item(("chunk", chunk_text))
+        except Exception as exc:
+            put_item(("error", exc))
+        finally:
+            put_item(("done", None))
+
+    worker = asyncio.create_task(asyncio.to_thread(consume_stream))
+    try:
+        while True:
+            kind, value = await queue.get()
+            if kind == "chunk":
+                yield str(value)
+            elif kind == "error":
+                if not isinstance(value, Exception):
+                    value = RuntimeError("LLM stream worker failed")
+                raise value
+            elif kind == "done":
+                break
+    finally:
+        stopped.set()
+        if not worker.done():
+            worker.cancel()
+
+
 async def _stream_llm_round(
     db: AsyncSession,
     project: Project,
@@ -305,16 +360,7 @@ async def _stream_llm_round(
         )
 
     t0 = time.time()
-    stream = get_client().models.generate_content_stream(
-        model=MODEL_NAME,
-        contents=contents,
-        config=generation_config,
-    )
-
-    for chunk in stream:
-        if not chunk.text:
-            continue
-        chunk_text = chunk.text
+    async for chunk_text in stream_llm_chunks_nonblocking(contents, generation_config):
         full_text += chunk_text
 
         if "```tool_call" in full_text:

@@ -105,7 +105,7 @@ Facade, route component, router module처럼 조립이 본질인 파일은 여�
 
 ## 실행 커맨드
 
-개발 서버 기본 포트는 백엔드 `8001`, 프론트엔드 `5174`를 사용한다.
+개발 서버 기본 포트는 백엔드 `8001`, 프론트엔드 `5174`를 사용한다. Windows 로컬 개발에서는 백엔드 기본 bind host를 `127.0.0.1`로 둔다.
 
 서버 실행 코드, 환경 설정, 의존성, 에이전트 프롬프트/도구/하네스 정책처럼 실행 중인 개발 서버에 바로 영향을 주는 파일을 변경한 뒤 현재 서버가 떠 있으면, 사용자가 별도로 막지 않는 한 해당 서버를 자동으로 재시작한다. 재시작 전후에는 대상 포트의 리스닝 PID와 헬스체크를 확인한다. 기존 프로세스를 종료할 때는 해당 개발 서버 포트의 PID만 대상으로 한다.
 
@@ -123,23 +123,21 @@ Windows에서 `5174`가 TCP excluded port range에 포함되어 `EACCES`가 나�
 
 Python 백엔드는 반드시 가상환경을 사용한다. 전역 Python 환경에 직접 패키지를 설치하지 않는다. 기본 가상환경 위치는 `src/backend/.venv`다.
 
+VS Code의 `dev: backend (8001)` task와 `scripts/start-backend.ps1`은 백엔드 시작 전에 로컬 SearXNG 컨테이너(`haro-searxng`, `http://127.0.0.1:8080`)를 best-effort로 시작한다. Docker가 꺼져 있으면 백엔드는 계속 실행되지만 `web_search` 도구는 SearXNG가 준비될 때까지 사용할 수 없다.
+
 백엔드 실행:
 
 ```powershell
-cd src/backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+.\scripts\run-backend-dev.ps1 -Reload
 ```
 
-PowerShell 실행 정책이나 셸 상태 때문에 activate가 어려우면 가상환경의 Python을 직접 호출한다.
+SearXNG 없이 백엔드만 직접 실행해야 하는 경우에는 가상환경의 Python을 직접 호출한다.
 
 ```powershell
 cd src/backend
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
 백엔드 단위 테스트:

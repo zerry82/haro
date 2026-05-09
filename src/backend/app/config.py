@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     sandbox_default_node_host: str = "unix:///var/run/docker.sock"
     sandbox_default_node_max_containers: int = 10
 
+    # Web search settings
+    web_search_provider: str = "searxng"
+    web_search_base_url: str = ""
+    web_search_api_key: str = ""
+    web_search_timeout_seconds: float = 10.0
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
     @field_validator("workspace_root")

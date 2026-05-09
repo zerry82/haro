@@ -1,0 +1,14 @@
+use_default_settings: true
+
+general:
+  instance_name: "Haro Dev Search"
+
+search:
+  formats:
+    - html
+    - json
+
+server:
+  secret_key: "haro-dev-search-secret"
+  limiter: false
+  image_proxy: false

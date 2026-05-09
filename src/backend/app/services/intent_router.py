@@ -13,6 +13,7 @@ from app.services.intent_text_rules import (
     has_period_or_target,
     has_read_signal,
     has_search_signal,
+    has_web_search_signal,
     normalize,
     parse_json_object,
 )
@@ -41,6 +42,9 @@ resolved_intent_context:
 - resolved_intent_context와 최근 대화만으로 답할 수 있으면 selected_tools를 빈 배열로 두고 can_execute=true로 판단하세요.
 - 사용자가 파일/폴더 개수, 통계, 집계를 요구하면 file_count를 포함하세요.
 - 의미 있는 파일을 찾아야 하면 file_search를 포함하고, 실제 내용 확인이 필요하면 file_read도 포함하세요.
+- 최신/현재/뉴스/가격/일정/규정/출처처럼 외부 웹 정보가 필요하면 web_search를 포함하세요.
+- 웹 검색은 자동 실행되지 않습니다. selected_tools에 web_search를 포함하고, 이후 agent 응답에서 필요한 경우 web_search tool_call을 사용합니다.
+- 파일 기반 후속 작업이면 web_search보다 file_search/file_read를 우선하세요.
 - gate_context.artifact_action이 summarize_artifact이고 artifact_path가 있으면, 최신 assistant 요약을 반복하지 말고 원천 산출물 확인이 필요한지 판단하세요. 실제 파일 내용 기준 요약이면 file_read를 포함하세요.
 - gate_context.artifact_action이 followup_task이고 최근 산출물의 실제 내용 확인이 필요하면 file_read를 포함하세요.
 - HTML/Markdown/대시보드/리포트 등 새 산출물을 저장해야 하면 file_create를 포함하세요.
@@ -86,6 +90,16 @@ def rule_route(resolved: ResolvedIntentContext) -> RouterDecision | None:
     normalized = normalize(resolved.routing_text)
     context = resolved.to_prompt_dict()
 
+    if has_web_search_signal(normalized):
+        return RouterDecision(
+            intent="web_search",
+            confidence=0.88,
+            can_execute=True,
+            selected_tools=["web_search"],
+            reason="외부 웹 검색이 필요한 요청입니다.",
+            source="fallback_rule",
+            routing_context=context,
+        )
     if has_count_signal(normalized):
         return RouterDecision(
             intent="file_count",

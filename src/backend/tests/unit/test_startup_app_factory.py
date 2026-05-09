@@ -8,7 +8,7 @@ def test_builtin_file_ops_manifest_lists_expected_tools() -> None:
     manifest = builtin_file_ops_manifest()
 
     assert manifest == {"tools": BUILTIN_FILE_OPS_TOOLS}
-    assert {"file_create", "file_read", "file_write", "file_search"}.issubset(manifest["tools"])
+    assert {"file_create", "file_read", "file_write", "file_search", "web_search"}.issubset(manifest["tools"])
 
 
 def test_app_factory_registers_core_routes() -> None:

@@ -60,6 +60,13 @@ TOOL_CATALOG: dict[str, dict[str, object]] = {
         "typical_outputs": ["preview_ready 이벤트", "프리뷰 URL"],
         "description": "web_preview() - 웹앱 배포모드 활성화, 웹 프리뷰 URL 반환.",
     },
+    "web_search": {
+        "purpose": "외부 웹 검색",
+        "when_to_use": "사용자가 웹검색, 최신 정보, 현재 뉴스, 가격, 일정, 규정, 출처 확인 등 외부 웹 정보가 필요한 요청을 할 때",
+        "required_args": ["query"],
+        "typical_outputs": ["검색 결과 title/url/snippet 목록"],
+        "description": "web_search(query, limit, recency_days, domains) - 외부 웹 검색 결과 조회. 검색이 필요하면 설명하지 말고 반드시 이 도구를 호출하세요.",
+    },
     "file_export": {
         "purpose": "채팅 산출물 내보내기",
         "when_to_use": "현재 채팅 산출물을 다른 Playground 위치로 복사해야 할 때",
@@ -137,6 +144,7 @@ def _tool_call_example(tool_name: str) -> str:
         "dir_create": '{"tool": "dir_create", "args": {"path": "working/new-folder"}}',
         "code_run": '{"tool": "code_run", "args": {"filename": "script.ts", "code": "console.log(1)"}}',
         "web_preview": '{"tool": "web_preview", "args": {}}',
+        "web_search": '{"tool": "web_search", "args": {"query": "대한민국 청개구리 개체수 최신 연구", "limit": 5}}',
         "file_export": '{"tool": "file_export", "args": {"source_path": "outputs/report.md", "target_path": "/playground/users/.../report.md"}}',
     }
     return examples.get(tool_name, '{"tool": "file_search", "args": {"query": "example"}}')
@@ -182,6 +190,12 @@ def build_tool_descriptions(selected_tools: list[str] | None) -> str:
         lines.append("- 검색 결과의 실제 내용을 확인해야 할 때만 `file_read`를 사용하세요.")
     if "dir_list" in tools:
         lines.append("- 특정 폴더의 직계 목록이 필요할 때만 `dir_list`를 사용하세요.")
+    if "web_search" in tools:
+        lines.extend([
+            "- 최신/현재/외부 웹 정보가 필요하면 설명으로 검색했다고 말하지 말고 `web_search`를 호출하세요.",
+            "- 웹 검색 결과를 사용한 최종 답변에는 가능한 한 URL 출처를 함께 표시하세요.",
+            "- 사용자 파일 전문이나 민감한 workspace 내용을 검색 query로 자동 전송하지 말고 필요한 최소 키워드만 사용하세요.",
+        ])
 
     lines.extend([
         "",

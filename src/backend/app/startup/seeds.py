@@ -21,6 +21,7 @@ BUILTIN_FILE_OPS_TOOLS = [
     "dir_create",
     "file_search",
     "file_count",
+    "web_search",
 ]
 
 

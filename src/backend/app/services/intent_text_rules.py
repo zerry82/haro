@@ -144,6 +144,21 @@ def has_search_signal(text: str) -> bool:
     return any(signal in text for signal in ["찾", "검색", "어디 있", "찾아"])
 
 
+def has_web_search_signal(text: str) -> bool:
+    file_targets = ["파일", "폴더", "디렉토리", "내 폴더", "문서", "workspace", "워크스페이스"]
+    external_targets = [
+        "웹검색", "웹 검색", "인터넷 검색", "구글", "뉴스", "최신", "실시간",
+        "환율", "주가", "날씨", "가격", "일정", "규정", "법령", "출처",
+    ]
+    if any(signal in text for signal in external_targets):
+        return True
+    if "검색" in text and not any(target in text for target in file_targets):
+        return True
+    if "찾아봐" in text and not any(target in text for target in file_targets):
+        return True
+    return False
+
+
 def has_list_signal(text: str) -> bool:
     return any(signal in text for signal in [
         "목록", "뭐 있어", "무엇이 있어", "어떤 파일", "어떤 폴더",

@@ -205,24 +205,31 @@ async def send_message(
     emitter = SSEEmitter()
 
     async def _run():
-        async with db_module.async_session_factory() as agent_db:
-            result = await agent_db.execute(
-                select(ChatSession).where(ChatSession.id == chat_id_val)
-            )
-            agent_chat = result.scalar_one()
-            result = await agent_db.execute(
-                select(Project).where(Project.id == project_id_val)
-            )
-            agent_project = result.scalar_one()
-            await run_agent(
-                agent_db,
-                agent_chat,
-                agent_project,
-                content,
-                emitter,
-                debug_enabled=debug_enabled,
-                client_message_id=client_message_id,
-            )
+        try:
+            async with db_module.async_session_factory() as agent_db:
+                result = await agent_db.execute(
+                    select(ChatSession).where(ChatSession.id == chat_id_val)
+                )
+                agent_chat = result.scalar_one()
+                result = await agent_db.execute(
+                    select(Project).where(Project.id == project_id_val)
+                )
+                agent_project = result.scalar_one()
+                await run_agent(
+                    agent_db,
+                    agent_chat,
+                    agent_project,
+                    content,
+                    emitter,
+                    debug_enabled=debug_enabled,
+                    client_message_id=client_message_id,
+                )
+        except Exception:
+            emitter.emit("error", {
+                "code": "AGENT_TASK_ERROR",
+                "message": "에이전트 실행을 시작하는 중 오류가 발생했습니다.",
+            })
+            emitter.done()
 
     asyncio.create_task(_run())
 

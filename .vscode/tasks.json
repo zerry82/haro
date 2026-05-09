@@ -4,9 +4,9 @@
     {
       "label": "dev: backend (8001)",
       "type": "shell",
-      "command": "if (!(Test-Path .venv\\Scripts\\python.exe)) { python -m venv .venv }; .\\.venv\\Scripts\\python.exe -m pip install -r requirements.txt; .\\.venv\\Scripts\\python.exe -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8001",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"${workspaceFolder}\\scripts\\run-backend-dev.ps1\" -Reload",
       "options": {
-        "cwd": "${workspaceFolder}/src/backend"
+        "cwd": "${workspaceFolder}"
       },
       "isBackground": true,
       "problemMatcher": [],
