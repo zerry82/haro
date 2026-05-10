@@ -15,7 +15,13 @@ logger = logging.getLogger(__name__)
 BUILTIN_FILE_OPS_TOOLS = [
     "file_create",
     "file_read",
+    "file_stats",
+    "file_search_content",
+    "file_read_range",
     "file_write",
+    "file_edit",
+    "file_append",
+    "file_replace_range",
     "file_delete",
     "file_move",
     "dir_list",

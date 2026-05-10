@@ -12,8 +12,11 @@ from app.services.workspace_file_db import list_workspace_directory, sync_worksp
 
 
 class _Emitter:
+    def __init__(self) -> None:
+        self.events: list[tuple[str, dict]] = []
+
     def emit(self, event: str, payload: dict) -> None:
-        pass
+        self.events.append((event, payload))
 
 
 def _project(workspace: Path) -> Project:
@@ -139,3 +142,83 @@ def test_web_search_tool_validates_query(tmp_path: Path) -> None:
     )
 
     assert result == "웹 검색을 실행할 수 없습니다: query가 비어 있습니다."
+
+
+def test_file_stats_tool_resolves_alias_and_emits_measurement(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    report = workspace / "playground" / "users" / "u1" / "30_outputs" / "report.md"
+    report.parent.mkdir(parents=True)
+    report.write_text("one two\nthree\n", encoding="utf-8")
+    emitter = _Emitter()
+
+    result = asyncio.run(
+        execute_tool(
+            str(workspace),
+            "file_stats",
+            {"path": "내 폴더/결과/report.md"},
+            emitter,  # type: ignore[arg-type]
+            project=_project(workspace),
+        )
+    )
+
+    assert '"path": "/playground/users/u1/30_outputs/report.md"' in result
+    assert '"words": 3' in result
+    assert any(event == "file_stats_collected" for event, _payload in emitter.events)
+    assert any(event == "quantitative_requirement_measured" for event, _payload in emitter.events)
+
+
+def test_file_edit_tool_modifies_file_and_emits_file_changed(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    report = workspace / "playground" / "users" / "u1" / "30_outputs" / "report.md"
+    report.parent.mkdir(parents=True)
+    report.write_text("hello old world\n", encoding="utf-8")
+    emitter = _Emitter()
+
+    result = asyncio.run(
+        execute_tool(
+            str(workspace),
+            "file_edit",
+            {
+                "path": "내 폴더/결과/report.md",
+                "old_string": "old world",
+                "new_string": "new world",
+            },
+            emitter,  # type: ignore[arg-type]
+            project=_project(workspace),
+        )
+    )
+
+    assert result.startswith("파일 부분 수정 완료")
+    assert report.read_text(encoding="utf-8") == "hello new world\n"
+    assert any(event == "file_edit_completed" for event, _payload in emitter.events)
+    assert any(
+        event == "file_changed" and payload["action"] == "modified"
+        for event, payload in emitter.events
+    )
+
+
+def test_file_edit_tool_blocks_checksum_mismatch_without_writing(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    report = workspace / "playground" / "users" / "u1" / "30_outputs" / "report.md"
+    report.parent.mkdir(parents=True)
+    report.write_text("hello old world\n", encoding="utf-8")
+    emitter = _Emitter()
+
+    result = asyncio.run(
+        execute_tool(
+            str(workspace),
+            "file_edit",
+            {
+                "path": "내 폴더/결과/report.md",
+                "old_string": "old world",
+                "new_string": "new world",
+                "expected_sha256": "bad",
+            },
+            emitter,  # type: ignore[arg-type]
+            project=_project(workspace),
+        )
+    )
+
+    assert result.startswith("부분 파일 작업 차단")
+    assert report.read_text(encoding="utf-8") == "hello old world\n"
+    assert any(event == "file_checksum_mismatch" for event, _payload in emitter.events)

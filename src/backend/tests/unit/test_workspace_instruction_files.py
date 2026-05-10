@@ -101,3 +101,12 @@ def test_tool_descriptions_require_clear_user_result_paths() -> None:
     assert "먼저 질문" in text
     assert "채팅별 폴더" not in text
     assert "현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용" in text
+
+
+def test_tool_descriptions_guide_partial_file_operations() -> None:
+    text = build_tool_descriptions(["file_stats", "file_search_content", "file_read_range", "file_edit", "file_append"])
+
+    assert "전체 `file_read` 전에" in text
+    assert "정량 요구사항" in text
+    assert "전체 `file_write`보다 `file_edit` 또는 `file_append`를 우선" in text
+    assert "expected_sha256" in text

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 """Tool execution helpers for the chat agent."""
 
+import json
 import os
 import shutil
 
@@ -30,6 +31,16 @@ from app.services.plan_mode import (
     set_plan_status,
     validate_plan_for_approval,
 )
+from app.services.partial_file_ops import (
+    ChecksumMismatchError,
+    PartialFileOperationError,
+    append_text,
+    edit_text,
+    file_stats as partial_file_stats,
+    read_range,
+    replace_range,
+    search_content,
+)
 from app.services.workspace_aliases import resolve_workspace_alias_path
 from app.services.sse import SSEEmitter
 from app.services.workspace_file_db import (
@@ -42,6 +53,7 @@ from app.services.workspace_file_db import (
     search_workspace_files,
     sync_workspace_path,
     sync_workspace_subtree,
+    workspace_writer_lock,
 )
 from app.services.workspace_index import update_file_summary
 from app.services.web_search import (
@@ -134,6 +146,14 @@ def _move_workspace_path(workspace: str, source_path: str, target_path: str) -> 
     final_target = _unique_destination_path(final_target)
     shutil.move(source_full, final_target)
     return _workspace_path_from_full(workspace, final_target)
+
+
+def _json_result(payload: dict) -> str:
+    return json.dumps(payload, ensure_ascii=False, indent=2, default=str)
+
+
+def _without_new_content(result: dict) -> dict:
+    return {key: value for key, value in result.items() if key != "new_content"}
 
 
 async def execute_tool(
@@ -283,6 +303,127 @@ async def execute_tool(
             return result
 
         user_id = project.user_id if project else None
+
+        if tool_name == "file_stats":
+            path = _resolve_tool_path(args.get("path", ""), user_id)
+            if not path:
+                return "도구 실행 에러: file_stats requires path"
+            _assert_tool_read_allowed(path, user_id)
+            full_path = _validate_path(workspace, path)
+            stats = {"path": path, "exists": True, **partial_file_stats(full_path)}
+            emitter.emit("file_stats_collected", stats)
+            emitter.emit("quantitative_requirement_measured", {"path": path, "stats": stats})
+            if chat_session:
+                record_file_reference(workspace, chat_session, "inputs", path, action="read")
+                append_agent_log(workspace, chat_session, "file_stats", path)
+            return _json_result(stats)
+
+        if tool_name == "file_read_range":
+            path = _resolve_tool_path(args.get("path", ""), user_id)
+            if not path:
+                return "도구 실행 에러: file_read_range requires path"
+            _assert_tool_read_allowed(path, user_id)
+            full_path = _validate_path(workspace, path)
+            result = {
+                "path": path,
+                **read_range(
+                    full_path,
+                    start_line=int(args.get("start_line") or 1),
+                    line_count=int(args.get("line_count") or 80),
+                ),
+            }
+            emitter.emit("file_range_read", result)
+            if chat_session:
+                record_file_reference(workspace, chat_session, "inputs", path, action="read")
+                append_agent_log(workspace, chat_session, "file_read_range", path)
+            return _json_result(result)
+
+        if tool_name == "file_search_content":
+            path = _resolve_tool_path(args.get("path", "/"), user_id)
+            _assert_tool_read_allowed(path, user_id)
+            full_path = _validate_path(workspace, path)
+            query = str(args.get("query") or args.get("q") or "")
+            result = {
+                "path": path,
+                "query": query,
+                **search_content(
+                    full_path,
+                    workspace=workspace,
+                    query=query,
+                    regex=_as_bool(args.get("regex", False)),
+                    case_sensitive=_as_bool(args.get("case_sensitive", False)),
+                    glob=str(args.get("glob")) if args.get("glob") else None,
+                    output_mode=str(args.get("output_mode") or "content"),
+                    max_results=int(args.get("max_results") or args.get("limit") or 20),
+                    offset=int(args.get("offset") or 0),
+                    context_lines=int(args.get("context_lines") or 2),
+                ),
+            }
+            emitter.emit("file_content_searched", result)
+            if chat_session:
+                append_agent_log(workspace, chat_session, "file_search_content", path)
+            return _json_result(result)
+
+        if tool_name in {"file_edit", "file_append", "file_replace_range"}:
+            path = _resolve_tool_path(args.get("path", ""), user_id)
+            if not path:
+                return f"도구 실행 에러: {tool_name} requires path"
+            _assert_tool_read_allowed(path, user_id)
+            _assert_tool_write_allowed(path, user_id)
+            full_path = _validate_path(workspace, path)
+            expected_sha256 = str(args.get("expected_sha256") or "") or None
+            requested_event = {
+                "file_edit": "file_edit_requested",
+                "file_append": "file_append_requested",
+                "file_replace_range": "file_replace_range_requested",
+            }[tool_name]
+            completed_event = {
+                "file_edit": "file_edit_completed",
+                "file_append": "file_append_completed",
+                "file_replace_range": "file_replace_range_completed",
+            }[tool_name]
+            emitter.emit(requested_event, {"path": path})
+
+            with workspace_writer_lock(workspace):
+                if tool_name == "file_edit":
+                    result = edit_text(
+                        full_path,
+                        old_string=str(args.get("old_string") or ""),
+                        new_string=str(args.get("new_string") or ""),
+                        replace_all=_as_bool(args.get("replace_all", False)),
+                        expected_sha256=expected_sha256,
+                    )
+                elif tool_name == "file_append":
+                    result = append_text(
+                        full_path,
+                        content=str(args.get("content") or ""),
+                        ensure_newline=_as_bool(args.get("ensure_newline", True)),
+                        expected_sha256=expected_sha256,
+                    )
+                else:
+                    result = replace_range(
+                        full_path,
+                        start_line=int(args.get("start_line") or 1),
+                        end_line=int(args.get("end_line") or 1),
+                        content=str(args.get("content") or ""),
+                        expected_sha256=expected_sha256,
+                    )
+                atomic_write_text(full_path, str(result["new_content"]))
+
+            payload = {"path": path, **_without_new_content(result)}
+            mark_workspace_summary_stale(workspace, path)
+            emitter.emit(completed_event, payload)
+            emitter.emit("file_changed", {"action": "modified", "path": path, "type": "file"})
+            await update_file_summary(workspace, path, "modified")
+            if chat_session:
+                record_file_reference(workspace, chat_session, "outputs", path, action="modified")
+                append_agent_log(workspace, chat_session, tool_name, path)
+            label = {
+                "file_edit": "파일 부분 수정 완료",
+                "file_append": "파일 내용 추가 완료",
+                "file_replace_range": "파일 줄 범위 교체 완료",
+            }[tool_name]
+            return f"{label}: {path}\n{_json_result(payload)}"
 
         if tool_name == "file_move":
             source_path = _resolve_tool_path(
@@ -477,6 +618,12 @@ async def execute_tool(
 
     except ResultPathRequiredError as e:
         return str(e)
+    except ChecksumMismatchError as e:
+        emitter.emit("file_checksum_mismatch", {"reason": str(e)})
+        return f"부분 파일 작업 차단: {str(e)}"
+    except PartialFileOperationError as e:
+        emitter.emit("partial_file_operation_blocked", {"reason": str(e)})
+        return f"부분 파일 작업 차단: {str(e)}"
     except Exception as e:
         return f"도구 실행 에러: {str(e)}"
 

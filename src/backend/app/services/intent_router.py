@@ -10,6 +10,7 @@ from app.services.intent_text_rules import (
     has_create_signal,
     has_explicit_scope,
     has_list_signal,
+    has_modify_signal,
     has_period_or_target,
     has_read_signal,
     has_search_signal,
@@ -43,6 +44,8 @@ resolved_intent_context:
 - resolved_intent_context와 최근 대화만으로 답할 수 있으면 selected_tools를 빈 배열로 두고 can_execute=true로 판단하세요.
 - 사용자가 파일/폴더 개수, 통계, 집계를 요구하면 file_count를 포함하세요.
 - 의미 있는 파일을 찾아야 하면 file_search를 포함하고, 실제 내용 확인이 필요하면 file_read도 포함하세요.
+- 기존 파일의 일부 수정/추가/분량 확장에는 file_stats, file_search_content, file_read_range, file_edit, file_append를 우선 포함하세요.
+- 기존 파일 일부 수정은 file_write 전체 덮어쓰기보다 file_edit/file_append를 우선하세요. 줄 범위가 명확한 섹션 교체에는 file_replace_range를 포함할 수 있습니다.
 - 최신/현재/뉴스/가격/일정/규정/출처처럼 외부 웹 정보가 필요하면 web_search를 포함하세요.
 - 웹 검색은 자동 실행되지 않습니다. selected_tools에 web_search를 포함하고, 이후 agent 응답에서 필요한 경우 web_search tool_call을 사용합니다.
 - 파일 기반 후속 작업이면 web_search보다 file_search/file_read를 우선하세요.
@@ -131,6 +134,27 @@ def rule_route(resolved: ResolvedIntentContext) -> RouterDecision | None:
             can_execute=True,
             selected_tools=["web_search"],
             reason="외부 웹 검색이 필요한 요청입니다.",
+            source="fallback_rule",
+            routing_context=context,
+            should_enter_plan_mode=should_plan,
+            plan_mode_reason=plan_reason,
+        )
+    if has_modify_signal(normalized):
+        return RouterDecision(
+            intent="file_partial_modify",
+            confidence=0.84,
+            can_execute=True,
+            selected_tools=[
+                "file_search",
+                "file_read",
+                "file_stats",
+                "file_search_content",
+                "file_read_range",
+                "file_edit",
+                "file_append",
+                "file_replace_range",
+            ],
+            reason="기존 파일 일부 수정 또는 분량 확장 요청입니다.",
             source="fallback_rule",
             routing_context=context,
             should_enter_plan_mode=should_plan,

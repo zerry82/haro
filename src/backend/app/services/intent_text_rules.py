@@ -89,7 +89,7 @@ def is_casual_chat(text: str) -> bool:
 def looks_like_task(text: str) -> bool:
     task_signals = [
         "파일", "폴더", "찾", "검색", "읽", "보여", "만들", "생성", "수정", "삭제",
-        "정리", "요약", "자동화", "메일", "리포트", "보고서", "실행", "웹앱", "프리뷰",
+        "정리", "요약", "자동화", "메일", "문서", "리포트", "보고서", "늘려", "확장", "편집", "실행", "웹앱", "프리뷰",
         "몇 개", "몇개", "개수", "저장", "업로드",
     ]
     return any(signal in text for signal in task_signals)
@@ -176,6 +176,18 @@ def has_create_signal(text: str) -> bool:
         "만들어", "만들어줘", "생성해", "생성해줘", "작성해", "작성해줘",
         "저장해", "저장해줘", "파일로 만들어", "파일로 저장",
     ])
+
+
+def has_modify_signal(text: str) -> bool:
+    actions = [
+        "수정", "고쳐", "바꿔", "교체", "추가", "덧붙", "늘려", "확장", "보강",
+        "편집", "부분", "append", "edit", "replace", "modify",
+    ]
+    targets = [
+        "파일", "문서", "리포트", "보고서", "대본", "스크립트", "내용", "기존",
+        "그 파일", ".md", ".txt", ".html", ".css", ".js", ".ts", ".json", ".py",
+    ]
+    return any(action in text for action in actions) and any(target in text for target in targets)
 
 
 def has_period_or_target(text: str) -> bool:

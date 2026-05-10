@@ -30,7 +30,11 @@ def test_should_not_enter_plan_mode_for_implementation_request() -> None:
 
 def test_plan_mode_tool_allowlist_blocks_execution_tools() -> None:
     assert is_plan_allowed_tool("file_read") is True
+    assert is_plan_allowed_tool("file_stats") is True
+    assert is_plan_allowed_tool("file_search_content") is True
+    assert is_plan_allowed_tool("file_read_range") is True
     assert is_plan_allowed_tool("plan_file_update") is True
+    assert is_plan_allowed_tool("file_edit") is False
     assert is_plan_allowed_tool("file_write") is False
     assert "web_preview" not in PLAN_ALLOWED_TOOLS
 
@@ -40,6 +44,8 @@ def test_plan_mode_write_path_is_limited_to_plan_tools() -> None:
 
     assert can_write_path_in_plan_mode(plan_session, "plan_file_update", "/other.md") is True
     assert can_write_path_in_plan_mode(plan_session, "plan_approval_request", None) is True
+    assert can_write_path_in_plan_mode(plan_session, "file_stats", "/chat/outputs/result.md") is True
+    assert can_write_path_in_plan_mode(plan_session, "file_edit", "/chat/outputs/result.md") is False
     assert can_write_path_in_plan_mode(plan_session, "file_write", "/chat/outputs/result.md") is False
 
 

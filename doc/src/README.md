@@ -154,15 +154,26 @@ DB는 `sqlite+aiosqlite`를 사용하며, SQLite `WAL`과 foreign key pragma를 
 
 - `file_create`
 - `file_read`
+- `file_stats`
+- `file_search_content`
+- `file_read_range`
 - `file_write`
+- `file_edit`
+- `file_append`
+- `file_replace_range`
 - `file_delete`
+- `file_move`
 - `dir_list`
 - `dir_create`
+- `dir_delete`
 - `code_run`
 - `web_preview`
+- `web_search`
 - `file_export`
 - `file_search`
 - `file_count`
+
+부분 파일 작업은 `partial_file_ops.py`의 순수 텍스트 처리 로직과 `agent_tools.py`의 권한/이벤트/인덱스 갱신 연결로 나뉜다. 기존 파일 일부 수정은 전체 `file_write`보다 `file_stats`/`file_search_content`/`file_read_range`로 범위를 좁힌 뒤 `file_edit` 또는 `file_append`를 우선 사용한다. `file_replace_range`는 줄 범위가 명확한 문서 섹션 교체용 보조 도구다.
 
 ### 워크스페이스와 파일 시스템
 

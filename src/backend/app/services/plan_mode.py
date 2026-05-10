@@ -43,12 +43,24 @@ TERMINAL_PLAN_STATUSES = {
     EXECUTION_FAILED,
 }
 
-PLAN_READ_TOOLS = {"file_search", "file_read", "dir_list", "file_count", "web_search"}
+PLAN_READ_TOOLS = {
+    "file_search",
+    "file_read",
+    "file_stats",
+    "file_search_content",
+    "file_read_range",
+    "dir_list",
+    "file_count",
+    "web_search",
+}
 PLAN_WRITE_TOOLS = {"plan_file_update", "plan_approval_request"}
 PLAN_ALLOWED_TOOLS = PLAN_READ_TOOLS | PLAN_WRITE_TOOLS
 PLAN_MODE_SELECTED_TOOLS = [
     "file_search",
     "file_read",
+    "file_stats",
+    "file_search_content",
+    "file_read_range",
     "dir_list",
     "file_count",
     "web_search",
@@ -247,7 +259,20 @@ def should_enter_plan_mode_for_text(text: str, *, selected_tools: list[str] | No
         "기업 분석",
         "대시보드",
     )
-    write_tools = {"file_create", "file_write", "file_delete", "file_move", "dir_create", "dir_delete", "file_export", "code_run", "web_preview"}
+    write_tools = {
+        "file_create",
+        "file_write",
+        "file_edit",
+        "file_append",
+        "file_replace_range",
+        "file_delete",
+        "file_move",
+        "dir_create",
+        "dir_delete",
+        "file_export",
+        "code_run",
+        "web_preview",
+    }
     if selected & write_tools and any(signal in normalized for signal in complex_signals):
         return True, "복잡하거나 되돌리기 어려운 변경으로 판단했습니다."
 

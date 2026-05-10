@@ -110,6 +110,14 @@ def test_blocked_tool_message_describes_file_write_risk() -> None:
     assert "실제로 수행된 변경은 없습니다" in message
 
 
+def test_blocked_tool_message_describes_partial_edit_as_file_change() -> None:
+    message = blocked_tool_message("file_edit", ["file_read", "file_stats"])
+
+    assert "`file_edit`" in message
+    assert "파일 또는 폴더 변경" in message
+    assert "`file_stats`" in message
+
+
 def test_compact_text_collapses_whitespace_and_truncates() -> None:
     assert compact_text("  alpha\n beta   gamma  ", 20) == "alpha beta gamma"
     assert compact_text("abcdef", 3) == "abc..."

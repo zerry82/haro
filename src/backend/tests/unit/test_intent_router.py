@@ -51,6 +51,19 @@ def test_rule_route_uses_native_tools_for_folder_cleanup() -> None:
     assert "code_run" not in route.selected_tools
 
 
+def test_rule_route_selects_partial_tools_for_existing_file_modify() -> None:
+    route = rule_route(_resolved("기존 문서 일부를 수정하고 분량을 3배 늘려줘"))
+
+    assert route is not None
+    assert route.intent == "file_partial_modify"
+    assert "file_stats" in route.selected_tools
+    assert "file_search_content" in route.selected_tools
+    assert "file_read_range" in route.selected_tools
+    assert "file_edit" in route.selected_tools
+    assert "file_append" in route.selected_tools
+    assert "code_run" not in route.selected_tools
+
+
 def test_llm_route_replaces_code_run_for_folder_cleanup(monkeypatch) -> None:
     class _Models:
         def generate_content(self, **kwargs):

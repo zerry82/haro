@@ -18,12 +18,54 @@ TOOL_CATALOG: dict[str, dict[str, object]] = {
         "typical_outputs": ["파일 텍스트 내용"],
         "description": "file_read(path) - 파일 내용 읽기.",
     },
+    "file_stats": {
+        "purpose": "텍스트 파일 통계 측정",
+        "when_to_use": "긴 파일 작업 전후, 분량 확장, 발표 시간/글자 수/줄 수 같은 정량 요구사항을 검증해야 할 때",
+        "required_args": ["path"],
+        "typical_outputs": ["줄 수", "단어/어절 추정", "문자 수", "예상 발표 시간", "sha256"],
+        "description": "file_stats(path) - UTF-8 텍스트 파일의 줄 수, 글자 수, 단어/어절 추정, 예상 발표 시간, sha256을 반환합니다.",
+    },
+    "file_search_content": {
+        "purpose": "파일 내용 검색",
+        "when_to_use": "큰 파일이나 폴더에서 수정할 위치, 관련 섹션, 고유한 old_string 후보를 찾아야 할 때",
+        "required_args": ["path", "query"],
+        "typical_outputs": ["매치 줄 번호", "컬럼", "preview", "context", "파일 목록 또는 count"],
+        "description": "file_search_content(path, query, regex, case_sensitive, glob, output_mode, max_results, offset, context_lines) - 파일 또는 폴더 내부 UTF-8 텍스트를 검색합니다.",
+    },
+    "file_read_range": {
+        "purpose": "파일 일부 줄 범위 읽기",
+        "when_to_use": "긴 파일 전체를 읽지 않고 특정 라인 주변만 확인해야 할 때",
+        "required_args": ["path", "start_line", "line_count"],
+        "typical_outputs": ["선택한 줄 범위 내용", "전체 줄 수", "sha256"],
+        "description": "file_read_range(path, start_line, line_count) - UTF-8 텍스트 파일의 1-based 줄 범위만 읽습니다.",
+    },
     "file_write": {
         "purpose": "기존 파일 덮어쓰기",
         "when_to_use": "사용자가 기존 파일 수정을 명시했고 전체 내용을 교체해야 할 때",
         "required_args": ["path", "content"],
         "typical_outputs": ["파일 수정 완료 메시지"],
         "description": "file_write(path, content) - 기존 파일 덮어쓰기. 최종 산출물 수정은 `내 폴더/결과/{주제}/{파일명}`처럼 사용자에게 보이는 경로를 명확히 지정해야 합니다.",
+    },
+    "file_edit": {
+        "purpose": "기존 파일의 정확 문자열 치환",
+        "when_to_use": "기존 파일 일부만 안전하게 수정해야 할 때. 전체 덮어쓰기보다 우선 사용합니다.",
+        "required_args": ["path", "old_string", "new_string"],
+        "typical_outputs": ["매치/교체 개수", "변경 전후 통계", "sha256", "diff preview"],
+        "description": "file_edit(path, old_string, new_string, replace_all, expected_sha256) - 기존 UTF-8 텍스트 파일에서 정확히 일치하는 문자열을 치환합니다.",
+    },
+    "file_append": {
+        "purpose": "기존 파일 끝에 내용 추가",
+        "when_to_use": "기존 문서나 코드 파일의 끝에 새 섹션/문단/블록을 덧붙여야 할 때",
+        "required_args": ["path", "content"],
+        "typical_outputs": ["추가 글자 수", "변경 후 통계", "sha256", "diff preview"],
+        "description": "file_append(path, content, ensure_newline, expected_sha256) - 기존 UTF-8 텍스트 파일 끝에 내용을 추가합니다.",
+    },
+    "file_replace_range": {
+        "purpose": "기존 파일의 줄 범위 교체",
+        "when_to_use": "문서 섹션처럼 1-based 라인 범위가 명확한 구간을 통째로 바꿔야 할 때. 일반 수정은 file_edit을 우선합니다.",
+        "required_args": ["path", "start_line", "end_line", "content"],
+        "typical_outputs": ["교체 줄 범위", "변경 후 통계", "sha256", "diff preview"],
+        "description": "file_replace_range(path, start_line, end_line, content, expected_sha256) - 기존 UTF-8 텍스트 파일의 1-based inclusive 줄 범위를 정확히 교체합니다.",
     },
     "file_delete": {
         "purpose": "파일 삭제",
@@ -167,7 +209,13 @@ def _tool_call_example(tool_name: str) -> str:
         "dir_list": '{"tool": "dir_list", "args": {"path": "/"}}',
         "file_create": '{"tool": "file_create", "args": {"path": "내 폴더/결과/오늘-기분/mood-forecast.md", "content": "# 제목"}}',
         "file_read": '{"tool": "file_read", "args": {"path": "내 폴더/결과/오늘-기분/report.md"}}',
+        "file_stats": '{"tool": "file_stats", "args": {"path": "내 폴더/결과/오늘-기분/report.md"}}',
+        "file_search_content": '{"tool": "file_search_content", "args": {"path": "내 폴더/결과", "query": "결론", "glob": "*.md", "output_mode": "content", "max_results": 10}}',
+        "file_read_range": '{"tool": "file_read_range", "args": {"path": "내 폴더/결과/오늘-기분/report.md", "start_line": 20, "line_count": 80}}',
         "file_write": '{"tool": "file_write", "args": {"path": "내 폴더/결과/오늘-기분/report.md", "content": "# 수정된 내용"}}',
+        "file_edit": '{"tool": "file_edit", "args": {"path": "내 폴더/결과/오늘-기분/report.md", "old_string": "기존 문장", "new_string": "새 문장"}}',
+        "file_append": '{"tool": "file_append", "args": {"path": "내 폴더/결과/오늘-기분/report.md", "content": "\\n## 추가 메모\\n내용"}}',
+        "file_replace_range": '{"tool": "file_replace_range", "args": {"path": "내 폴더/결과/오늘-기분/report.md", "start_line": 10, "end_line": 20, "content": "교체 내용"}}',
         "file_delete": '{"tool": "file_delete", "args": {"path": "outputs/report.md"}}',
         "file_move": '{"tool": "file_move", "args": {"source_path": "내 폴더/결과/old.md", "target_path": "내 폴더/결과/archive/old.md"}}',
         "dir_create": '{"tool": "dir_create", "args": {"path": "working/new-folder"}}',
@@ -220,6 +268,19 @@ def build_tool_descriptions(selected_tools: list[str] | None) -> str:
         lines.append("- 의미 있는 파일을 찾아야 하면 `file_search`로 파일명, 경로, 요약 텍스트를 검색하세요.")
     if "file_read" in tools:
         lines.append("- 검색 결과의 실제 내용을 확인해야 할 때만 `file_read`를 사용하세요.")
+    partial_read_tools = {"file_stats", "file_search_content", "file_read_range"} & set(tools)
+    partial_write_tools = {"file_edit", "file_append", "file_replace_range"} & set(tools)
+    if partial_read_tools:
+        lines.extend([
+            "- 긴 파일, 분량 검증, 일부 수정 작업은 전체 `file_read` 전에 `file_stats`, `file_search_content`, `file_read_range`로 범위를 먼저 좁히세요.",
+            "- \"N배\", \"N분 분량\", \"더 길게\", \"객관적으로 맞아?\" 같은 정량 요구사항은 변경 전후 `file_stats`로 실제 수치를 확인하세요.",
+        ])
+    if partial_write_tools:
+        lines.extend([
+            "- 기존 파일 일부 수정은 전체 `file_write`보다 `file_edit` 또는 `file_append`를 우선하세요.",
+            "- `file_edit`의 `old_string`은 정확히 한 번만 매칭되도록 충분한 주변 문맥을 포함하세요. 여러 곳을 모두 바꿀 때만 `replace_all=true`를 사용하세요.",
+            "- 부분 쓰기 전에 가능한 한 `file_stats` 또는 `file_read_range`로 `sha256`을 확인하고 `expected_sha256`에 넣어 충돌을 감지하세요.",
+        ])
     if "dir_list" in tools:
         lines.append("- 특정 폴더의 직계 목록이 필요할 때만 `dir_list`를 사용하세요.")
     if "file_move" in tools or "dir_delete" in tools:
