@@ -40,6 +40,7 @@ from app.services.plan_mode import (
 )
 from app.services.sse import SSEEmitter
 from app.services.tool_registry import build_tool_descriptions
+from app.services.turn_tool_state import TurnToolState
 
 MAX_TOOL_ROUNDS = 15
 MAX_TOOL_PARSE_REPAIR_ATTEMPTS = 1
@@ -74,6 +75,7 @@ async def run_tool_call_loop(
     generation_config = {"system_instruction": system_instruction, "temperature": 0.7}
     parse_repair_attempts = 0
     expecting_parse_repair = False
+    tool_state = TurnToolState()
 
     for round_num in range(MAX_TOOL_ROUNDS):
         full_text, llm_ms = await _stream_llm_round(
@@ -177,6 +179,7 @@ async def run_tool_call_loop(
             debug_enabled=debug_enabled,
             plan_session=plan_session,
             block_web_search_failure=bool(plan_session or execution_plan_content),
+            tool_state=tool_state,
         )
         if loop_result == "blocked":
             return "blocked"
@@ -426,6 +429,8 @@ async def _execute_tool_call(
     debug_enabled: bool,
     plan_session: PlanSession | None = None,
     block_web_search_failure: bool = False,
+    tool_state: TurnToolState | None = None,
+    seen_tool_call_signatures: set[str] | None = None,
 ) -> str:
     tool_name = tool_call.get("tool", "")
     tool_args = tool_call.get("args", {})
@@ -464,6 +469,32 @@ async def _execute_tool_call(
             {"tool": tool_name, "args": tool_args},
         )
 
+    if tool_state is None:
+        tool_state = TurnToolState(search_signatures=seen_tool_call_signatures if seen_tool_call_signatures is not None else set())
+    guard_result = tool_state.before_tool(tool_name, tool_args) if tool_state and not tool_blocked and not plan_blocked else None
+    if guard_result is not None:
+        db.add(AgentLog(chat_session_id=chat_session.id, round_index=round_num, event_type="tool_result", content=json.dumps({"tool": tool_name, "result": guard_result.reason[:1000]}, ensure_ascii=False), duration_ms=0))
+        await db.commit()
+        if debug_enabled and turn_message_id:
+            await record_debug_trace(
+                db,
+                project,
+                chat_session,
+                turn_message_id,
+                round_num,
+                "tool_state_guard",
+                {"tool": tool_name, "args": tool_args, "result": guard_result.reason, **guard_result.payload},
+                duration_ms=0,
+            )
+        if intent_turn:
+            event_type = "duplicate_file_search_skipped" if guard_result.payload.get("kind") == "duplicate_search" else "tool_state_guard"
+            await record_intent_event(db, intent_turn, event_type, {"tool": tool_name, "args": tool_args, "reason": guard_result.reason, **guard_result.payload}, message_id=turn_message_id)
+        emitter.emit("todo_step_updated", {
+            "todo_id": "auto",
+            "step": {"description": f"{tool_name} 가드 처리", "status": "completed"},
+        })
+        return guard_result.reason
+
     t1 = time.time()
     if plan_blocked:
         result = plan_mode_blocked_message(tool_name)
@@ -481,6 +512,8 @@ async def _execute_tool_call(
             plan_session=plan_session,
         )
     tool_ms = (time.time() - t1) * 1000
+    if tool_state and not tool_blocked and not plan_blocked:
+        tool_state.after_tool(tool_name, tool_args, result)
 
     db.add(AgentLog(chat_session_id=chat_session.id, round_index=round_num, event_type="tool_result", content=json.dumps({"tool": tool_name, "result": result[:1000]}, ensure_ascii=False), duration_ms=tool_ms))
     await db.commit()

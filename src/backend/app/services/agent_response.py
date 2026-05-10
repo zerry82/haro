@@ -84,13 +84,21 @@ def blocked_tool_message(tool_name: str, selected_tools: list[str]) -> str:
 
 
 def routing_context_instruction(route: Any) -> str:
+    return working_context_instruction(route)
+
+
+def working_context_instruction(route: Any) -> str:
     if not route.routing_context:
         return ""
     context = executor_routing_context(route.routing_context)
     return (
-        "\n\n[현재 턴 라우팅 맥락]\n"
-        "아래 JSON은 게이트와 라우터가 판단한 현재 턴의 핵심 맥락입니다. "
-        "답변이나 도구 호출이 필요하면 이 정보를 근거로 사용하세요.\n"
+        "\n\n[현재 작업 맥락]\n"
+        "아래 JSON은 현재 턴의 작업 맥락입니다. 라우터가 작업 의미를 확정한 것이 아니며, "
+        "대화 전체, 열린 파일, 최근 산출물, 도구 결과 후보를 종합해 executor가 판단해야 합니다.\n"
+        "- active file과 latest artifact가 다르면 active file을 우선하고 둘을 구분해 설명하세요.\n"
+        "- 낮은 위험의 read-only 요청은 확신이 충분하면 바로 진행하세요.\n"
+        "- 파일 변경/삭제/이동에서 대상이나 작업 단위가 모호하면 후보와 이유를 들어 확인 질문을 하세요.\n"
+        "- 같은 검색을 반복하지 말고, source가 없으면 확인한 위치와 누락 정보를 요약해 경로/재업로드를 요청하세요.\n"
         f"{json.dumps(context, ensure_ascii=False, indent=2, default=str)}"
     )
 
@@ -119,13 +127,70 @@ def executor_routing_context(context: dict) -> dict:
         "routing_text": context.get("routing_text"),
         "chat_workspace": context.get("chat_workspace"),
         "gate_context": compact_gate or None,
+        "execution_policy": compact_execution_policy(context.get("execution_policy")),
         "is_clarification_answer": context.get("is_clarification_answer"),
         "previous_intent": context.get("previous_intent"),
         "clarification_question": context.get("clarification_question"),
         "latest_artifact": context.get("latest_artifact"),
         "latest_preview": context.get("latest_preview"),
+        "file_discovery_context": compact_file_discovery_context(context.get("file_discovery_context")),
     }
     return {key: value for key, value in compact.items() if value not in (None, [], {})}
+
+
+def compact_execution_policy(value: Any) -> dict | None:
+    if not isinstance(value, dict):
+        return None
+    return {
+        key: value.get(key)
+        for key in [
+            "profile",
+            "confidence",
+            "risk_level",
+            "reason",
+            "context_confidence",
+            "target_confidence",
+            "source_confidence",
+            "operation_confidence",
+        ]
+        if value.get(key) is not None
+    }
+
+
+def compact_file_discovery_context(value: Any) -> dict | None:
+    if not isinstance(value, dict):
+        return None
+    candidates = value.get("candidates") if isinstance(value.get("candidates"), list) else []
+    compact_candidates = []
+    for candidate in candidates[:5]:
+        if not isinstance(candidate, dict):
+            continue
+        compact_candidates.append({
+            key: candidate.get(key)
+            for key in [
+                "alias_path",
+                "path",
+                "role",
+                "confidence",
+                "reasons",
+                "recommended_action",
+                "source",
+                "message_id",
+                "message_role",
+                "content_preview",
+            ]
+            if candidate.get(key) not in (None, [], {})
+        })
+    context = {
+        "requires_source_content": value.get("requires_source_content"),
+        "source_content_missing": value.get("source_content_missing"),
+        "candidates": compact_candidates,
+        "search_plan": value.get("search_plan"),
+        "missing_info": value.get("missing_info"),
+        "recommended_user_question": value.get("recommended_user_question"),
+        "open_file_context": value.get("open_file_context"),
+    }
+    return {key: item for key, item in context.items() if item not in (None, [], {})}
 
 
 def compact_text(text: str, limit: int) -> str:

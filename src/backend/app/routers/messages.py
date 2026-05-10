@@ -35,6 +35,7 @@ class SendMessageRequest(BaseModel):
     client_message_id: str | None = None
     plan_mode_requested: bool = False
     plan_response: dict | None = None
+    open_file_context: dict | None = None
 
 
 class MessageResponse(BaseModel):
@@ -226,6 +227,7 @@ async def send_message(
     client_message_id = body.client_message_id
     plan_mode_requested = body.plan_mode_requested
     plan_response = body.plan_response
+    open_file_context = body.open_file_context
     emitter = SSEEmitter()
 
     async def _run():
@@ -249,6 +251,7 @@ async def send_message(
                     client_message_id=client_message_id,
                     plan_mode_requested=plan_mode_requested,
                     plan_response=plan_response,
+                    open_file_context=open_file_context,
                 )
         except Exception:
             emitter.emit("error", {

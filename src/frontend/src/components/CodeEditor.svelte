@@ -9,16 +9,24 @@
   import { json } from '@codemirror/lang-json';
   import { css } from '@codemirror/lang-css';
 
+  interface EditorSelectionContext {
+    start_line?: number;
+    end_line?: number;
+    text_preview?: string;
+  }
+
   let {
     value = '',
     language = 'plaintext',
     readonly = false,
     onchange,
+    onselectionchange,
   }: {
     value?: string;
     language?: string;
     readonly?: boolean;
     onchange?: (value: string) => void;
+    onselectionchange?: (selection: EditorSelectionContext | null) => void;
   } = $props();
 
   let host: HTMLDivElement;
@@ -47,6 +55,22 @@
     }
   }
 
+  function notifySelection(state: EditorState) {
+    const range = state.selection.main;
+    if (range.empty) {
+      onselectionchange?.(null);
+      return;
+    }
+    const fromLine = state.doc.lineAt(range.from);
+    const toLine = state.doc.lineAt(range.to);
+    const text = state.sliceDoc(range.from, range.to);
+    onselectionchange?.({
+      start_line: fromLine.number,
+      end_line: toLine.number,
+      text_preview: text.slice(0, 2000),
+    });
+  }
+
   onMount(() => {
     currentValue = value;
     const token = (name: string, fallback: string) =>
@@ -72,9 +96,13 @@
             EditorView.editable.of(!readonly),
           ]),
           EditorView.updateListener.of((update) => {
-            if (!update.docChanged) return;
-            currentValue = update.state.doc.toString();
-            onchange?.(currentValue);
+            if (update.docChanged) {
+              currentValue = update.state.doc.toString();
+              onchange?.(currentValue);
+            }
+            if (update.selectionSet || update.docChanged) {
+              notifySelection(update.state);
+            }
           }),
           EditorView.theme({
             '&': {

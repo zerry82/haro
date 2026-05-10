@@ -39,6 +39,7 @@
     onRevertFile,
     onSaveFile,
     onEditorChange,
+    onEditorSelectionChange,
   }: {
     selectedFilePath: string | null;
     fileLanguage: string;
@@ -65,6 +66,7 @@
     onRevertFile: () => void;
     onSaveFile: () => void;
     onEditorChange: (value: string) => void;
+    onEditorSelectionChange: (selection: { start_line?: number; end_line?: number; text_preview?: string } | null) => void;
   } = $props();
 
   function isReadonlyPath(path: string | null) {
@@ -235,6 +237,7 @@
               language={fileLanguage}
               readonly={isReadonlyPath(selectedFilePath)}
               onchange={onEditorChange}
+              onselectionchange={onEditorSelectionChange}
             />
           </div>
         </div>

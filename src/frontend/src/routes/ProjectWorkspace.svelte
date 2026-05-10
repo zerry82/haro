@@ -4,7 +4,7 @@
   import { isAuthenticated, user } from '../stores/auth';
   import { currentProjectId, startProjectDeploy, stopProjectDeploy } from '../stores/projects';
   import { chatSessions, loadChatSessions, createChatSession, deleteChatSession, summarizeChatSession, currentChatId, type ChatSessionItem } from '../stores/chatSessions';
-  import { messages, loadMessages, sendMessage, streaming, todoSteps, agentStatus, planMode, loadPlanModeState, loadDebugTrace, type ChatMessage, type DebugTraceResponse } from '../stores/chat';
+  import { messages, loadMessages, sendMessage, streaming, todoSteps, agentStatus, planMode, loadPlanModeState, loadDebugTrace, type ChatMessage, type DebugTraceResponse, type OpenFileContext, type OpenFileSelectionContext } from '../stores/chat';
   import {
     fileTree,
     folderCache,
@@ -138,6 +138,7 @@
   let lastEditorPath: string | null = null;
   let editorContent = $state('');
   let editorBaseContent = $state('');
+  let editorSelection = $state<OpenFileSelectionContext | null>(null);
   let savingFile = $state(false);
   let saveStatus = $state('');
   let externalFileChanged = $state(false);
@@ -217,6 +218,20 @@
 
   function hasUnsavedChanges() {
     return $fileContent !== null && editorContent !== editorBaseContent;
+  }
+
+  function buildOpenFileContext(): OpenFileContext | null {
+    const path = $selectedFilePath;
+    if (!path) return null;
+    const selection = editorSelection?.text_preview ? editorSelection : null;
+    return {
+      active_file_path: path,
+      opened_file_paths: [path],
+      language: $fileLanguage,
+      active_viewer_tab: activeViewerTab,
+      dirty: hasUnsavedChanges(),
+      selection,
+    };
   }
 
   function getSidePanelTitle() {
@@ -472,6 +487,7 @@
       lastEditorPath = path;
       editorContent = content;
       editorBaseContent = content;
+      editorSelection = null;
       saveStatus = '';
       externalFileChanged = false;
     } else if (!hasUnsavedChanges()) {
@@ -703,7 +719,11 @@
     if (!pid || !cid || !inputText.trim() || $streaming) return;
     const text = inputText;
     inputText = '';
-    await sendMessage(pid, cid, text, { debugEnabled: debugMode, planModeRequested });
+    await sendMessage(pid, cid, text, {
+      debugEnabled: debugMode,
+      planModeRequested,
+      openFileContext: buildOpenFileContext(),
+    });
   }
 
   async function handleApprovePlan() {
@@ -1210,6 +1230,7 @@
       onRevertFile={handleRevertFile}
       onSaveFile={handleSaveFile}
       onEditorChange={(value) => { editorContent = value; saveStatus = ''; }}
+      onEditorSelectionChange={(selection) => { editorSelection = selection; }}
     />
 
     <button

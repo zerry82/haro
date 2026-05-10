@@ -37,6 +37,8 @@ async def decide_message_gate(
     content: str,
     *,
     workspace: str | None = None,
+    user_id: str | None = None,
+    open_file_context: dict[str, Any] | None = None,
 ) -> GateDecision:
     normalized = normalize(content)
     waiting = await _get_waiting_intent(db, chat_session.id)
@@ -49,6 +51,8 @@ async def decide_message_gate(
         workspace=workspace,
         previous_turn=waiting,
         recent_turns=recent,
+        user_id=user_id,
+        open_file_context=open_file_context,
     )
 
     llm_gate = await decide_gate_with_llm(resolved)
@@ -66,6 +70,7 @@ async def route_intent(
     *,
     previous_turn: IntentTurn | None = None,
     gate_context: dict[str, Any] | None = None,
+    open_file_context: dict[str, Any] | None = None,
 ) -> RouterDecision:
     resolved = await build_resolved_intent_context(
         db,
@@ -74,17 +79,32 @@ async def route_intent(
         content,
         previous_turn=previous_turn,
         gate_context=gate_context,
+        user_id=project.user_id,
+        open_file_context=open_file_context,
     )
 
     llm_decision = await llm_route(resolved)
     if llm_decision:
-        return llm_decision
+        return apply_file_discovery_constraints(llm_decision, resolved)
 
     shortcut = rule_route(resolved)
     if shortcut:
-        return shortcut
+        return apply_file_discovery_constraints(shortcut, resolved)
 
-    return fallback_router_decision(resolved)
+    return apply_file_discovery_constraints(fallback_router_decision(resolved), resolved)
+
+
+def apply_file_discovery_constraints(route: RouterDecision, resolved: ResolvedIntentContext) -> RouterDecision:
+    discovery = resolved.file_discovery_context or {}
+    if not discovery.get("source_content_missing"):
+        return route
+    question = discovery.get("recommended_user_question")
+    route.can_execute = False
+    route.selected_tools = []
+    route.missing_info = sorted(set([*route.missing_info, *discovery.get("missing_info", [])]))
+    route.question = str(question or route.question or "추가할 원문 파일의 경로를 알려주세요.")
+    route.reason = f"{route.reason} File Discovery Context가 source content 후보를 찾지 못했습니다.".strip()
+    return route
 
 
 def gate_context_payload(gate: GateDecision) -> dict[str, Any]:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 """에이전트 오케스트레이션 — 자체 스킬 호출 방식 (현재 구현)"""
 import traceback
+import json
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +24,7 @@ from app.services.agent_events import (
     record_debug_trace as _record_debug_trace,
 )
 from app.services.agent_tool_loop import run_tool_call_loop
+from app.services.file_discovery_context import sanitize_open_file_context
 from app.services.intent_turns import (
     ambiguous_reference_question,
     casual_response,
@@ -73,6 +75,11 @@ def _plan_mode_route(reason: str | None = None) -> RouterDecision:
         source="plan_mode",
         should_enter_plan_mode=True,
         plan_mode_reason=reason,
+        execution_policy="plan_mode",
+        context_confidence=1.0,
+        target_confidence=1.0,
+        source_confidence=1.0,
+        operation_confidence=1.0,
     )
 
 
@@ -91,6 +98,47 @@ def _emit_plan_session(emitter: SSEEmitter, event: str, plan_session: PlanSessio
             **extra,
         },
     )
+
+
+async def _record_file_discovery_events(
+    db: AsyncSession,
+    intent_turn: IntentTurn | None,
+    message_id: str,
+    routing_context: dict | None,
+) -> None:
+    if not intent_turn or not routing_context:
+        return
+    discovery = routing_context.get("file_discovery_context")
+    if not isinstance(discovery, dict):
+        return
+    candidates = discovery.get("candidates") or []
+    await record_intent_event(
+        db,
+        intent_turn,
+        "file_discovery_candidates",
+        {"candidates": candidates[:8]},
+        message_id=message_id,
+    )
+    search_plan = discovery.get("search_plan") or []
+    if search_plan:
+        await record_intent_event(
+            db,
+            intent_turn,
+            "file_search_plan",
+            {"steps": search_plan},
+            message_id=message_id,
+        )
+    if discovery.get("source_content_missing"):
+        await record_intent_event(
+            db,
+            intent_turn,
+            "file_search_exhausted",
+            {
+                "reason": "File Discovery Context가 source content 후보를 찾지 못했습니다.",
+                "missing_info": discovery.get("missing_info") or [],
+            },
+            message_id=message_id,
+        )
 
 
 async def _run_plan_mode_turn(
@@ -247,6 +295,11 @@ async def _run_approved_plan_execution(
             "reason": route.reason,
             "source": route.source,
             "invalid_tools": route.invalid_tools,
+            "execution_policy": route.execution_policy,
+            "context_confidence": route.context_confidence,
+            "target_confidence": route.target_confidence,
+            "source_confidence": route.source_confidence,
+            "operation_confidence": route.operation_confidence,
             "should_enter_plan_mode": False,
             "plan_mode_reason": None,
         },
@@ -324,6 +377,7 @@ async def run_agent(
     client_message_id: str | None = None,
     plan_mode_requested: bool = False,
     plan_response: dict | None = None,
+    open_file_context: dict | None = None,
 ) -> None:
     """에이전트 실행 메인 루프 — 자체 스킬 호출 + 스트리밍"""
     turn_message_id: str | None = None
@@ -333,7 +387,19 @@ async def run_agent(
         await db.commit()
 
         # 1. 사용자 메시지 저장
-        user_msg = Message(chat_session_id=chat_session.id, role="user", content=user_content)
+        sanitized_open_file_context = sanitize_open_file_context(open_file_context, project.user_id)
+        message_metadata = {
+            "client_message_id": client_message_id,
+            "debug_enabled": debug_enabled,
+        }
+        if sanitized_open_file_context:
+            message_metadata["open_file_context"] = sanitized_open_file_context
+        user_msg = Message(
+            chat_session_id=chat_session.id,
+            role="user",
+            content=user_content,
+            metadata_json=json.dumps(message_metadata, ensure_ascii=False),
+        )
         db.add(user_msg)
         await db.commit()
         turn_message_id = user_msg.id
@@ -429,7 +495,14 @@ async def run_agent(
             return
 
         emitter.emit("status", {"session_status": "routing", "message": "요청 성격을 확인하고 있습니다..."})
-        gate = await decide_message_gate(db, chat_session, user_content, workspace=project.workspace_path)
+        gate = await decide_message_gate(
+            db,
+            chat_session,
+            user_content,
+            workspace=project.workspace_path,
+            user_id=project.user_id,
+            open_file_context=sanitized_open_file_context,
+        )
         if debug_enabled and turn_message_id:
             await _record_debug_trace(
                 db,
@@ -562,7 +635,9 @@ async def run_agent(
             user_content,
             previous_turn=gate.intent_turn,
             gate_context=gate_context_payload(gate),
+            open_file_context=sanitized_open_file_context,
         )
+        await _record_file_discovery_events(db, intent_turn, user_msg.id, route.routing_context)
         await record_intent_event(
             db,
             intent_turn,
@@ -579,6 +654,11 @@ async def run_agent(
                 "reason": route.reason,
                 "source": route.source,
                 "invalid_tools": route.invalid_tools,
+                "execution_policy": route.execution_policy,
+                "context_confidence": route.context_confidence,
+                "target_confidence": route.target_confidence,
+                "source_confidence": route.source_confidence,
+                "operation_confidence": route.operation_confidence,
                 "should_enter_plan_mode": route.should_enter_plan_mode,
                 "plan_mode_reason": route.plan_mode_reason,
             },

@@ -12,6 +12,7 @@ from app.models.intent_turn import IntentTurn, IntentTurnEvent
 from app.models.message import Message
 from app.models.project import Project
 from app.services.chat_workspace import get_latest_chat_output_reference, get_latest_chat_preview_reference
+from app.services.file_discovery_context import build_file_discovery_context
 from app.services.tool_registry import normalize_tool_names
 
 
@@ -26,6 +27,7 @@ class ResolvedIntentContext:
     clarification_question: str | None
     latest_artifact: dict[str, Any] | None
     latest_preview: dict[str, Any] | None
+    file_discovery_context: dict[str, Any] | None
     latest_assistant_message: str | None
     recent_messages: list[dict[str, Any]]
     recent_intents: list[dict[str, Any]]
@@ -41,6 +43,7 @@ class ResolvedIntentContext:
             "clarification_question": self.clarification_question,
             "latest_artifact": self.latest_artifact,
             "latest_preview": self.latest_preview,
+            "file_discovery_context": self.file_discovery_context,
             "latest_assistant_message": self.latest_assistant_message,
             "recent_messages": self.recent_messages,
             "recent_intents": self.recent_intents,
@@ -57,6 +60,8 @@ async def build_resolved_intent_context(
     previous_turn: IntentTurn | None = None,
     recent_turns: list[IntentTurn] | None = None,
     gate_context: dict[str, Any] | None = None,
+    open_file_context: dict[str, Any] | None = None,
+    user_id: str | None = None,
 ) -> ResolvedIntentContext:
     workspace_path = workspace or (project.workspace_path if project else None)
     previous_message = await _previous_user_message(db, previous_turn)
@@ -75,6 +80,17 @@ async def build_resolved_intent_context(
         clarification_question=clarification_question,
         is_clarification_answer=is_clarification_answer,
     )
+    file_discovery_context = build_file_discovery_context(
+        workspace=workspace_path,
+        user_id=user_id or (project.user_id if project else None),
+        chat_session=chat_session,
+        current_message=content,
+        routing_text=routing_text,
+        open_file_context=open_file_context,
+        latest_artifact=latest_artifact,
+        latest_preview=latest_preview,
+        recent_messages=recent_messages,
+    )
 
     return ResolvedIntentContext(
         current_message=content,
@@ -86,6 +102,7 @@ async def build_resolved_intent_context(
         clarification_question=clarification_question,
         latest_artifact=latest_artifact,
         latest_preview=latest_preview,
+        file_discovery_context=file_discovery_context,
         latest_assistant_message=latest_assistant_message,
         recent_messages=recent_messages,
         recent_intents=recent_intents,

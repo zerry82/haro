@@ -89,6 +89,8 @@ def _patch_loop_basics(monkeypatch, responses, executed, traces):
         debug_enabled,
         plan_session=None,
         block_web_search_failure=False,
+        tool_state=None,
+        seen_tool_call_signatures=None,
     ):
         executed.append(tool_call)
         return "도구 실행 완료"
@@ -389,6 +391,145 @@ def test_execute_tool_call_blocks_web_search_failure_for_approved_plan(monkeypat
     assert "내부 지식으로 대체하지 않았습니다" in saved_messages[0]
     assert any(event == "execution_blocked" for event, _payload in intent_events)
     assert ("done", {"summary": "웹 검색 실패로 작업이 중단되었습니다."}) in emitter.events
+
+
+def test_execute_tool_call_skips_duplicate_file_search(monkeypatch) -> None:
+    executed = []
+
+    async def fake_execute_tool(*args, **kwargs):
+        executed.append(args[1])
+        return "검색 결과"
+
+    async def fake_record_intent_event(*args, **kwargs):
+        pass
+
+    monkeypatch.setattr(tool_loop, "execute_tool", fake_execute_tool)
+    monkeypatch.setattr(tool_loop, "record_intent_event", fake_record_intent_event)
+
+    seen: set[str] = set()
+    first = asyncio.run(tool_loop._execute_tool_call(
+        FakeDb(),
+        _project(),
+        _chat_session(),
+        SimpleNamespace(),
+        "message-1",
+        """```tool_call
+{"tool": "file_search", "args": {"query": "서울 날씨", "limit": 10}}
+```""",
+        {"tool": "file_search", "args": {"query": "서울   날씨", "limit": 10}},
+        ["file_search"],
+        FakeEmitter(),
+        0,
+        debug_enabled=False,
+        seen_tool_call_signatures=seen,
+    ))
+    second = asyncio.run(tool_loop._execute_tool_call(
+        FakeDb(),
+        _project(),
+        _chat_session(),
+        SimpleNamespace(),
+        "message-1",
+        """```tool_call
+{"tool": "file_search", "args": {"query": "서울 날씨", "limit": 10}}
+```""",
+        {"tool": "file_search", "args": {"query": "서울 날씨", "limit": 10}},
+        ["file_search"],
+        FakeEmitter(),
+        1,
+        debug_enabled=False,
+        seen_tool_call_signatures=seen,
+    ))
+
+    assert first == "검색 결과"
+    assert second.startswith("중복 탐색 생략:")
+    assert executed == ["file_search"]
+
+
+def test_execute_tool_call_guards_write_before_read(monkeypatch) -> None:
+    executed = []
+    intent_events = []
+
+    async def fake_execute_tool(*args, **kwargs):
+        executed.append(args[1])
+        return "수정 완료"
+
+    async def fake_record_intent_event(db, turn, event_type, payload, **kwargs):
+        intent_events.append((event_type, payload))
+
+    monkeypatch.setattr(tool_loop, "execute_tool", fake_execute_tool)
+    monkeypatch.setattr(tool_loop, "record_intent_event", fake_record_intent_event)
+
+    result = asyncio.run(tool_loop._execute_tool_call(
+        FakeDb(),
+        _project(),
+        _chat_session(),
+        SimpleNamespace(),
+        "message-1",
+        """```tool_call
+{"tool": "file_edit", "args": {"path": "내 폴더/결과/report.md", "old_string": "a", "new_string": "b"}}
+```""",
+        {"tool": "file_edit", "args": {"path": "내 폴더/결과/report.md", "old_string": "a", "new_string": "b"}},
+        ["file_read", "file_edit"],
+        FakeEmitter(),
+        0,
+        debug_enabled=False,
+    ))
+
+    assert result.startswith("도구 상태 가드:")
+    assert executed == []
+    assert any(event == "tool_state_guard" for event, _payload in intent_events)
+
+
+def test_execute_tool_call_allows_write_after_same_turn_read(monkeypatch) -> None:
+    executed = []
+
+    async def fake_execute_tool(*args, **kwargs):
+        executed.append(args[1])
+        return "도구 실행 완료"
+
+    async def fake_record_intent_event(*args, **kwargs):
+        pass
+
+    monkeypatch.setattr(tool_loop, "execute_tool", fake_execute_tool)
+    monkeypatch.setattr(tool_loop, "record_intent_event", fake_record_intent_event)
+
+    state = tool_loop.TurnToolState()
+    read_result = asyncio.run(tool_loop._execute_tool_call(
+        FakeDb(),
+        _project(),
+        _chat_session(),
+        SimpleNamespace(),
+        "message-1",
+        """```tool_call
+{"tool": "file_read", "args": {"path": "내 폴더/결과/report.md"}}
+```""",
+        {"tool": "file_read", "args": {"path": "내 폴더/결과/report.md"}},
+        ["file_read", "file_edit"],
+        FakeEmitter(),
+        0,
+        debug_enabled=False,
+        tool_state=state,
+    ))
+    write_result = asyncio.run(tool_loop._execute_tool_call(
+        FakeDb(),
+        _project(),
+        _chat_session(),
+        SimpleNamespace(),
+        "message-1",
+        """```tool_call
+{"tool": "file_edit", "args": {"path": "내 폴더/결과/report.md", "old_string": "a", "new_string": "b"}}
+```""",
+        {"tool": "file_edit", "args": {"path": "내 폴더/결과/report.md", "old_string": "a", "new_string": "b"}},
+        ["file_read", "file_edit"],
+        FakeEmitter(),
+        1,
+        debug_enabled=False,
+        tool_state=state,
+    ))
+
+    assert read_result == "도구 실행 완료"
+    assert write_result == "도구 실행 완료"
+    assert executed == ["file_read", "file_edit"]
 
 
 def test_execute_tool_call_returns_awaiting_approval_for_plan_approval_tool(monkeypatch) -> None:

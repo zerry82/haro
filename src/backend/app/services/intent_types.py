@@ -24,6 +24,26 @@ class GateDecision:
 
 
 @dataclass
+class ExecutionPolicyDecision:
+    profile: str
+    confidence: float
+    selected_tools: list[str] = field(default_factory=list)
+    selected_skills: list[str] = field(default_factory=list)
+    missing_info: list[str] = field(default_factory=list)
+    risk_level: str = "low"
+    can_execute: bool = True
+    question: str | None = None
+    reason: str = ""
+    source: str = "policy"
+    should_enter_plan_mode: bool = False
+    plan_mode_reason: str | None = None
+    context_confidence: float | None = None
+    target_confidence: float | None = None
+    source_confidence: float | None = None
+    operation_confidence: float | None = None
+
+
+@dataclass
 class RouterDecision:
     intent: str
     confidence: float
@@ -39,3 +59,8 @@ class RouterDecision:
     routing_context: dict[str, Any] | None = None
     should_enter_plan_mode: bool = False
     plan_mode_reason: str | None = None
+    execution_policy: str | None = None
+    context_confidence: float | None = None
+    target_confidence: float | None = None
+    source_confidence: float | None = None
+    operation_confidence: float | None = None

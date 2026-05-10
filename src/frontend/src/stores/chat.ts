@@ -40,6 +40,21 @@ export interface PlanModeState {
   approvalSummary: string;
 }
 
+export interface OpenFileSelectionContext {
+  start_line?: number;
+  end_line?: number;
+  text_preview?: string;
+}
+
+export interface OpenFileContext {
+  active_file_path?: string | null;
+  opened_file_paths?: string[];
+  language?: string;
+  active_viewer_tab?: string;
+  dirty?: boolean;
+  selection?: OpenFileSelectionContext | null;
+}
+
 const idlePlanMode: PlanModeState = {
   active: false,
   planSessionId: null,
@@ -208,6 +223,7 @@ export async function sendMessage(
     debugEnabled?: boolean;
     planModeRequested?: boolean;
     planResponse?: { plan_session_id: string; action: 'approve' | 'reject'; feedback?: string };
+    openFileContext?: OpenFileContext | null;
   } = {},
 ) {
   const clientMessageId = crypto.randomUUID();
@@ -216,7 +232,11 @@ export async function sendMessage(
     id: clientMessageId,
     role: 'user',
     content,
-    metadata: { client_message_id: clientMessageId, debug_enabled: debugEnabled },
+    metadata: {
+      client_message_id: clientMessageId,
+      debug_enabled: debugEnabled,
+      open_file_context: options.openFileContext || null,
+    },
   };
   messages.update((m) => [...m, userMsg]);
   streaming.set(true);
@@ -234,6 +254,7 @@ export async function sendMessage(
         client_message_id: clientMessageId,
         plan_mode_requested: Boolean(options.planModeRequested),
         plan_response: options.planResponse || null,
+        open_file_context: options.openFileContext || null,
       },
       (event, data) => {
       switch (event) {

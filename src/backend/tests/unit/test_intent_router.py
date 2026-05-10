@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import asyncio
-from types import SimpleNamespace
 
 from app.services.intent_resolution import ResolvedIntentContext
-import app.services.intent_router as intent_router
 from app.services.intent_router import fallback_router_decision, llm_route, rule_route
 
 
-def _resolved(text: str) -> ResolvedIntentContext:
+def _resolved(
+    text: str,
+    *,
+    latest_artifact: dict | None = None,
+    file_discovery_context: dict | None = None,
+) -> ResolvedIntentContext:
     return ResolvedIntentContext(
         current_message=text,
         routing_text=text,
@@ -17,45 +20,53 @@ def _resolved(text: str) -> ResolvedIntentContext:
         is_clarification_answer=False,
         previous_intent=None,
         clarification_question=None,
-        latest_artifact=None,
+        latest_artifact=latest_artifact,
         latest_preview=None,
+        file_discovery_context=file_discovery_context,
         latest_assistant_message=None,
         recent_messages=[],
         recent_intents=[],
     )
 
 
-def test_rule_route_selects_web_search_for_latest_external_info() -> None:
+def test_llm_route_is_disabled_for_context_preserving_loop() -> None:
+    route = asyncio.run(llm_route(_resolved("파일 찾아줘")))
+
+    assert route is None
+
+
+def test_rule_route_selects_research_profile_for_latest_external_info() -> None:
     route = rule_route(_resolved("오늘 환율 검색해서 알려줘"))
 
-    assert route is not None
-    assert route.intent == "web_search"
-    assert route.selected_tools == ["web_search"]
+    assert route.intent == "research"
+    assert route.execution_policy == "research"
+    assert "web_search" in route.selected_tools
 
 
-def test_rule_route_keeps_file_search_for_file_requests() -> None:
+def test_rule_route_selects_read_only_profile_for_file_requests() -> None:
     route = rule_route(_resolved("파일 검색해줘"))
 
-    assert route is not None
-    assert route.intent == "file_search"
-    assert route.selected_tools == ["file_search", "file_read"]
+    assert route.intent == "read_only"
+    assert route.execution_policy == "read_only"
+    assert "file_search" in route.selected_tools
+    assert "file_read" in route.selected_tools
 
 
-def test_rule_route_uses_native_tools_for_folder_cleanup() -> None:
+def test_rule_route_uses_workspace_admin_profile_for_folder_cleanup() -> None:
     route = rule_route(_resolved("폴더들이 너무 지저분하다. 정리좀 부탁해"))
 
-    assert route is not None
-    assert route.intent == "folder_organization"
+    assert route.intent == "workspace_admin"
+    assert route.execution_policy == "workspace_admin"
     assert "file_move" in route.selected_tools
     assert "dir_delete" in route.selected_tools
     assert "code_run" not in route.selected_tools
 
 
-def test_rule_route_selects_partial_tools_for_existing_file_modify() -> None:
+def test_rule_route_selects_file_work_profile_for_existing_file_modify() -> None:
     route = rule_route(_resolved("기존 문서 일부를 수정하고 분량을 3배 늘려줘"))
 
-    assert route is not None
-    assert route.intent == "file_partial_modify"
+    assert route.intent == "file_work"
+    assert route.execution_policy == "file_work"
     assert "file_stats" in route.selected_tools
     assert "file_search_content" in route.selected_tools
     assert "file_read_range" in route.selected_tools
@@ -64,27 +75,11 @@ def test_rule_route_selects_partial_tools_for_existing_file_modify() -> None:
     assert "code_run" not in route.selected_tools
 
 
-def test_llm_route_replaces_code_run_for_folder_cleanup(monkeypatch) -> None:
-    class _Models:
-        def generate_content(self, **kwargs):
-            return SimpleNamespace(
-                text='{"intent":"folder_organization","confidence":0.9,"can_execute":true,"selected_tools":["code_run"],"selected_skills":[],"missing_info":[],"risk_level":"low","question":null,"reason":"cleanup","should_enter_plan_mode":false,"plan_mode_reason":null}'
-            )
-
-    monkeypatch.setattr(intent_router, "get_client", lambda: SimpleNamespace(models=_Models()))
-
-    route = asyncio.run(llm_route(_resolved("폴더들을 이동해서 정리하고 빈 폴더는 삭제해줘")))
-
-    assert route is not None
-    assert "file_move" in route.selected_tools
-    assert "dir_delete" in route.selected_tools
-    assert "code_run" not in route.selected_tools
-
-
 def test_rule_route_marks_explicit_plan_request_for_plan_mode() -> None:
     route = fallback_router_decision(_resolved("새 대시보드 구현 계획을 먼저 세워줘"))
 
-    assert route is not None
+    assert route.intent == "plan_mode"
+    assert route.execution_policy == "plan_mode"
     assert route.should_enter_plan_mode is True
     assert route.plan_mode_reason
 
@@ -92,6 +87,29 @@ def test_rule_route_marks_explicit_plan_request_for_plan_mode() -> None:
 def test_rule_route_does_not_force_plan_mode_for_simple_create() -> None:
     route = rule_route(_resolved("간단한 메모 파일 만들어줘"))
 
-    assert route is not None
-    assert route.intent == "file_create"
+    assert route.intent == "file_work"
+    assert route.execution_policy == "file_work"
     assert route.should_enter_plan_mode is False
+
+
+def test_active_file_context_raises_context_confidence() -> None:
+    route = rule_route(_resolved(
+        "지금 뭐가 보여?",
+        latest_artifact={"path": "/playground/users/u1/30_outputs/weather.html"},
+        file_discovery_context={
+            "open_file_context": {
+                "active_file_path": "/playground/users/u1/30_outputs/data.csv",
+            },
+            "candidates": [
+                {
+                    "path": "/playground/users/u1/30_outputs/data.csv",
+                    "role": "context_file",
+                    "confidence": 0.92,
+                }
+            ],
+        },
+    ))
+
+    assert route.execution_policy == "read_only"
+    assert route.context_confidence and route.context_confidence >= 0.9
+    assert route.routing_context["execution_policy"]["profile"] == "read_only"

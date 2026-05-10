@@ -41,15 +41,16 @@ Docker 컨테이너 기반 코드 실행 서버의 독립형 FastAPI 구현이�
   -> FastAPI /api/auth, /api/projects, /api/projects/{id}/chats
   -> POST /api/projects/{project_id}/chats/{chat_id}/messages
       -> SSEEmitter 생성
-      -> run_agent 백그라운드 실행
-          -> 사용자 메시지 저장
-          -> intent gate 판단
-          -> intent router가 도구 선택
-          -> 시스템 컨텍스트 조립
-          -> Gemini 스트리밍 호출
-          -> tool_call JSON 블록 파싱
-          -> agent_tools 또는 container_manager 실행
-          -> 파일/프리뷰/로그/디버그 이벤트 저장
+  -> run_agent 백그라운드 실행
+      -> 사용자 메시지 저장
+      -> intent gate 판단
+      -> execution policy 결정
+      -> Working Context와 시스템 컨텍스트 조립
+      -> Gemini 스트리밍 호출
+      -> tool_call JSON 블록 파싱
+      -> TurnToolState guard 확인
+      -> agent_tools 또는 container_manager 실행
+      -> 파일/프리뷰/로그/디버그 이벤트 저장
       -> SSE 이벤트를 프론트엔드에 스트리밍
 ```
 
@@ -133,6 +134,10 @@ DB는 `sqlite+aiosqlite`를 사용하며, SQLite `WAL`과 foreign key pragma를 
 - `src/backend/app/services/intent_gate.py`
 - `src/backend/app/services/intent_resolution.py`
 - `src/backend/app/services/intent_turns.py`
+- `src/backend/app/services/execution_policy.py`
+- `src/backend/app/services/file_discovery_context.py`
+- `src/backend/app/services/agent_response.py`
+- `src/backend/app/services/turn_tool_state.py`
 - `src/backend/app/services/tool_registry.py`
 - `src/backend/app/services/agent_tools.py`
 
@@ -141,14 +146,19 @@ DB는 `sqlite+aiosqlite`를 사용하며, SQLite `WAL`과 foreign key pragma를 
 1. 사용자 메시지를 `messages`에 저장하고 채팅 `conversation.md`에도 기록한다.
 2. `decide_message_gate`가 일반 대화, 새 작업, 기존 intent 이어가기, 산출물 참조, 취소 등을 판단한다.
 3. 일반 대화면 `casual_chat.py`가 짧은 응답을 생성한다.
-4. 작업이면 `route_intent`가 실행 가능 여부와 사용할 도구 목록을 고른다.
-5. 정보가 부족하면 `needs_clarification` 상태로 질문한다.
-6. 실행 가능하면 `context.py`가 시스템 프롬프트와 하네스 브리핑을 만든다.
+4. 작업이면 `route_intent` 호환층이 `ExecutionPolicyResolver`를 호출해 `read_only`, `file_work`, `workspace_admin`, `research`, `code_or_preview`, `plan_mode` 같은 broad profile을 고른다.
+5. source 파일이 반드시 필요하지만 File Discovery 후보가 없으면 `needs_clarification` 상태로 구체적인 경로/재업로드 질문을 한다.
+6. 실행 가능하면 `context.py`가 시스템 프롬프트와 하네스 브리핑을 만들고, `agent_response.py`가 Working Context를 compact JSON으로 덧붙인다.
 7. Gemini `gemini-3-flash-preview`를 스트리밍 호출한다.
 8. 모델 응답의 마지막 fenced block에서 `tool_call` JSON을 파싱한다.
-9. 선택된 도구 목록 밖의 도구를 호출하면 차단하고 intent를 `blocked`로 종료한다.
-10. 도구 실행 결과를 다시 모델 입력에 붙이고 최대 15라운드까지 반복한다.
-11. 완료 시 intent를 `completed`로 기록하고 SSE `done`을 보낸다.
+9. 선택된 profile의 broad tool set 밖의 도구를 호출하면 차단하고 intent를 `blocked`로 종료한다.
+10. `TurnToolState`가 중복 검색과 읽지 않은 파일에 대한 수정/삭제/이동을 synthetic result로 막아 모델이 먼저 확인하도록 유도한다.
+11. 도구 실행 결과를 다시 모델 입력에 붙이고 최대 15라운드까지 반복한다.
+12. 완료 시 intent를 `completed`로 기록하고 SSE `done`을 보낸다.
+
+메시지 전송 요청은 선택적으로 `open_file_context`를 포함할 수 있다. 프론트엔드는 현재 선택된 파일의 경로, 언어, 활성 뷰어 탭, dirty 상태, 선택 영역 preview만 전달하며 저장되지 않은 전체 에디터 본문은 보내지 않는다. 백엔드는 이 값을 latest artifact, 최근 대화의 원문 후보, linked files, chat workspace 파일, bounded workspace search 결과와 함께 `File Discovery Context`로 후보화한 뒤 Working Context에 넣는다. active file과 latest artifact가 다르면 executor는 active file을 현재 화면 맥락으로 우선한다.
+
+기존 `intent_router.py`는 semantic router가 아니라 compatibility adapter로 남아 있다. 세부 작업 의미는 router가 확정하지 않고, executor가 Working Context와 도구 결과를 보며 판단한다.
 
 현재 도구 카탈로그:
 

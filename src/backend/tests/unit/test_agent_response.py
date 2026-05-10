@@ -134,6 +134,12 @@ def test_executor_routing_context_keeps_only_executor_fields() -> None:
             "confidence": 0.9,
             "unused": "ignored",
         },
+        "execution_policy": {
+            "profile": "read_only",
+            "confidence": 0.86,
+            "risk_level": "low",
+            "unused": "ignored",
+        },
         "latest_artifact": {},
         "latest_preview": None,
     })
@@ -142,8 +148,39 @@ def test_executor_routing_context_keeps_only_executor_fields() -> None:
     assert context["gate_context"]["decision"] == "new_task"
     assert context["gate_context"]["confidence"] == 0.9
     assert context["gate_context"]["reason"].endswith("...")
+    assert context["execution_policy"]["profile"] == "read_only"
+    assert "unused" not in context["execution_policy"]
     assert "unused" not in context
     assert "latest_artifact" not in context
+
+
+def test_executor_routing_context_keeps_compact_file_discovery_context() -> None:
+    context = executor_routing_context({
+        "current_user_message": "이미 파일로 추가했어",
+        "file_discovery_context": {
+            "requires_source_content": True,
+            "source_content_missing": True,
+            "candidates": [
+                {
+                    "alias_path": "내 폴더/결과/날씨/report.html",
+                    "path": "/playground/users/u1/30_outputs/날씨/report.html",
+                    "role": "target_artifact",
+                    "confidence": 0.9,
+                    "reasons": ["최근 산출물입니다."],
+                    "recommended_action": "read_or_search_target",
+                    "extra": "ignored",
+                }
+            ],
+            "search_plan": ["ask user"],
+            "recommended_user_question": "파일 경로를 알려주세요.",
+        },
+    })
+
+    discovery = context["file_discovery_context"]
+    assert discovery["source_content_missing"] is True
+    assert discovery["candidates"][0]["role"] == "target_artifact"
+    assert discovery["candidates"][0]["alias_path"] == "내 폴더/결과/날씨/report.html"
+    assert "extra" not in discovery["candidates"][0]
 
 
 def test_routing_context_instruction_embeds_compact_json() -> None:
@@ -154,7 +191,7 @@ def test_routing_context_instruction_embeds_compact_json() -> None:
 
     instruction = routing_context_instruction(route)
 
-    assert "[현재 턴 라우팅 맥락]" in instruction
+    assert "[현재 작업 맥락]" in instruction
     assert '"current_user_message": "목록 보여줘"' in instruction
     assert '"decision": "new_task"' in instruction
 
