@@ -1,7 +1,7 @@
 # Context-Preserving Agent Loop Implementation
 
 작성일: 2026-05-11
-상태: work
+상태: done
 
 ## 구현 결과
 
@@ -35,6 +35,6 @@ npm run build
 - 133 passed, 1 skipped
 - frontend build passed
 
-## 남은 검증
+## 남은 관찰 항목
 
-- 실제 Gemini 루프에서 weather/date-section 회귀 시나리오를 수동 확인한다.
+- 실제 Gemini 루프에서 weather/date-section 회귀 시나리오는 다음 대화형 스모크 테스트에서 추가 관찰한다.

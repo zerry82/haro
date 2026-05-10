@@ -1,6 +1,7 @@
 # Context-Aware File Discovery Implementation
 
 작성일: 2026-05-10
+상태: done
 
 ## 구현 요약
 
@@ -17,7 +18,7 @@
   - 2026-05-10 추가 검증: 41 passed
 - `cd src/frontend && npm run build`
 
-## 남은 작업
+## 후속 확장 후보
 
 - 실제 다중 열린 탭 목록은 현재 UI 상태 모델이 생긴 뒤 확장한다.
 - prompt packaging/cache 개편은 별도 스펙으로 분리한다.
