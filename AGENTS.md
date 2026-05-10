@@ -123,7 +123,9 @@ Windows에서 `5174`가 TCP excluded port range에 포함되어 `EACCES`가 나�
 
 Python 백엔드는 반드시 가상환경을 사용한다. 전역 Python 환경에 직접 패키지를 설치하지 않는다. 기본 가상환경 위치는 `src/backend/.venv`다.
 
-VS Code의 `dev: backend (8001)` task와 `scripts/start-backend.ps1`은 백엔드 시작 전에 로컬 SearXNG 컨테이너(`haro-searxng`, `http://127.0.0.1:8080`)를 best-effort로 시작한다. Docker가 꺼져 있으면 백엔드는 계속 실행되지만 `web_search` 도구는 SearXNG가 준비될 때까지 사용할 수 없다.
+VS Code의 `dev: backend (8001)` task와 `scripts/start-backend.ps1`은 백엔드 시작 전에 로컬 SearXNG 컨테이너(`haro-searxng`, `http://127.0.0.1:8080`)를 best-effort로 시작하고, `WEB_SEARCH_PROVIDER=searxng`, `WEB_SEARCH_BASE_URL=http://127.0.0.1:8080` 값을 백엔드 프로세스에 주입한다. Docker가 꺼져 있으면 백엔드는 계속 실행되지만 `web_search` 도구는 SearXNG가 준비될 때까지 사용할 수 없다.
+
+백엔드 서버를 재시작할 때는 사용자가 명시적으로 웹 검색 없이 실행하라고 지시한 경우가 아니라면 `python -m uvicorn ...`을 직접 호출하지 않는다. 직접 `uvicorn`으로 띄우면 `WEB_SEARCH_BASE_URL` 주입을 놓쳐 원래 동작하던 `web_search`가 `WEB_SEARCH_BASE_URL이 설정되어 있지 않습니다` 오류로 실패할 수 있다. 재시작은 기본적으로 `scripts/start-backend.ps1` 또는 `scripts/run-backend-dev.ps1`를 사용한다.
 
 백엔드 실행:
 
@@ -131,7 +133,7 @@ VS Code의 `dev: backend (8001)` task와 `scripts/start-backend.ps1`은 백엔�
 .\scripts\run-backend-dev.ps1 -Reload
 ```
 
-SearXNG 없이 백엔드만 직접 실행해야 하는 경우에는 가상환경의 Python을 직접 호출한다.
+SearXNG 없이 백엔드만 직접 실행해야 하는 예외 상황에는 가상환경의 Python을 직접 호출한다. 이 방식은 `web_search` 비활성/실패를 감수하는 디버깅 전용 경로로 본다.
 
 ```powershell
 cd src/backend
