@@ -16,6 +16,7 @@ from app.models.agent_debug_trace import AgentDebugTrace
 from app.models.chat_session import ChatSession
 from app.models.intent_turn import IntentTurnEvent
 from app.models.message import Message
+from app.models.plan_mode import PlanEvent
 from app.models.project import Project
 from app.models.user import User
 from app.services.intent_turns import find_intent_turns_for_message
@@ -32,6 +33,8 @@ class SendMessageRequest(BaseModel):
     content: str
     debug_enabled: bool = False
     client_message_id: str | None = None
+    plan_mode_requested: bool = False
+    plan_response: dict | None = None
 
 
 class MessageResponse(BaseModel):
@@ -163,6 +166,25 @@ async def get_message_debug_trace(
             ))
 
     result = await db.execute(
+        select(PlanEvent)
+        .where(PlanEvent.message_id == message_id)
+        .order_by(PlanEvent.created_at.asc())
+    )
+    for event in result.scalars().all():
+        try:
+            payload = json.loads(event.payload_json)
+        except Exception:
+            payload = event.payload_json
+        events.append(DebugTraceEventResponse(
+            id=event.id,
+            round_index=-50 + len(events),
+            event_type=event.event_type,
+            payload=payload,
+            duration_ms=None,
+            created_at=event.created_at,
+        ))
+
+    result = await db.execute(
         select(AgentDebugTrace)
         .where(
             AgentDebugTrace.project_id == project_id,
@@ -202,6 +224,8 @@ async def send_message(
     content = body.content
     debug_enabled = body.debug_enabled
     client_message_id = body.client_message_id
+    plan_mode_requested = body.plan_mode_requested
+    plan_response = body.plan_response
     emitter = SSEEmitter()
 
     async def _run():
@@ -223,6 +247,8 @@ async def send_message(
                     emitter,
                     debug_enabled=debug_enabled,
                     client_message_id=client_message_id,
+                    plan_mode_requested=plan_mode_requested,
+                    plan_response=plan_response,
                 )
         except Exception:
             emitter.emit("error", {

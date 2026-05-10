@@ -4,7 +4,7 @@
   import { isAuthenticated, user } from '../stores/auth';
   import { currentProjectId, startProjectDeploy, stopProjectDeploy } from '../stores/projects';
   import { chatSessions, loadChatSessions, createChatSession, deleteChatSession, summarizeChatSession, currentChatId, type ChatSessionItem } from '../stores/chatSessions';
-  import { messages, loadMessages, sendMessage, streaming, todoSteps, agentStatus, loadDebugTrace, type ChatMessage, type DebugTraceResponse } from '../stores/chat';
+  import { messages, loadMessages, sendMessage, streaming, todoSteps, agentStatus, planMode, loadPlanModeState, loadDebugTrace, type ChatMessage, type DebugTraceResponse } from '../stores/chat';
   import {
     fileTree,
     folderCache,
@@ -173,6 +173,7 @@
   let filePanelWidth = $state(loadStoredPanelWidth('haro:filePanelWidth', 260));
   let chatPanelWidth = $state(loadStoredPanelWidth('haro:chatPanelWidth', 400));
   let debugMode = $state(loadStoredBool('haro:debugMode', false));
+  let planModeRequested = $state(false);
   let developerMode = $state(false);
   let debugTraceOpen = $state(false);
   let debugTraceLoading = $state(false);
@@ -288,10 +289,12 @@
   async function loadWorkspaceTree(projectId: string) {
     focusedExplorerNode = null;
     if (!developerMode) {
+      fileListScrollTop = 0;
       fileTree.set(createUserModeRootNodes($user?.id));
       return;
     }
 
+    fileListScrollTop = 0;
     fileTree.set([]);
     const freshDeveloperLoad = { ...getDirectoryLoadOptions(), force: true };
     await loadDirectory(projectId, '/', freshDeveloperLoad);
@@ -527,6 +530,11 @@
     requestAnimationFrame(scrollToBottom);
   });
 
+  $effect(() => {
+    if (!$currentProjectId || developerMode || $fileTree.length > 0) return;
+    fileTree.set(createUserModeRootNodes($user?.id));
+  });
+
   onMount(async () => {
     if (!$isAuthenticated) { push('/login'); return; }
     const pid = params.projectId;
@@ -565,6 +573,7 @@
 
     currentChatId.set(chatId!);
     await loadMessages(pid, chatId!);
+    await loadPlanModeState(pid, chatId!);
     await loadWorkspaceTree(pid);
 
     // Update URL if needed
@@ -650,6 +659,7 @@
     if (!pid) return;
     currentChatId.set(chatId);
     await loadMessages(pid, chatId);
+    await loadPlanModeState(pid, chatId);
     showChatList = false;
     push(`/projects/${pid}/chats/${chatId}`);
   }
@@ -660,6 +670,8 @@
     const id = await createChatSession(pid);
     currentChatId.set(id);
     messages.set([]);
+    planModeRequested = false;
+    planMode.set({ active: false, planSessionId: null, status: 'idle', planFilePath: '', planContent: '', approvalRequested: false, approvalSummary: '' });
     showChatList = false;
     if (developerMode && $user?.id) {
       await refreshDirectory(pid, `/playground/users/${$user.id}`, getDirectoryLoadOptions());
@@ -691,7 +703,31 @@
     if (!pid || !cid || !inputText.trim() || $streaming) return;
     const text = inputText;
     inputText = '';
-    await sendMessage(pid, cid, text, { debugEnabled: debugMode });
+    await sendMessage(pid, cid, text, { debugEnabled: debugMode, planModeRequested });
+  }
+
+  async function handleApprovePlan() {
+    const pid = $currentProjectId;
+    const cid = $currentChatId;
+    const sessionId = $planMode.planSessionId;
+    if (!pid || !cid || !sessionId || $streaming) return;
+    await sendMessage(pid, cid, '계획 승인', {
+      debugEnabled: debugMode,
+      planResponse: { plan_session_id: sessionId, action: 'approve' },
+    });
+  }
+
+  async function handleRejectPlan(feedbackText: string) {
+    const pid = $currentProjectId;
+    const cid = $currentChatId;
+    const sessionId = $planMode.planSessionId;
+    if (!pid || !cid || !sessionId || $streaming) return;
+    const feedback = feedbackText.trim();
+    if (!feedback) return;
+    await sendMessage(pid, cid, feedback, {
+      debugEnabled: debugMode,
+      planResponse: { plan_session_id: sessionId, action: 'reject', feedback },
+    });
   }
 
   function handleDebugModeChange() {
@@ -1189,6 +1225,8 @@
       width={chatPanelWidth}
       {showChatList}
       agentStatus={$agentStatus}
+      planMode={$planMode}
+      {planModeRequested}
       {debugMode}
       {summarizingChat}
       streaming={$streaming}
@@ -1198,6 +1236,7 @@
       messages={$messages}
       {inputText}
       onShowChatListChange={(value) => { showChatList = value; }}
+      onPlanModeRequestedChange={(value) => { planModeRequested = value; }}
       onDebugModeChange={(value) => {
         debugMode = value;
         handleDebugModeChange();
@@ -1207,6 +1246,8 @@
       onDeleteChat={handleDeleteChat}
       onNewChat={handleNewChat}
       onSend={handleSend}
+      onApprovePlan={handleApprovePlan}
+      onRejectPlan={handleRejectPlan}
       onSummarizeChat={handleSummarizeChat}
       onMessagesElementChange={(element) => { chatContainer = element; }}
       renderChatMarkdown={renderWorkspaceChatMarkdown}

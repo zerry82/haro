@@ -37,3 +37,5 @@ class RouterDecision:
     source: str = "rule"
     invalid_tools: list[str] = field(default_factory=list)
     routing_context: dict[str, Any] | None = None
+    should_enter_plan_mode: bool = False
+    plan_mode_reason: str | None = None

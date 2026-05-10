@@ -87,6 +87,8 @@ def _patch_loop_basics(monkeypatch, responses, executed, traces):
         round_num,
         *,
         debug_enabled,
+        plan_session=None,
+        block_web_search_failure=False,
     ):
         executed.append(tool_call)
         return "도구 실행 완료"
@@ -293,6 +295,129 @@ def test_execute_tool_call_blocks_unselected_web_search(monkeypatch) -> None:
     assert saved_messages
     assert any(event == "blocked" for event, _payload in intent_events)
     assert ("done", {"summary": "선택되지 않은 도구 호출로 작업이 중단되었습니다."}) in emitter.events
+
+
+def test_execute_tool_call_blocks_write_tool_in_plan_mode(monkeypatch) -> None:
+    saved_messages = []
+    plan_events = []
+    intent_turn = SimpleNamespace(status=None)
+    plan_session = SimpleNamespace(id="plan-1", plan_file_path="/chat/working/plan.md")
+    emitter = FakeEmitter()
+
+    async def fake_emit_and_save(db, chat_session, workspace, emitter, content):
+        saved_messages.append(content)
+        return SimpleNamespace(id="assistant-1")
+
+    async def fake_record_plan_event(db, session, event_type, payload, **kwargs):
+        plan_events.append((event_type, payload))
+
+    async def fake_set_intent_status(db, turn, status):
+        turn.status = status
+
+    async def fake_record_intent_event(*args, **kwargs):
+        pass
+
+    monkeypatch.setattr(tool_loop, "emit_and_save_assistant", fake_emit_and_save)
+    monkeypatch.setattr(tool_loop, "record_plan_event", fake_record_plan_event)
+    monkeypatch.setattr(tool_loop, "set_intent_status", fake_set_intent_status)
+    monkeypatch.setattr(tool_loop, "record_intent_event", fake_record_intent_event)
+
+    result = asyncio.run(tool_loop._execute_tool_call(
+        FakeDb(),
+        _project(),
+        _chat_session(),
+        intent_turn,
+        "message-1",
+        "```tool_call\n{\"tool\":\"file_write\",\"args\":{\"path\":\"/x.md\"}}\n```",
+        {"tool": "file_write", "args": {"path": "/x.md"}},
+        ["file_write"],
+        emitter,
+        0,
+        debug_enabled=False,
+        plan_session=plan_session,
+    ))
+
+    assert result == "blocked"
+    assert intent_turn.status == "blocked"
+    assert saved_messages
+    assert any(event == "execution_blocked" for event, _payload in plan_events)
+    assert any(event == "execution_blocked" for event, _payload in emitter.events)
+
+
+def test_execute_tool_call_blocks_web_search_failure_for_approved_plan(monkeypatch) -> None:
+    saved_messages = []
+    intent_events = []
+    intent_turn = SimpleNamespace(status=None)
+    emitter = FakeEmitter()
+
+    async def fake_execute_tool(*args, **kwargs):
+        return "웹 검색을 사용할 수 없습니다: WEB_SEARCH_BASE_URL이 설정되어 있지 않습니다."
+
+    async def fake_emit_and_save(db, chat_session, workspace, emitter, content):
+        saved_messages.append(content)
+        return SimpleNamespace(id="assistant-1")
+
+    async def fake_set_intent_status(db, turn, status):
+        turn.status = status
+
+    async def fake_record_intent_event(db, turn, event_type, payload, **kwargs):
+        intent_events.append((event_type, payload))
+
+    monkeypatch.setattr(tool_loop, "execute_tool", fake_execute_tool)
+    monkeypatch.setattr(tool_loop, "emit_and_save_assistant", fake_emit_and_save)
+    monkeypatch.setattr(tool_loop, "set_intent_status", fake_set_intent_status)
+    monkeypatch.setattr(tool_loop, "record_intent_event", fake_record_intent_event)
+
+    result = asyncio.run(tool_loop._execute_tool_call(
+        FakeDb(),
+        _project(),
+        _chat_session(),
+        intent_turn,
+        "message-1",
+        _valid_web_search_tool_call_text(),
+        {"tool": "web_search", "args": {"query": "최신 뉴스"}},
+        ["web_search"],
+        emitter,
+        0,
+        debug_enabled=False,
+        block_web_search_failure=True,
+    ))
+
+    assert result == "blocked"
+    assert intent_turn.status == "blocked"
+    assert saved_messages
+    assert "내부 지식으로 대체하지 않았습니다" in saved_messages[0]
+    assert any(event == "execution_blocked" for event, _payload in intent_events)
+    assert ("done", {"summary": "웹 검색 실패로 작업이 중단되었습니다."}) in emitter.events
+
+
+def test_execute_tool_call_returns_awaiting_approval_for_plan_approval_tool(monkeypatch) -> None:
+    executed = []
+    plan_session = SimpleNamespace(id="plan-1", plan_file_path="/chat/working/plan.md")
+
+    async def fake_execute_tool(*args, **kwargs):
+        executed.append(kwargs.get("plan_session"))
+        return "계획 승인 요청 완료"
+
+    monkeypatch.setattr(tool_loop, "execute_tool", fake_execute_tool)
+
+    result = asyncio.run(tool_loop._execute_tool_call(
+        FakeDb(),
+        _project(),
+        _chat_session(),
+        None,
+        "message-1",
+        "```tool_call\n{\"tool\":\"plan_approval_request\",\"args\":{\"summary\":\"OK\"}}\n```",
+        {"tool": "plan_approval_request", "args": {"summary": "OK"}},
+        ["plan_approval_request"],
+        FakeEmitter(),
+        0,
+        debug_enabled=False,
+        plan_session=plan_session,
+    ))
+
+    assert result == tool_loop.PLAN_AWAITING_APPROVAL
+    assert executed == [plan_session]
 
 
 def test_run_tool_call_loop_fails_after_repeated_invalid_tool_call(monkeypatch) -> None:

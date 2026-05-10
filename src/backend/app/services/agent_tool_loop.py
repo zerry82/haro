@@ -13,6 +13,7 @@ from app.models.agent_log import AgentLog
 from app.models.chat_session import ChatSession
 from app.models.intent_turn import IntentTurn
 from app.models.message import Message
+from app.models.plan_mode import PlanSession
 from app.models.project import Project
 from app.services.agent_events import emit_and_save_assistant, record_debug_trace
 from app.services.agent_response import (
@@ -27,6 +28,16 @@ from app.services.chat_workspace import append_conversation_message
 from app.services.context import build_context, get_recent_messages
 from app.services.intent_turns import RouterDecision, record_intent_event, set_intent_status
 from app.services.llm import get_client
+from app.services.plan_mode import (
+    PLAN_AWAITING_APPROVAL,
+    PLAN_DRAFTING,
+    build_execution_instruction,
+    build_plan_mode_instruction,
+    can_write_path_in_plan_mode,
+    is_plan_allowed_tool,
+    plan_mode_blocked_message,
+    record_plan_event,
+)
 from app.services.sse import SSEEmitter
 from app.services.tool_registry import build_tool_descriptions
 
@@ -47,9 +58,16 @@ async def run_tool_call_loop(
     emitter: SSEEmitter,
     *,
     debug_enabled: bool,
+    plan_session: PlanSession | None = None,
+    plan_feedback: str | None = None,
+    execution_plan_content: str | None = None,
 ) -> str:
     system_parts = await build_context(db, project, chat_session)
     system_instruction = "\n".join(system_parts) + "\n" + build_tool_descriptions(selected_tools) + routing_context_instruction(route)
+    if plan_session:
+        system_instruction += "\n" + build_plan_mode_instruction(plan_session, feedback=plan_feedback)
+    if execution_plan_content:
+        system_instruction += "\n" + build_execution_instruction(execution_plan_content)
     recent = await get_recent_messages(db, chat_session.id)
     contents = build_model_contents(recent, user_content)
 
@@ -142,7 +160,7 @@ async def run_tool_call_loop(
                 db.add(assistant_msg)
                 await db.commit()
                 append_conversation_message(project.workspace_path, chat_session, "planner", full_text.strip(), assistant_msg.created_at)
-            break
+            return PLAN_DRAFTING if plan_session else "completed"
 
         expecting_parse_repair = False
         loop_result = await _execute_tool_call(
@@ -157,9 +175,13 @@ async def run_tool_call_loop(
             emitter,
             round_num,
             debug_enabled=debug_enabled,
+            plan_session=plan_session,
+            block_web_search_failure=bool(plan_session or execution_plan_content),
         )
         if loop_result == "blocked":
             return "blocked"
+        if loop_result == PLAN_AWAITING_APPROVAL:
+            return PLAN_AWAITING_APPROVAL
 
         contents.append({"role": "model", "parts": [{"text": full_text}]})
         contents.append({"role": "user", "parts": [{"text": f"[도구 실행 결과]\n{loop_result}"}]})
@@ -402,19 +424,28 @@ async def _execute_tool_call(
     round_num: int,
     *,
     debug_enabled: bool,
+    plan_session: PlanSession | None = None,
+    block_web_search_failure: bool = False,
 ) -> str:
     tool_name = tool_call.get("tool", "")
     tool_args = tool_call.get("args", {})
     tool_blocked = tool_name not in selected_tools
+    plan_blocked = False
+    if plan_session:
+        plan_blocked = (
+            not is_plan_allowed_tool(tool_name)
+            or not can_write_path_in_plan_mode(plan_session, tool_name, tool_args.get("path"))
+        )
 
     pre_text = extract_text_without_tool_call(full_text).strip()
-    if pre_text and not tool_blocked:
+    if pre_text and not tool_blocked and not plan_blocked:
         assistant_msg = Message(chat_session_id=chat_session.id, role="planner", content=pre_text)
         db.add(assistant_msg)
         await db.commit()
         append_conversation_message(project.workspace_path, chat_session, "planner", pre_text, assistant_msg.created_at)
 
-    emitter.emit("status", {"session_status": "executing", "message": f"{tool_name} 실행 중..."})
+    session_status = "plan_drafting" if plan_session else "executing"
+    emitter.emit("status", {"session_status": session_status, "message": f"{tool_name} 실행 중..."})
     emitter.emit("todo_step_updated", {
         "todo_id": "auto",
         "step": {"description": f"{tool_name}({json.dumps(tool_args, ensure_ascii=False)[:80]})", "status": "in_progress"},
@@ -434,7 +465,9 @@ async def _execute_tool_call(
         )
 
     t1 = time.time()
-    if tool_blocked:
+    if plan_blocked:
+        result = plan_mode_blocked_message(tool_name)
+    elif tool_blocked:
         result = blocked_tool_result(tool_name, selected_tools)
     else:
         result = await execute_tool(
@@ -445,6 +478,7 @@ async def _execute_tool_call(
             db=db,
             project=project,
             chat_session=chat_session,
+            plan_session=plan_session,
         )
     tool_ms = (time.time() - t1) * 1000
 
@@ -462,16 +496,82 @@ async def _execute_tool_call(
             duration_ms=tool_ms,
         )
 
+    web_search_failed = (
+        block_web_search_failure
+        and not tool_blocked
+        and not plan_blocked
+        and tool_name == "web_search"
+        and _is_web_search_failure_result(result)
+    )
+    plan_approval_failed = (
+        not tool_blocked
+        and not plan_blocked
+        and tool_name == "plan_approval_request"
+        and result.startswith("계획 승인 요청 차단:")
+    )
     emitter.emit("todo_step_updated", {
         "todo_id": "auto",
         "step": {
-            "description": f"{tool_name} 차단됨" if tool_blocked else f"{tool_name} 완료",
-            "status": "blocked" if tool_blocked else "completed",
+            "description": f"{tool_name} 차단됨" if tool_blocked or plan_blocked or web_search_failed or plan_approval_failed else f"{tool_name} 완료",
+            "status": "blocked" if tool_blocked or plan_blocked or web_search_failed or plan_approval_failed else "completed",
         },
     })
 
-    if not tool_blocked:
+    if web_search_failed:
+        blocked_reason = _web_search_blocked_message(result)
+        await emit_and_save_assistant(db, chat_session, project.workspace_path, emitter, blocked_reason)
+        if plan_session:
+            await record_plan_event(
+                db,
+                plan_session,
+                "execution_blocked",
+                {"tool": tool_name, "reason": blocked_reason, "selected_tools": selected_tools},
+                message_id=turn_message_id,
+            )
+        if intent_turn:
+            await set_intent_status(db, intent_turn, "blocked")
+            await record_intent_event(
+                db,
+                intent_turn,
+                "execution_blocked",
+                {"tool": tool_name, "selected_tools": selected_tools, "reason": blocked_reason},
+                message_id=turn_message_id,
+            )
+        emitter.emit("execution_blocked", {"tool": tool_name, "reason": blocked_reason})
+        emitter.emit("done", {"summary": "웹 검색 실패로 작업이 중단되었습니다."})
+        return "blocked"
+
+    if plan_approval_failed:
         return result
+
+    if plan_session and not plan_blocked and not tool_blocked and tool_name == "plan_approval_request":
+        return PLAN_AWAITING_APPROVAL
+
+    if not tool_blocked and not plan_blocked:
+        return result
+
+    if plan_blocked:
+        await emit_and_save_assistant(db, chat_session, project.workspace_path, emitter, result)
+        if plan_session:
+            await record_plan_event(
+                db,
+                plan_session,
+                "execution_blocked",
+                {"tool": tool_name, "reason": result, "selected_tools": selected_tools},
+                message_id=turn_message_id,
+            )
+        if intent_turn:
+            await set_intent_status(db, intent_turn, "blocked")
+            await record_intent_event(
+                db,
+                intent_turn,
+                "blocked",
+                {"tool": tool_name, "selected_tools": selected_tools, "reason": result},
+                message_id=turn_message_id,
+            )
+        emitter.emit("execution_blocked", {"tool": tool_name, "reason": result})
+        emitter.emit("done", {"summary": "Plan Mode에서 허용되지 않은 도구 호출로 작업이 중단되었습니다."})
+        return "blocked"
 
     final_message = blocked_tool_message(tool_name, selected_tools)
     await emit_and_save_assistant(db, chat_session, project.workspace_path, emitter, final_message)
@@ -497,3 +597,21 @@ async def _execute_tool_call(
         )
     emitter.emit("done", {"summary": "선택되지 않은 도구 호출로 작업이 중단되었습니다."})
     return "blocked"
+
+
+def _is_web_search_failure_result(result: str) -> bool:
+    return result.startswith((
+        "웹 검색을 실행할 수 없습니다:",
+        "웹 검색을 사용할 수 없습니다:",
+        "웹 검색 시간이 초과되었습니다.",
+        "웹 검색 제공자 오류:",
+    ))
+
+
+def _web_search_blocked_message(result: str) -> str:
+    return (
+        "웹 검색이 필요한 계획을 진행할 수 없어 작업을 중단했습니다.\n\n"
+        f"원인: {result}\n\n"
+        "검색 결과 없이 내부 지식으로 대체하지 않았습니다. "
+        "웹 검색 설정을 복구한 뒤 다시 실행하거나, 내부 지식 기반으로 진행하도록 새 계획을 승인해 주세요."
+    )

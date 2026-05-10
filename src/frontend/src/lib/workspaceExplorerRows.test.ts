@@ -50,6 +50,20 @@ describe('workspaceExplorerRows', () => {
     expect(virtual.translateY).toBe(240);
   });
 
+  it('keeps rows visible when scrollTop is stale after the tree shrinks', () => {
+    const rows = Array.from({ length: 3 }, (_, index) => ({
+      key: `row-${index}`,
+      kind: 'load-more' as const,
+      path: '/',
+      depth: 0,
+    }));
+
+    const virtual = getVirtualExplorerRows(rows, 3000, 120, 30, 2);
+
+    expect(virtual.rows.map((row) => row.key)).toEqual(['row-0', 'row-1', 'row-2']);
+    expect(virtual.translateY).toBe(0);
+  });
+
   it('keeps row keys unique when alias shortcuts point at the same canonical path', () => {
     const nodes: TreeNode[] = [
       {

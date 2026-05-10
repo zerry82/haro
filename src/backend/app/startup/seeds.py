@@ -17,8 +17,10 @@ BUILTIN_FILE_OPS_TOOLS = [
     "file_read",
     "file_write",
     "file_delete",
+    "file_move",
     "dir_list",
     "dir_create",
+    "dir_delete",
     "file_search",
     "file_count",
     "web_search",
@@ -39,7 +41,7 @@ async def seed_builtin_skills() -> None:
                 name="file_ops",
                 version="1.0.0",
                 type="builtin",
-                description="파일 시스템 도구 — 파일/디렉토리 생성, 읽기, 수정, 삭제, 검색, 개수 조회",
+                description="파일 시스템 도구 — 파일/디렉토리 생성, 읽기, 수정, 이동, 삭제, 검색, 개수 조회",
                 status="enabled",
                 manifest=json.dumps(manifest),
             )
@@ -57,7 +59,7 @@ async def seed_builtin_skills() -> None:
             existing_manifest["tools"] = [*existing_manifest.get("tools", []), *missing_tools]
             existing.manifest = json.dumps(existing_manifest)
             if existing.description:
-                existing.description = "파일 시스템 도구 — 파일/디렉토리 생성, 읽기, 수정, 삭제, 검색, 개수 조회"
+                existing.description = "파일 시스템 도구 — 파일/디렉토리 생성, 읽기, 수정, 이동, 삭제, 검색, 개수 조회"
             await db.commit()
 
 

@@ -202,6 +202,8 @@ docker pull denoland/deno:latest
 
 스펙은 루트의 `.specs/draft/{spec}/`, `.specs/work/{spec}/`, `.specs/done/{spec}/` 아래에 둔다. `{spec}`은 짧고 의미 있는 kebab-case 이름을 사용한다.
 
+새 스펙을 만들 때는 먼저 `.specs/draft/{spec}/spec.md`만 작성하고, 사용자와 문제 정의, 목표, 비목표, 성공 기준을 확정한다. `spec.md`가 확정되기 전에는 `design.md`, `plan.md`, `tasks.md`, `implementation.md`, `commits.md`를 한꺼번에 만들지 않는다. 스펙 방향이 확정된 뒤에 나머지 문서를 단계적으로 추가한다.
+
 ```text
 .specs/draft/{spec}/
   {스펙관련 문서들}.md

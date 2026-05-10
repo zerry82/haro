@@ -32,6 +32,13 @@ TOOL_CATALOG: dict[str, dict[str, object]] = {
         "typical_outputs": ["파일 삭제 완료 메시지"],
         "description": "file_delete(path) - 파일 삭제.",
     },
+    "file_move": {
+        "purpose": "파일 또는 폴더 이동",
+        "when_to_use": "사용자가 파일/폴더 이동, 이름 변경, 분류, 통합, 정리를 요청할 때",
+        "required_args": ["source_path", "target_path"],
+        "typical_outputs": ["이동 완료 메시지", "workspace DB 갱신"],
+        "description": "file_move(source_path, target_path) - 파일 또는 폴더 이동/이름 변경. 대상 폴더가 이미 있으면 내부 항목을 병합합니다.",
+    },
     "dir_list": {
         "purpose": "디렉토리 직계 목록 조회",
         "when_to_use": "특정 폴더의 하위 파일/폴더 이름 목록을 확인해야 할 때",
@@ -46,12 +53,19 @@ TOOL_CATALOG: dict[str, dict[str, object]] = {
         "typical_outputs": ["디렉토리 생성 완료 메시지"],
         "description": "dir_create(path) - 디렉토리 생성. 저장 위치가 명확하지 않으면 현재 채팅 working/ 아래에 배치됩니다.",
     },
+    "dir_delete": {
+        "purpose": "디렉토리 삭제",
+        "when_to_use": "사용자가 빈 폴더 또는 정리 후 남은 폴더 삭제를 명시적으로 요청할 때",
+        "required_args": ["path"],
+        "typical_outputs": ["디렉토리 삭제 완료 메시지", "workspace DB 갱신"],
+        "description": "dir_delete(path, recursive) - 디렉토리 삭제. 비어 있지 않은 폴더는 recursive=true가 필요합니다.",
+    },
     "code_run": {
         "purpose": "코드 실행",
-        "when_to_use": "사용자가 계산/변환/검증을 위해 코드를 실행하라고 요청할 때",
+        "when_to_use": "사용자가 계산/변환/검증을 위해 코드를 실행하라고 요청할 때. 워크스페이스 파일 생성/수정/이동/삭제에는 사용하지 않습니다.",
         "required_args": ["filename", "code"],
         "typical_outputs": ["stdout", "stderr", "exit_code"],
-        "description": "code_run(filename, code) - 코드 실행. 별도 지시가 없으면 TypeScript와 .ts 파일명을 사용합니다.",
+        "description": "code_run(filename, code) - 코드 실행. 별도 지시가 없으면 TypeScript와 .ts 파일명을 사용합니다. 워크스페이스 파일 작업은 전용 파일/폴더 도구를 사용하세요.",
     },
     "web_preview": {
         "purpose": "웹앱 프리뷰 활성화",
@@ -80,6 +94,20 @@ TOOL_CATALOG: dict[str, dict[str, object]] = {
         "required_args": ["query"],
         "typical_outputs": ["검색된 파일/폴더 경로와 요약 snippet"],
         "description": "file_search(query, limit, item_type) - SQLite 파일 DB 기반 파일명, 경로, 요약 텍스트 검색.",
+    },
+    "plan_file_update": {
+        "purpose": "Plan Mode 계획 파일 작성",
+        "when_to_use": "Plan Mode에서 승인 전 계획 내용을 현재 plan 파일에 기록하거나 갱신해야 할 때",
+        "required_args": ["content"],
+        "typical_outputs": ["plan_file_updated 이벤트", "계획 파일 수정 완료 메시지"],
+        "description": "plan_file_update(content) - Plan Mode의 현재 plan 파일만 생성/교체합니다. path는 받지 않습니다.",
+    },
+    "plan_approval_request": {
+        "purpose": "Plan Mode 승인 요청",
+        "when_to_use": "Plan Mode에서 계획이 충분히 수렴되어 사용자 승인 UI를 띄워야 할 때",
+        "required_args": ["summary"],
+        "typical_outputs": ["plan_approval_requested 이벤트", "승인 대기 상태"],
+        "description": "plan_approval_request(summary) - 현재 plan 파일을 사용자에게 승인 요청합니다.",
     },
     "file_count": {
         "purpose": "파일/폴더 개수 조회",
@@ -141,11 +169,15 @@ def _tool_call_example(tool_name: str) -> str:
         "file_read": '{"tool": "file_read", "args": {"path": "내 폴더/결과/오늘-기분/report.md"}}',
         "file_write": '{"tool": "file_write", "args": {"path": "내 폴더/결과/오늘-기분/report.md", "content": "# 수정된 내용"}}',
         "file_delete": '{"tool": "file_delete", "args": {"path": "outputs/report.md"}}',
+        "file_move": '{"tool": "file_move", "args": {"source_path": "내 폴더/결과/old.md", "target_path": "내 폴더/결과/archive/old.md"}}',
         "dir_create": '{"tool": "dir_create", "args": {"path": "working/new-folder"}}',
+        "dir_delete": '{"tool": "dir_delete", "args": {"path": "내 폴더/결과/empty-folder"}}',
         "code_run": '{"tool": "code_run", "args": {"filename": "script.ts", "code": "console.log(1)"}}',
         "web_preview": '{"tool": "web_preview", "args": {}}',
         "web_search": '{"tool": "web_search", "args": {"query": "대한민국 청개구리 개체수 최신 연구", "limit": 5}}',
         "file_export": '{"tool": "file_export", "args": {"source_path": "outputs/report.md", "target_path": "/playground/users/.../report.md"}}',
+        "plan_file_update": '{"tool": "plan_file_update", "args": {"content": "# 계획\\n\\n## 목표\\n..."}}',
+        "plan_approval_request": '{"tool": "plan_approval_request", "args": {"summary": "계획 초안이 준비되었습니다."}}',
     }
     return examples.get(tool_name, '{"tool": "file_search", "args": {"query": "example"}}')
 
@@ -190,11 +222,27 @@ def build_tool_descriptions(selected_tools: list[str] | None) -> str:
         lines.append("- 검색 결과의 실제 내용을 확인해야 할 때만 `file_read`를 사용하세요.")
     if "dir_list" in tools:
         lines.append("- 특정 폴더의 직계 목록이 필요할 때만 `dir_list`를 사용하세요.")
+    if "file_move" in tools or "dir_delete" in tools:
+        lines.extend([
+            "- 파일/폴더 이동, 이름 변경, 통합, 정리는 `file_move`와 `dir_delete` 같은 전용 파일 도구로만 수행하세요.",
+            "- `code_run`으로 워크스페이스 파일을 직접 생성/수정/이동/삭제하지 마세요. 샌드박스 변경은 사용자 파일 목록과 인덱스에 반영되지 않을 수 있습니다.",
+        ])
     if "web_search" in tools:
         lines.extend([
             "- 최신/현재/외부 웹 정보가 필요하면 설명으로 검색했다고 말하지 말고 `web_search`를 호출하세요.",
+            "- `web_search` 실행 결과 없이 웹 검색이 불가능하다고 말하지 마세요.",
+            "- 웹 검색이 필요한 작업에서 검색이 실패하면 내부 지식으로 대체하지 말고 실패 사실을 명확히 보고하고 멈추세요.",
             "- 웹 검색 결과를 사용한 최종 답변에는 가능한 한 URL 출처를 함께 표시하세요.",
             "- 사용자 파일 전문이나 민감한 workspace 내용을 검색 query로 자동 전송하지 말고 필요한 최소 키워드만 사용하세요.",
+        ])
+    if "plan_file_update" in tools or "plan_approval_request" in tools:
+        lines.extend([
+            "- Plan Mode에서는 실제 산출물/코드/프리뷰를 수정하지 말고 plan 파일만 갱신하세요.",
+            "- Plan Mode는 요구사항 명확화 -> 근거 수집 -> 계획 승인 순서로 진행하세요.",
+            "- plan 파일을 갱신할 때는 `plan_file_update`를 사용하세요. 이 도구는 path를 받지 않습니다.",
+            "- plan 파일에는 Requirements, Open Questions, Evidence Ledger, Execution Plan, Acceptance Checks 섹션을 포함하세요.",
+            "- Open Questions가 남아 있거나 외부 사실/최신 데이터 기반 리서치/보고서/투자 분석 계획에 기준일과 URL 출처가 없으면 `plan_approval_request`를 호출하지 마세요.",
+            "- 계획이 승인받을 만큼 수렴하면 텍스트로 묻지 말고 `plan_approval_request`를 호출하세요.",
         ])
 
     lines.extend([
@@ -228,5 +276,8 @@ def build_tool_descriptions(selected_tools: list[str] | None) -> str:
         "도구 호출 결과를 받은 후 다음 작업을 진행하세요.",
     ])
     if "code_run" in tools:
-        lines.append("code_run을 사용할 때 별도 지시가 없으면 TypeScript 코드와 `.ts` 파일명을 사용하세요.")
+        lines.extend([
+            "code_run을 사용할 때 별도 지시가 없으면 TypeScript 코드와 `.ts` 파일명을 사용하세요.",
+            "code_run은 계산/검증용입니다. 워크스페이스 파일 생성/수정/이동/삭제는 전용 파일/폴더 도구로만 수행하세요.",
+        ])
     return "\n".join(lines)

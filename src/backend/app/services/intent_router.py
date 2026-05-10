@@ -19,6 +19,7 @@ from app.services.intent_text_rules import (
 )
 from app.services.intent_types import RouterDecision
 from app.services.llm import get_client
+from app.services.plan_mode import should_enter_plan_mode_for_text
 from app.services.tool_registry import DEFAULT_TASK_TOOLS, build_tool_catalog, validate_tool_names
 
 
@@ -45,6 +46,8 @@ resolved_intent_context:
 - 최신/현재/뉴스/가격/일정/규정/출처처럼 외부 웹 정보가 필요하면 web_search를 포함하세요.
 - 웹 검색은 자동 실행되지 않습니다. selected_tools에 web_search를 포함하고, 이후 agent 응답에서 필요한 경우 web_search tool_call을 사용합니다.
 - 파일 기반 후속 작업이면 web_search보다 file_search/file_read를 우선하세요.
+- 파일/폴더 이동, 이름 변경, 분류, 통합, 정리에는 file_move와 dir_delete를 포함하세요.
+- 워크스페이스 파일 생성/수정/이동/삭제를 code_run으로 처리하지 마세요. code_run은 계산/검증용입니다.
 - gate_context.artifact_action이 summarize_artifact이고 artifact_path가 있으면, 최신 assistant 요약을 반복하지 말고 원천 산출물 확인이 필요한지 판단하세요. 실제 파일 내용 기준 요약이면 file_read를 포함하세요.
 - gate_context.artifact_action이 followup_task이고 최근 산출물의 실제 내용 확인이 필요하면 file_read를 포함하세요.
 - HTML/Markdown/대시보드/리포트 등 새 산출물을 저장해야 하면 file_create를 포함하세요.
@@ -52,7 +55,7 @@ resolved_intent_context:
 
 반드시 JSON만 반환하세요.
 필드:
-intent, confidence, can_execute, selected_tools, selected_skills, missing_info, risk_level, question, reason
+intent, confidence, can_execute, selected_tools, selected_skills, missing_info, risk_level, question, reason, should_enter_plan_mode, plan_mode_reason
 정보가 부족하면 can_execute=false와 question을 반환하세요.
 """
     try:
@@ -68,6 +71,20 @@ intent, confidence, can_execute, selected_tools, selected_skills, missing_info, 
             return None
         raw_tools = as_list(data.get("selected_tools"))
         selected_tools, invalid_tools = validate_tool_names(raw_tools)
+        if _has_folder_organization_signal(normalize(resolved.routing_text)):
+            selected_tools = _with_native_folder_tools(selected_tools)
+        should_plan, plan_reason = should_enter_plan_mode_for_text(
+            resolved.routing_text,
+            selected_tools=selected_tools,
+            risk_level=str(data.get("risk_level") or "low"),
+        )
+        routing_normalized = " ".join((resolved.routing_text or "").lower().split())
+        execution_requested = any(
+            phrase in routing_normalized
+            for phrase in ("please implement", "implement this plan", "구현해", "진행해", "실행해")
+        )
+        should_plan = False if execution_requested else as_bool(data.get("should_enter_plan_mode"), default=should_plan)
+        plan_reason = None if execution_requested else str(data.get("plan_mode_reason") or plan_reason or "") or None
         return RouterDecision(
             intent=str(data.get("intent") or "general_task"),
             confidence=float(data.get("confidence") or 0.5),
@@ -81,6 +98,8 @@ intent, confidence, can_execute, selected_tools, selected_skills, missing_info, 
             source="llm",
             invalid_tools=invalid_tools,
             routing_context=context,
+            should_enter_plan_mode=should_plan,
+            plan_mode_reason=plan_reason,
         )
     except Exception:
         return None
@@ -89,6 +108,21 @@ intent, confidence, can_execute, selected_tools, selected_skills, missing_info, 
 def rule_route(resolved: ResolvedIntentContext) -> RouterDecision | None:
     normalized = normalize(resolved.routing_text)
     context = resolved.to_prompt_dict()
+
+    should_plan, plan_reason = should_enter_plan_mode_for_text(resolved.routing_text)
+
+    if _has_folder_organization_signal(normalized):
+        return RouterDecision(
+            intent="folder_organization",
+            confidence=0.86,
+            can_execute=True,
+            selected_tools=_with_native_folder_tools(["dir_list", "file_search", "file_count", "dir_create"]),
+            reason="파일/폴더 정리 요청입니다.",
+            source="fallback_rule",
+            routing_context=context,
+            should_enter_plan_mode=should_plan,
+            plan_mode_reason=plan_reason,
+        )
 
     if has_web_search_signal(normalized):
         return RouterDecision(
@@ -99,6 +133,8 @@ def rule_route(resolved: ResolvedIntentContext) -> RouterDecision | None:
             reason="외부 웹 검색이 필요한 요청입니다.",
             source="fallback_rule",
             routing_context=context,
+            should_enter_plan_mode=should_plan,
+            plan_mode_reason=plan_reason,
         )
     if has_count_signal(normalized):
         return RouterDecision(
@@ -109,6 +145,8 @@ def rule_route(resolved: ResolvedIntentContext) -> RouterDecision | None:
             reason="개수 조회 요청입니다.",
             source="fallback_rule",
             routing_context=context,
+            should_enter_plan_mode=should_plan,
+            plan_mode_reason=plan_reason,
         )
     if has_search_signal(normalized):
         return RouterDecision(
@@ -119,6 +157,8 @@ def rule_route(resolved: ResolvedIntentContext) -> RouterDecision | None:
             reason="파일/폴더 검색 요청입니다.",
             source="fallback_rule",
             routing_context=context,
+            should_enter_plan_mode=should_plan,
+            plan_mode_reason=plan_reason,
         )
     if has_list_signal(normalized):
         if not has_explicit_scope(normalized):
@@ -132,6 +172,8 @@ def rule_route(resolved: ResolvedIntentContext) -> RouterDecision | None:
                 reason="목록 조회 대상 경로가 명확하지 않습니다.",
                 source="fallback_rule",
                 routing_context=context,
+                should_enter_plan_mode=should_plan,
+                plan_mode_reason=plan_reason,
             )
         return RouterDecision(
             intent="dir_list",
@@ -141,6 +183,8 @@ def rule_route(resolved: ResolvedIntentContext) -> RouterDecision | None:
             reason="디렉토리 목록 조회 요청입니다.",
             source="fallback_rule",
             routing_context=context,
+            should_enter_plan_mode=should_plan,
+            plan_mode_reason=plan_reason,
         )
     if has_read_signal(normalized):
         return RouterDecision(
@@ -151,6 +195,8 @@ def rule_route(resolved: ResolvedIntentContext) -> RouterDecision | None:
             reason="파일 읽기 요청입니다.",
             source="fallback_rule",
             routing_context=context,
+            should_enter_plan_mode=should_plan,
+            plan_mode_reason=plan_reason,
         )
     if has_create_signal(normalized):
         return RouterDecision(
@@ -161,6 +207,8 @@ def rule_route(resolved: ResolvedIntentContext) -> RouterDecision | None:
             reason="파일 생성/저장 요청입니다.",
             source="fallback_rule",
             routing_context=context,
+            should_enter_plan_mode=should_plan,
+            plan_mode_reason=plan_reason,
         )
     if "웹앱" in normalized or "프리뷰" in normalized or "preview" in normalized:
         return RouterDecision(
@@ -171,6 +219,8 @@ def rule_route(resolved: ResolvedIntentContext) -> RouterDecision | None:
             reason="웹앱 프리뷰 요청입니다.",
             source="fallback_rule",
             routing_context=context,
+            should_enter_plan_mode=should_plan,
+            plan_mode_reason=plan_reason,
         )
     if "코드" in normalized and ("실행" in normalized or "돌려" in normalized):
         return RouterDecision(
@@ -181,6 +231,8 @@ def rule_route(resolved: ResolvedIntentContext) -> RouterDecision | None:
             reason="코드 실행 요청입니다.",
             source="fallback_rule",
             routing_context=context,
+            should_enter_plan_mode=should_plan,
+            plan_mode_reason=plan_reason,
         )
     if "리포트" in normalized and ("정리" in normalized or "요약" in normalized):
         if not has_period_or_target(normalized):
@@ -194,6 +246,8 @@ def rule_route(resolved: ResolvedIntentContext) -> RouterDecision | None:
                 reason="리포트 대상이 부족합니다.",
                 source="fallback_rule",
                 routing_context=context,
+                should_enter_plan_mode=should_plan,
+                plan_mode_reason=plan_reason,
             )
         return RouterDecision(
             intent="report_summary",
@@ -203,6 +257,8 @@ def rule_route(resolved: ResolvedIntentContext) -> RouterDecision | None:
             reason="리포트 정리 요청입니다.",
             source="fallback_rule",
             routing_context=context,
+            should_enter_plan_mode=should_plan,
+            plan_mode_reason=plan_reason,
         )
     if "자동화" in normalized or "스킬" in normalized:
         return RouterDecision(
@@ -215,11 +271,33 @@ def rule_route(resolved: ResolvedIntentContext) -> RouterDecision | None:
             reason="스킬 제작 대화는 업무 이해가 먼저 필요합니다.",
             source="fallback_rule",
             routing_context=context,
+            should_enter_plan_mode=should_plan,
+            plan_mode_reason=plan_reason,
         )
     return None
 
 
+def _has_folder_organization_signal(normalized: str) -> bool:
+    return (
+        any(signal in normalized for signal in ("폴더", "디렉토리", "folder", "directory"))
+        and any(signal in normalized for signal in ("정리", "정돈", "분류", "통합", "이동", "옮겨", "삭제", "rename", "move", "organize", "clean"))
+    )
+
+
+def _with_native_folder_tools(selected_tools: list[str]) -> list[str]:
+    tools = [tool for tool in selected_tools if tool != "code_run"]
+    for tool in ["dir_list", "file_search", "file_count", "dir_create", "file_move", "dir_delete"]:
+        if tool not in tools:
+            tools.append(tool)
+    return tools
+
+
 def fallback_router_decision(resolved: ResolvedIntentContext) -> RouterDecision:
+    should_plan, plan_reason = should_enter_plan_mode_for_text(
+        resolved.routing_text,
+        selected_tools=DEFAULT_TASK_TOOLS,
+        risk_level="low",
+    )
     return RouterDecision(
         intent="general_task",
         confidence=0.55,
@@ -229,4 +307,6 @@ def fallback_router_decision(resolved: ResolvedIntentContext) -> RouterDecision:
         reason="라우터 fallback: 일반 파일 기반 작업으로 처리합니다.",
         source="fallback",
         routing_context=resolved.to_prompt_dict(),
+        should_enter_plan_mode=should_plan,
+        plan_mode_reason=plan_reason,
     )

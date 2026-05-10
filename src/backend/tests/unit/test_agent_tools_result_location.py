@@ -8,11 +8,16 @@ from app.models.project import Project
 from app.services import agent_tools
 from app.services.agent_tools import execute_tool
 from app.services.web_search import WebSearchResult
+from app.services.workspace_file_db import list_workspace_directory, sync_workspace_subtree
 
 
 class _Emitter:
     def emit(self, event: str, payload: dict) -> None:
         pass
+
+
+def _project(workspace: Path) -> Project:
+    return Project(id="p1", user_id="u1", title="Project", workspace_path=str(workspace))
 
 
 def test_file_create_with_bare_filename_asks_for_result_location(tmp_path: Path) -> None:
@@ -40,6 +45,57 @@ def test_file_create_with_bare_filename_asks_for_result_location(tmp_path: Path)
     assert result.startswith("저장 위치 확인 필요")
     assert "도구 실행 에러" not in result
     assert not (workspace / "playground").exists()
+
+
+def test_file_move_merges_directory_and_updates_workspace_index(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    source = workspace / "playground" / "users" / "u1" / "30_outputs" / "기업분석"
+    target = workspace / "playground" / "users" / "u1" / "30_outputs" / "01_리서치_및_보고서" / "기업_산업"
+    source.mkdir(parents=True)
+    target.mkdir(parents=True)
+    (source / "report.md").write_text("# Report\n", encoding="utf-8")
+    sync_workspace_subtree(str(workspace), "/playground/users/u1/30_outputs")
+
+    result = asyncio.run(
+        execute_tool(
+            str(workspace),
+            "file_move",
+            {
+                "source_path": "내 폴더/결과/기업분석",
+                "target_path": "내 폴더/결과/01_리서치_및_보고서/기업_산업",
+            },
+            _Emitter(),  # type: ignore[arg-type]
+            project=_project(workspace),
+        )
+    )
+
+    assert result.startswith("이동 완료")
+    assert not source.exists()
+    assert (target / "report.md").exists()
+    names = [item["name"] for item in list_workspace_directory(str(workspace), "/playground/users/u1/30_outputs/01_리서치_및_보고서/기업_산업")]
+    assert names == ["report.md"]
+
+
+def test_dir_delete_removes_empty_directory_and_updates_workspace_index(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    empty_dir = workspace / "playground" / "users" / "u1" / "30_outputs" / "empty"
+    empty_dir.mkdir(parents=True)
+    sync_workspace_subtree(str(workspace), "/playground/users/u1/30_outputs")
+
+    result = asyncio.run(
+        execute_tool(
+            str(workspace),
+            "dir_delete",
+            {"path": "내 폴더/결과/empty"},
+            _Emitter(),  # type: ignore[arg-type]
+            project=_project(workspace),
+        )
+    )
+
+    assert result == "디렉토리 삭제 완료: /playground/users/u1/30_outputs/empty"
+    assert not empty_dir.exists()
+    names = [item["name"] for item in list_workspace_directory(str(workspace), "/playground/users/u1/30_outputs")]
+    assert "empty" not in names
 
 
 def test_web_search_tool_formats_results(monkeypatch, tmp_path: Path) -> None:

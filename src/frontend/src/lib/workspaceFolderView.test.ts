@@ -28,6 +28,14 @@ describe('workspaceFolderView', () => {
     expect(roots[1].children?.at(-1)?.type).toBe('file');
   });
 
+  it('still builds visible user mode roots before the authenticated user id is ready', () => {
+    const roots = createUserModeRootNodes(null);
+
+    expect(roots.map((node) => node.name)).toEqual(['팀 폴더', '내 폴더']);
+    expect(roots[0].children?.length).toBeGreaterThan(0);
+    expect(roots[1].children?.length).toBeGreaterThan(0);
+  });
+
   it('keeps the alias mapping aligned with the backend policy', () => {
     expect(getWorkspacePathAliases('u1').map((alias) => [alias.aliasPrefix, alias.canonicalPrefix])).toEqual([
       ['팀 폴더/데이터', '/clean-room/data'],

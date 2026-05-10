@@ -59,7 +59,7 @@ def blocked_tool_result(tool_name: str, selected_tools: list[str]) -> str:
 
 def blocked_tool_message(tool_name: str, selected_tools: list[str]) -> str:
     allowed = ", ".join(f"`{name}`" for name in selected_tools) or "없음"
-    if tool_name in {"file_create", "file_write", "file_delete", "dir_create", "file_export"}:
+    if tool_name in {"file_create", "file_write", "file_delete", "file_move", "dir_create", "dir_delete", "file_export"}:
         action = "파일 또는 폴더 변경"
     elif tool_name == "file_read":
         action = "파일 읽기"

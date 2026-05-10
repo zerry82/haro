@@ -33,8 +33,10 @@ export function getVirtualExplorerRows(
   buffer = FILE_ROW_BUFFER,
 ) {
   const height = Math.max(viewportHeight || 0, 360);
-  const start = Math.max(0, Math.floor(scrollTop / rowHeight) - buffer);
-  const end = Math.min(rows.length, Math.ceil((scrollTop + height) / rowHeight) + buffer);
+  const visibleCount = Math.ceil(height / rowHeight) + buffer * 2;
+  const maxStart = Math.max(0, rows.length - visibleCount);
+  const start = Math.min(maxStart, Math.max(0, Math.floor(scrollTop / rowHeight) - buffer));
+  const end = Math.min(rows.length, start + visibleCount);
   return {
     rows: rows.slice(start, end),
     totalHeight: rows.length * rowHeight,

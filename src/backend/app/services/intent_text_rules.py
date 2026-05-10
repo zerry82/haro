@@ -149,6 +149,7 @@ def has_web_search_signal(text: str) -> bool:
     external_targets = [
         "웹검색", "웹 검색", "인터넷 검색", "구글", "뉴스", "최신", "실시간",
         "환율", "주가", "날씨", "가격", "일정", "규정", "법령", "출처",
+        "리서치", "팩트체크", "시장 분석", "투자 분석", "기업 분석", "통계",
     ]
     if any(signal in text for signal in external_targets):
         return True

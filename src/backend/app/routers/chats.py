@@ -22,6 +22,7 @@ from app.services.chat_workspace import (
     sync_chat_workspace_files,
 )
 from app.services.harness import is_clean_room_path, is_haro_internal_path
+from app.services.plan_mode import get_current_plan_session, read_plan_file
 from app.services.workspace_file_db import mark_workspace_path_deleted, sync_workspace_subtree
 from app.services.workspace_index import update_file_summary
 
@@ -68,6 +69,14 @@ class ChatFileExportRequest(BaseModel):
 class ChatFileExportResponse(BaseModel):
     source_path: str
     target_path: str
+
+
+class PlanModeStateResponse(BaseModel):
+    active: bool
+    plan_session_id: str | None = None
+    status: str | None = None
+    plan_file_path: str | None = None
+    plan_content: str = ""
 
 
 async def _get_user_project(db: AsyncSession, user_id: str, project_id: str) -> Project:
@@ -244,6 +253,28 @@ async def sync_chat_files(
     folder_path = await sync_chat_workspace_files(db, project.workspace_path, user.id, chat)
     await db.commit()
     return ChatFolderResponse(folder_path=folder_path)
+
+
+@router.get("/{chat_id}/plan-mode", response_model=PlanModeStateResponse)
+async def get_plan_mode_state(
+    project_id: str,
+    chat_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    project = await _get_user_project(db, user.id, project_id)
+    chat = await _get_chat_session(db, project_id, chat_id)
+    ensure_chat_workspace(project.workspace_path, user.id, chat)
+    plan_session = await get_current_plan_session(db, chat.id)
+    if not plan_session:
+        return PlanModeStateResponse(active=False)
+    return PlanModeStateResponse(
+        active=True,
+        plan_session_id=plan_session.id,
+        status=plan_session.status,
+        plan_file_path=plan_session.plan_file_path,
+        plan_content=read_plan_file(project.workspace_path, plan_session),
+    )
 
 
 @router.post("/{chat_id}/summarize", response_model=ChatSummaryResponse)

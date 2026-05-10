@@ -5,11 +5,13 @@ const TOOL_LABELS: Record<string, string> = {
   file_read: '파일 읽기',
   file_write: '파일 수정',
   file_delete: '파일 삭제',
+  file_move: '파일 이동',
   file_export: '파일 내보내기',
   file_search: '파일 검색',
   file_count: '파일 개수 확인',
   dir_list: '폴더 조회',
   dir_create: '폴더 생성',
+  dir_delete: '폴더 삭제',
   code_run: '코드 실행',
   web_preview: '웹 프리뷰 준비',
 };
