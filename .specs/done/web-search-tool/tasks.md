@@ -77,7 +77,7 @@
 - [x] `git diff --check`를 실행한다.
 - [x] 구현 결과와 검증 결과를 `implementation.md`에 기록한다.
 - [x] 서버 run 시 로컬 SearXNG가 함께 시작되도록 dev script와 VS Code task를 연결한다.
-- [ ] 연결 커밋을 `commits.md`에 기록한다.
+- [x] 연결 커밋을 `commits.md`에 기록한다.
 
 검증:
 

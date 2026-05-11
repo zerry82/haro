@@ -78,8 +78,8 @@ cd src/backend
 - [x] backend 전체 테스트를 실행한다.
 - [x] `git diff --check`를 실행한다.
 - [x] 구현 결과와 검증 결과를 `implementation.md`에 기록한다.
-- [ ] 연결 커밋을 `commits.md`에 기록한다.
-- [ ] 완료 시 `.specs/work/nonblocking-agent-runtime/` 또는 `.specs/done/nonblocking-agent-runtime/` 이동 여부를 결정한다.
+- [x] 연결 커밋을 `commits.md`에 기록한다.
+- [x] 완료 시 `.specs/done/nonblocking-agent-runtime/`로 이동한다.
 
 검증:
 

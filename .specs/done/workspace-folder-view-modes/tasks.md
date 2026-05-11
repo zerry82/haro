@@ -154,8 +154,8 @@ npm run build
 - [x] 사용자 모드 UI에 직접 노출되는 legacy canonical path 참조를 제거하거나 alias display로 감싼다.
 - [x] system design상 남아야 하는 canonical path 참조를 분류한다.
 - [x] `implementation.md`에 구현 결과와 검증 결과를 기록한다.
-- [ ] `commits.md`에 연결 커밋을 기록한다.
-- [ ] 완료 시 `.specs/done/workspace-folder-view-modes/`로 이동한다.
+- [x] `commits.md`에 연결 커밋을 기록한다.
+- [x] 완료 시 `.specs/done/workspace-folder-view-modes/`로 이동한다.
 
 메모:
 

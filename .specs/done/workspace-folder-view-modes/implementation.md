@@ -4,7 +4,7 @@
 
 ## 현재 상태
 
-구현 완료 단계다. 스펙은 `.specs/work/workspace-folder-view-modes/`에 있으며 코드 변경과 자동 검증을 완료했다.
+구현 완료 상태다. 적용 확인과 연결 커밋 기록을 마쳤으며 스펙은 `.specs/done/workspace-folder-view-modes/`로 이동한다.
 
 ## 주요 변경 파일
 
@@ -100,8 +100,7 @@
 
 ## 남은 작업
 
-- 커밋 요청 시 변경 사항을 커밋/푸쉬하고 `commits.md`를 갱신한다.
-- 완료 커밋 이후 `.specs/done/workspace-folder-view-modes/`로 이동한다.
+- 없음. 적용 확인 및 연결 커밋 기록 후 `done`으로 이동한다.
 
 ## 남은 위험
 
