@@ -30,6 +30,8 @@ BUILTIN_FILE_OPS_TOOLS = [
     "file_search",
     "file_count",
     "web_search",
+    "mail_search",
+    "mail_attachment_read",
 ]
 
 

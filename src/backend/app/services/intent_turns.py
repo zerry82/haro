@@ -39,6 +39,7 @@ async def decide_message_gate(
     workspace: str | None = None,
     user_id: str | None = None,
     open_file_context: dict[str, Any] | None = None,
+    open_mail_context: dict[str, Any] | None = None,
 ) -> GateDecision:
     normalized = normalize(content)
     waiting = await _get_waiting_intent(db, chat_session.id)
@@ -53,6 +54,7 @@ async def decide_message_gate(
         recent_turns=recent,
         user_id=user_id,
         open_file_context=open_file_context,
+        open_mail_context=open_mail_context,
     )
 
     llm_gate = await decide_gate_with_llm(resolved)
@@ -71,6 +73,7 @@ async def route_intent(
     previous_turn: IntentTurn | None = None,
     gate_context: dict[str, Any] | None = None,
     open_file_context: dict[str, Any] | None = None,
+    open_mail_context: dict[str, Any] | None = None,
 ) -> RouterDecision:
     resolved = await build_resolved_intent_context(
         db,
@@ -81,6 +84,7 @@ async def route_intent(
         gate_context=gate_context,
         user_id=project.user_id,
         open_file_context=open_file_context,
+        open_mail_context=open_mail_context,
     )
 
     llm_decision = await llm_route(resolved)

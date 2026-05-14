@@ -31,6 +31,7 @@ class ResolvedIntentContext:
     latest_assistant_message: str | None
     recent_messages: list[dict[str, Any]]
     recent_intents: list[dict[str, Any]]
+    mail_context: dict[str, Any] | None = None
 
     def to_prompt_dict(self) -> dict[str, Any]:
         return {
@@ -44,6 +45,7 @@ class ResolvedIntentContext:
             "latest_artifact": self.latest_artifact,
             "latest_preview": self.latest_preview,
             "file_discovery_context": self.file_discovery_context,
+            "mail_context": self.mail_context,
             "latest_assistant_message": self.latest_assistant_message,
             "recent_messages": self.recent_messages,
             "recent_intents": self.recent_intents,
@@ -61,6 +63,7 @@ async def build_resolved_intent_context(
     recent_turns: list[IntentTurn] | None = None,
     gate_context: dict[str, Any] | None = None,
     open_file_context: dict[str, Any] | None = None,
+    open_mail_context: dict[str, Any] | None = None,
     user_id: str | None = None,
 ) -> ResolvedIntentContext:
     workspace_path = workspace or (project.workspace_path if project else None)
@@ -103,6 +106,7 @@ async def build_resolved_intent_context(
         latest_artifact=latest_artifact,
         latest_preview=latest_preview,
         file_discovery_context=file_discovery_context,
+        mail_context=open_mail_context,
         latest_assistant_message=latest_assistant_message,
         recent_messages=recent_messages,
         recent_intents=recent_intents,

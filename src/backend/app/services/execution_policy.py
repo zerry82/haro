@@ -70,6 +70,11 @@ CODE_OR_PREVIEW_TOOLS = [
     "web_preview",
 ]
 
+MAIL_READ_TOOLS = [
+    "mail_search",
+    "mail_attachment_read",
+]
+
 
 def resolve_execution_policy(resolved: ResolvedIntentContext) -> ExecutionPolicyDecision:
     text = resolved.routing_text or resolved.current_message
@@ -102,6 +107,16 @@ def resolve_execution_policy(resolved: ResolvedIntentContext) -> ExecutionPolicy
             risk_level="high" if _has_delete_signal(normalized) else "medium",
             resolved=resolved,
             operation_confidence=0.82,
+        )
+
+    if _has_mail_read_signal(normalized, resolved):
+        return _decision(
+            "mail_read",
+            MAIL_READ_TOOLS,
+            "Gmail 분석 결과에서 메일 thread를 검색하거나 요약하는 작업입니다.",
+            risk_level="low",
+            resolved=resolved,
+            operation_confidence=0.86,
         )
 
     if has_web_search_signal(normalized):
@@ -290,6 +305,17 @@ def _has_code_or_preview_signal(normalized: str) -> bool:
         or "preview" in normalized
         or ("코드" in normalized and ("실행" in normalized or "돌려" in normalized))
     )
+
+
+def _has_mail_read_signal(normalized: str, resolved: ResolvedIntentContext) -> bool:
+    mail_targets = ("메일", "이메일", "gmail", "지메일", "받은메일", "받은 메일", "보낸사람", "스레드", "thread", "첨부")
+    mail_actions = ("요약", "정리", "찾", "검색", "보여", "온", "보낸", "받은", "마감", "요청", "첨부")
+    if any(target in normalized for target in mail_targets) and any(action in normalized for action in mail_actions):
+        return True
+    mail_context = resolved.mail_context or {}
+    if mail_context.get("active") and _has_read_only_signal(normalized):
+        return True
+    return False
 
 
 def _looks_like_agentic_task(normalized: str, resolved: ResolvedIntentContext) -> bool:

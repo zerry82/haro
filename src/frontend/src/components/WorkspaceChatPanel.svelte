@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ChatMessage, PlanModeState } from '../stores/chat';
+  import type { ChatMessage, OpenMailContext, PlanModeState } from '../stores/chat';
   import type { ChatSessionItem } from '../stores/chatSessions';
 
   let {
@@ -12,6 +12,7 @@
     summarizingChat,
     streaming,
     chatActionMessage,
+    openMailContext = null,
     chatSessions,
     currentChatId,
     messages,
@@ -27,6 +28,7 @@
     onApprovePlan,
     onRejectPlan,
     onSummarizeChat,
+    onOpenMailWorkbench,
     onMessagesElementChange,
     renderChatMarkdown,
     formatToolStepContent,
@@ -43,6 +45,7 @@
     summarizingChat: boolean;
     streaming: boolean;
     chatActionMessage: string;
+    openMailContext?: OpenMailContext | null;
     chatSessions: ChatSessionItem[];
     currentChatId: string | null;
     messages: ChatMessage[];
@@ -58,6 +61,7 @@
     onApprovePlan: () => void;
     onRejectPlan: (feedback: string) => void;
     onSummarizeChat: () => void;
+    onOpenMailWorkbench?: () => void;
     onMessagesElementChange: (element: HTMLElement | undefined) => void;
     renderChatMarkdown: (content: string | null) => string;
     formatToolStepContent: (content: string | null, metadata: any) => string;
@@ -123,6 +127,17 @@
     if (!metadata?.evidenceRequired) return 'neutral';
     if (metadata?.evidenceLedgerHasSources && metadata?.asOfDate) return 'ok';
     return 'warn';
+  }
+
+  function hasMailContext(context: OpenMailContext | null | undefined) {
+    return Boolean(context?.active && (context.selected_thread_id || context.latest_run_id));
+  }
+
+  function mailContextLabel(context: OpenMailContext | null | undefined) {
+    if (!context) return '메일 컨텍스트';
+    if (context.selected_subject) return context.selected_subject;
+    if (context.latest_run_id) return `분석 run ${context.latest_run_id.slice(0, 8)}`;
+    return '메일 컨텍스트';
   }
 </script>
 
@@ -249,21 +264,37 @@
                 onkeydown={(event) => onDebugMessageKeydown(event, msg)}
               >{@html renderChatMarkdown(msg.content)}</div>
             {:else}
-              <div class="msg-content">{@html renderChatMarkdown(msg.content)}</div>
+              <div class="msg-content">
+                {#if msg.role === 'user' && hasMailContext(msg.metadata?.open_mail_context)}
+                  <div class="context-mini-chip">메일: {mailContextLabel(msg.metadata.open_mail_context)}</div>
+                {/if}
+                {@html renderChatMarkdown(msg.content)}
+              </div>
             {/if}
           </div>
         {/if}
       {/each}
     </div>
     <form class="input-area" onsubmit={handleSubmit}>
-      <input
-        type="text"
-        placeholder="메시지를 입력하세요..."
-        value={inputText}
-        disabled={streaming}
-        oninput={handleInput}
-      />
-      <button type="submit" disabled={streaming || !inputText.trim()}>전송</button>
+      {#if hasMailContext(openMailContext)}
+        <div class="context-chip">
+          <span>메일 컨텍스트</span>
+          <strong title={mailContextLabel(openMailContext)}>{mailContextLabel(openMailContext)}</strong>
+          {#if onOpenMailWorkbench}
+            <button type="button" onclick={onOpenMailWorkbench}>워크벤치에서 보기</button>
+          {/if}
+        </div>
+      {/if}
+      <div class="input-row">
+        <input
+          type="text"
+          placeholder={hasMailContext(openMailContext) ? '선택한 메일에 대해 질문하세요...' : '메시지를 입력하세요...'}
+          value={inputText}
+          disabled={streaming}
+          oninput={handleInput}
+        />
+        <button type="submit" disabled={streaming || !inputText.trim()}>전송</button>
+      </div>
     </form>
   {/if}
 </div>
@@ -311,11 +342,17 @@
   .msg-debug-button:hover { border-color: var(--color-pink); box-shadow: 0 0 0 2px var(--color-pink-soft); }
   .tool-step-inline { padding: 0.2rem 0.75rem; font-size: 0.8rem; color: var(--color-text-muted); border-left: 2px solid var(--color-border); margin-left: 1.5rem; }
   .step-text { font-family: var(--font-mono); }
-  .input-area { display: flex; gap: 0.5rem; padding: 0.75rem; border-top: 1px solid var(--color-border); }
+  .context-mini-chip { display: inline-block; max-width: 100%; margin-bottom: 0.4rem; border: 1px solid var(--color-pink); border-radius: var(--radius-sm); background: var(--color-pink-soft); color: #be185d; padding: 0.16rem 0.4rem; font-size: 0.68rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .input-area { display: grid; gap: 0.5rem; padding: 0.75rem; border-top: 1px solid var(--color-border); }
+  .input-row { display: flex; gap: 0.5rem; min-width: 0; }
+  .context-chip { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.45rem; border: 1px solid var(--color-pink); border-radius: var(--radius-md); background: var(--color-pink-soft); padding: 0.38rem 0.5rem; color: #be185d; font-size: 0.72rem; }
+  .context-chip span { font-weight: 800; }
+  .context-chip strong { min-width: 0; overflow: hidden; color: var(--color-text); text-overflow: ellipsis; white-space: nowrap; }
+  .context-chip button { border: 1px solid rgba(190, 24, 93, 0.28); border-radius: var(--radius-sm); background: white; color: #be185d; cursor: pointer; font: inherit; font-size: 0.68rem; font-weight: 800; padding: 0.18rem 0.4rem; white-space: nowrap; }
   .input-area input { flex: 1; padding: 0.6rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text); font-size: 0.9rem; }
   .input-area input:focus { outline: none; border-color: var(--color-pink); box-shadow: 0 0 0 3px var(--color-pink-soft); }
-  .input-area button { padding: 0.6rem 1.2rem; border: none; border-radius: var(--radius-md); background: var(--color-pink); color: white; cursor: pointer; font-weight: 700; }
-  .input-area button:disabled { opacity: 0.5; }
+  .input-row > button { padding: 0.6rem 1.2rem; border: none; border-radius: var(--radius-md); background: var(--color-pink); color: white; cursor: pointer; font-weight: 700; }
+  .input-row > button:disabled { opacity: 0.5; }
   .status-badge { background: var(--color-pink); color: white; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.7rem; }
   .plan-badge { background: #2563eb; color: white; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.7rem; }
   .plan-message { align-items: flex-start; }
@@ -351,4 +388,13 @@
   .reject-btn { background: white; color: #1d4ed8; border: 1px solid #bfdbfe; }
   .plain-btn { background: transparent; color: #64748b; border: 1px solid transparent; }
   .approve-btn:disabled, .reject-btn:disabled, .plain-btn:disabled { opacity: 0.5; cursor: default; }
+
+  @media (max-width: 900px) {
+    .context-chip { grid-template-columns: 1fr; }
+    .context-chip button { justify-self: start; }
+    .input-row { flex-direction: column; }
+    .input-area button[type="submit"] { width: 100%; }
+    .msg-content { max-width: 100%; }
+    .plan-signal-grid { grid-template-columns: 1fr; }
+  }
 </style>

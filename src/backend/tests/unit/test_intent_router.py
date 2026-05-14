@@ -52,6 +52,15 @@ def test_rule_route_selects_read_only_profile_for_file_requests() -> None:
     assert "file_read" in route.selected_tools
 
 
+def test_rule_route_selects_mail_search_for_mail_requests() -> None:
+    route = rule_route(_resolved("카카오에서 온 메일들 요약해줘"))
+
+    assert route.intent == "mail_read"
+    assert route.execution_policy == "mail_read"
+    assert "mail_search" in route.selected_tools
+    assert "file_search" not in route.selected_tools
+
+
 def test_rule_route_uses_workspace_admin_profile_for_folder_cleanup() -> None:
     route = rule_route(_resolved("폴더들이 너무 지저분하다. 정리좀 부탁해"))
 

@@ -4,7 +4,7 @@
   import { isAuthenticated, user } from '../stores/auth';
   import { currentProjectId, startProjectDeploy, stopProjectDeploy } from '../stores/projects';
   import { chatSessions, loadChatSessions, createChatSession, deleteChatSession, summarizeChatSession, currentChatId, type ChatSessionItem } from '../stores/chatSessions';
-  import { messages, loadMessages, sendMessage, streaming, todoSteps, agentStatus, planMode, loadPlanModeState, loadDebugTrace, type ChatMessage, type DebugTraceResponse, type OpenFileContext, type OpenFileSelectionContext } from '../stores/chat';
+  import { messages, loadMessages, sendMessage, streaming, todoSteps, agentStatus, planMode, loadPlanModeState, loadDebugTrace, type ChatMessage, type DebugTraceResponse, type OpenFileContext, type OpenFileSelectionContext, type OpenMailContext } from '../stores/chat';
   import {
     fileTree,
     folderCache,
@@ -114,6 +114,7 @@
   import DebugTraceModal from '../components/DebugTraceModal.svelte';
   import FileViewerPanel from '../components/FileViewerPanel.svelte';
   import WorkspaceChatPanel from '../components/WorkspaceChatPanel.svelte';
+  import WorkspaceMailShell from '../components/WorkspaceMailShell.svelte';
   import WorkspaceSidePanel from '../components/WorkspaceSidePanel.svelte';
   import WorkspaceTopBar from '../components/WorkspaceTopBar.svelte';
   import type { SidePanelTab, SkillResponse } from '../components/workspaceSidePanelTypes';
@@ -133,6 +134,7 @@
   let chatContainer: HTMLElement | undefined = $state(undefined);
   let showChatList = $state(false);
   let activeSideTab = $state<SidePanelTab>('files');
+  let currentMailContext = $state<OpenMailContext | null>(null);
   let activeViewerTab = $state<ViewerTab>('source');
   let lastViewerPath: string | null = null;
   let lastEditorPath: string | null = null;
@@ -231,6 +233,18 @@
       active_viewer_tab: activeViewerTab,
       dirty: hasUnsavedChanges(),
       selection,
+    };
+  }
+
+  function buildOpenMailContext(): OpenMailContext | null {
+    if (activeSideTab !== 'mail') return null;
+    return {
+      active: true,
+      latest_run_id: currentMailContext?.latest_run_id || null,
+      latest_run_status: currentMailContext?.latest_run_status || null,
+      selected_thread_id: currentMailContext?.selected_thread_id || null,
+      selected_subject: currentMailContext?.selected_subject || null,
+      selected_sender: currentMailContext?.selected_sender || null,
     };
   }
 
@@ -723,6 +737,7 @@
       debugEnabled: debugMode,
       planModeRequested,
       openFileContext: buildOpenFileContext(),
+      openMailContext: buildOpenMailContext(),
     });
   }
 
@@ -1145,6 +1160,7 @@
   <div class="workspace" class:resizing={resizingPanel !== null} bind:this={workspaceElement}>
     <WorkspaceSidePanel
       width={filePanelWidth}
+      projectId={$currentProjectId}
       {activeSideTab}
       sidePanelTabs={SIDE_PANEL_TABS}
       sidePanelTitle={getSidePanelTitle()}
@@ -1204,34 +1220,46 @@
       onpointerdown={(event) => beginPanelResize('file', event)}
     ></button>
 
-    <FileViewerPanel
-      selectedFilePath={$selectedFilePath}
-      fileLanguage={$fileLanguage}
-      fileContent={$fileContent}
-      fileLoading={$fileLoading}
-      {activeViewerTab}
-      hasUnsavedChanges={hasUnsavedChanges()}
-      {externalFileChanged}
-      {markdownPreviewHtml}
-      {highlightedCodeHtml}
-      {htmlPreviewKey}
-      {htmlPreviewContent}
-      {htmlPreviewReady}
-      {csvParseError}
-      {csvPreviewRows}
-      {csvRows}
-      {editorContent}
-      {savingFile}
-      {saveStatus}
-      onViewerTabClick={handleViewerTabClick}
-      onRefreshHtmlPreview={refreshHtmlPreview}
-      onCsvCellInput={handleCsvCellInput}
-      onReloadCurrentFile={handleReloadCurrentFile}
-      onRevertFile={handleRevertFile}
-      onSaveFile={handleSaveFile}
-      onEditorChange={(value) => { editorContent = value; saveStatus = ''; }}
-      onEditorSelectionChange={(selection) => { editorSelection = selection; }}
-    />
+    {#if activeSideTab === 'mail'}
+      <WorkspaceMailShell
+        projectId={$currentProjectId}
+        onMailContextChange={(context) => {
+          currentMailContext = context;
+        }}
+        onAskWithMail={(text) => {
+          inputText = text;
+        }}
+      />
+    {:else}
+      <FileViewerPanel
+        selectedFilePath={$selectedFilePath}
+        fileLanguage={$fileLanguage}
+        fileContent={$fileContent}
+        fileLoading={$fileLoading}
+        {activeViewerTab}
+        hasUnsavedChanges={hasUnsavedChanges()}
+        {externalFileChanged}
+        {markdownPreviewHtml}
+        {highlightedCodeHtml}
+        {htmlPreviewKey}
+        {htmlPreviewContent}
+        {htmlPreviewReady}
+        {csvParseError}
+        {csvPreviewRows}
+        {csvRows}
+        {editorContent}
+        {savingFile}
+        {saveStatus}
+        onViewerTabClick={handleViewerTabClick}
+        onRefreshHtmlPreview={refreshHtmlPreview}
+        onCsvCellInput={handleCsvCellInput}
+        onReloadCurrentFile={handleReloadCurrentFile}
+        onRevertFile={handleRevertFile}
+        onSaveFile={handleSaveFile}
+        onEditorChange={(value) => { editorContent = value; saveStatus = ''; }}
+        onEditorSelectionChange={(selection) => { editorSelection = selection; }}
+      />
+    {/if}
 
     <button
       type="button"
@@ -1252,6 +1280,7 @@
       {summarizingChat}
       streaming={$streaming}
       {chatActionMessage}
+      openMailContext={buildOpenMailContext()}
       chatSessions={$chatSessions}
       currentChatId={$currentChatId}
       messages={$messages}
@@ -1270,6 +1299,7 @@
       onApprovePlan={handleApprovePlan}
       onRejectPlan={handleRejectPlan}
       onSummarizeChat={handleSummarizeChat}
+      onOpenMailWorkbench={() => { activeSideTab = 'mail'; }}
       onMessagesElementChange={(element) => { chatContainer = element; }}
       renderChatMarkdown={renderWorkspaceChatMarkdown}
       formatToolStepContent={formatWorkspaceToolStep}

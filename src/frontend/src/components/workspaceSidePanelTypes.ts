@@ -1,7 +1,7 @@
 import type { FileSearchItem, FolderCacheEntry, TreeNode } from '../stores/files';
 import type { ExplorerRow } from '../lib/workspaceExplorerRows';
 
-export type SidePanelTab = 'files' | 'skills' | 'tools' | 'dataSources';
+export type SidePanelTab = 'files' | 'skills' | 'tools' | 'mail';
 export type SidePanelTabItem = { id: SidePanelTab; label: string };
 export type VirtualRows = { rows: ExplorerRow[]; totalHeight: number; translateY: number };
 export type SkillResponse = {

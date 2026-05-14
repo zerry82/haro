@@ -38,11 +38,23 @@ class Settings(BaseSettings):
     web_search_api_key: str = ""
     web_search_timeout_seconds: float = 10.0
 
+    # Gmail OAuth settings
+    google_gmail_client_id: str = ""
+    google_gmail_client_secret: str = ""
+    google_gmail_redirect_uri: str = "http://127.0.0.1:8001/api/auth/google/gmail/callback"
+    google_gmail_scopes: str = "https://www.googleapis.com/auth/gmail.readonly"
+    google_oauth_state_secret: str = ""
+    google_oauth_timeout_seconds: float = 10.0
+    mail_token_encryption_key: str = ""
+    mail_token_store_dir: str = "./data/secrets/mail_tokens"
+    mail_vector_search_enabled: bool = True
+    mail_vector_embedding_model: str = "gemini-embedding-001"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
-    @field_validator("workspace_root")
+    @field_validator("workspace_root", "mail_token_store_dir")
     @classmethod
-    def resolve_workspace_root(cls, value: str) -> str:
+    def resolve_project_path(cls, value: str) -> str:
         path = Path(value).expanduser()
         if not path.is_absolute():
             path = PROJECT_ROOT / path

@@ -4,7 +4,7 @@ export const SIDE_PANEL_TABS: SidePanelTabItem[] = [
   { id: 'files', label: '폴더' },
   { id: 'skills', label: '스킬' },
   { id: 'tools', label: '툴' },
-  { id: 'dataSources', label: '데이터소스' },
+  { id: 'mail', label: '메일 관리' },
 ];
 
 export const TOOL_CATALOG: ToolCatalogItem[] = [

@@ -6,9 +6,11 @@ import json
 import os
 import shutil
 
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.chat_session import ChatSession
+from app.models.mail import MailAnalysisRun, MailThreadStaging
 from app.models.plan_mode import PlanSession
 from app.models.project import Project
 from app.services.chat_workspace import (
@@ -20,6 +22,12 @@ from app.services.chat_workspace import (
 )
 from app.services.chat_workspace_paths import ResultPathRequiredError
 from app.services.file_path_policy import assert_read_allowed, assert_write_allowed
+from app.services.mail_search import (
+    MailSearchRunNotFoundError,
+    MailSearchRunNotReadyError,
+    search_mail_analysis,
+)
+from app.services.mail_vector_index import MailVectorSearchUnavailable
 from app.services.plan_mode import (
     PLAN_DRAFTING,
     analyze_plan_requirements,
@@ -154,6 +162,97 @@ def _json_result(payload: dict) -> str:
 
 def _without_new_content(result: dict) -> dict:
     return {key: value for key, value in result.items() if key != "new_content"}
+
+
+async def _execute_mail_attachment_read(db: AsyncSession, project: Project, args: dict) -> dict:
+    run_id = str(args.get("run_id") or "latest")
+    thread_id = str(args.get("thread_id") or args.get("id") or "").strip()
+    attachment_ref = str(args.get("attachment_ref") or "").strip()
+    run = await _resolve_mail_run(db, project, run_id)
+    if not thread_id:
+        return {
+            "error": "thread_id가 필요합니다. 먼저 mail_search로 메일을 찾은 뒤 해당 thread_id를 전달하세요.",
+            "run": _mail_run_payload(run),
+            "attachments": [],
+        }
+    result = await db.execute(
+        select(MailThreadStaging).where(
+            MailThreadStaging.id == thread_id,
+            MailThreadStaging.run_id == run.id,
+            MailThreadStaging.project_id == project.id,
+            MailThreadStaging.user_id == project.user_id,
+        )
+    )
+    thread = result.scalar_one_or_none()
+    if not thread:
+        return {"error": "해당 메일 thread를 찾지 못했습니다.", "run": _mail_run_payload(run), "attachments": []}
+    attachments = _loads_json(thread.attachments_json, [])
+    if attachment_ref:
+        attachments = [attachment for attachment in attachments if str(attachment.get("attachment_ref") or "") == attachment_ref]
+    return {
+        "run": _mail_run_payload(run),
+        "thread": {
+            "id": thread.id,
+            "subject": thread.subject,
+            "sender": thread.sender,
+            "received_at": thread.received_at,
+            "summary": thread.summary,
+        },
+        "attachments": [_public_mail_attachment(attachment) for attachment in attachments if isinstance(attachment, dict)],
+    }
+
+
+async def _resolve_mail_run(db: AsyncSession, project: Project, run_id: str) -> MailAnalysisRun:
+    if run_id == "latest":
+        result = await db.execute(
+            select(MailAnalysisRun)
+            .where(
+                MailAnalysisRun.project_id == project.id,
+                MailAnalysisRun.user_id == project.user_id,
+                MailAnalysisRun.status == "completed",
+            )
+            .order_by(desc(MailAnalysisRun.created_at))
+            .limit(1)
+        )
+    else:
+        result = await db.execute(
+            select(MailAnalysisRun).where(
+                MailAnalysisRun.id == run_id,
+                MailAnalysisRun.project_id == project.id,
+                MailAnalysisRun.user_id == project.user_id,
+            )
+        )
+    run = result.scalar_one_or_none()
+    if not run:
+        raise RuntimeError("Gmail 분석 결과가 없습니다. 먼저 메일 관리에서 최근 분석을 실행해 주세요.")
+    if run.status != "completed":
+        raise RuntimeError(f"Gmail 분석이 아직 완료되지 않았습니다. 현재 상태: {run.status}")
+    return run
+
+
+def _mail_run_payload(run: MailAnalysisRun) -> dict:
+    return {
+        "id": run.id,
+        "status": run.status,
+        "range_start": run.range_start,
+        "range_end": run.range_end,
+    }
+
+
+def _public_mail_attachment(attachment: dict) -> dict:
+    return {
+        key: value
+        for key, value in attachment.items()
+        if not str(key).startswith("_gmail_") and key not in {"gmail_message_id", "gmail_attachment_id", "raw_gmail_id"}
+    }
+
+
+def _loads_json(value: str, default):
+    try:
+        parsed = json.loads(value or "")
+    except (TypeError, json.JSONDecodeError):
+        return default
+    return parsed if isinstance(parsed, type(default)) else default
 
 
 async def execute_tool(
@@ -301,6 +400,49 @@ async def execute_tool(
                     },
                 )
             return result
+
+        if tool_name == "mail_search":
+            if db is None or project is None:
+                return "메일 검색을 실행할 수 없습니다: 프로젝트 컨텍스트가 없습니다."
+            query = str(args.get("query") or args.get("q") or "")
+            try:
+                limit = int(args.get("limit") or 10)
+            except Exception:
+                limit = 10
+            run_id = str(args.get("run_id") or "latest")
+            try:
+                result = await search_mail_analysis(
+                    db,
+                    project_id=project.id,
+                    user_id=project.user_id,
+                    run_id=run_id,
+                    query=query,
+                    limit=max(1, min(limit, 50)),
+                    workspace_path=getattr(project, "workspace_path", None),
+                )
+            except MailSearchRunNotFoundError as exc:
+                return str(exc)
+            except MailSearchRunNotReadyError as exc:
+                return str(exc)
+            except MailVectorSearchUnavailable as exc:
+                return f"메일 벡터 검색을 사용할 수 없습니다: {exc}"
+            return _json_result({
+                "query": result.query,
+                "run": {
+                    "id": result.run.id,
+                    "status": result.run.status,
+                    "range_start": result.run.range_start,
+                    "range_end": result.run.range_end,
+                },
+                "retrieval": getattr(result, "retrieval", {"mode": "text"}),
+                "items": result.items,
+            })
+
+        if tool_name == "mail_attachment_read":
+            if db is None or project is None:
+                return "메일 첨부파일을 확인할 수 없습니다: 프로젝트 컨텍스트가 없습니다."
+            result = await _execute_mail_attachment_read(db, project, args)
+            return _json_result(result)
 
         user_id = project.user_id if project else None
 

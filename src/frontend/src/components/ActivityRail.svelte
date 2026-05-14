@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Database, Files, Sparkles, Wrench } from 'lucide-svelte';
+  import { Files, Mail, Sparkles, Wrench } from 'lucide-svelte';
   import type { SidePanelTab, SidePanelTabItem } from './workspaceSidePanelTypes';
 
   let {
@@ -31,8 +31,8 @@
         <Sparkles size={24} strokeWidth={1.8} />
       {:else if tab.id === 'tools'}
         <Wrench size={24} strokeWidth={1.8} />
-      {:else}
-        <Database size={24} strokeWidth={1.8} />
+      {:else if tab.id === 'mail'}
+        <Mail size={24} strokeWidth={1.8} />
       {/if}
       <span class="sr-only">{tab.label}</span>
     </button>

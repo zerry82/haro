@@ -1,0 +1,783 @@
+{
+  "exported_at": "2026-05-12T13:36:29.567Z",
+  "project_id": "0628da51-b6ef-424d-8692-ec1182533835",
+  "chat_id": "4ddfc513-1a26-4926-a9c7-66d97728314b",
+  "message": {
+    "id": "77300a58-e88f-4818-8e5a-295418264c9c",
+    "role": "user",
+    "content": "카카오에서 온 메일들 요약해줘",
+    "metadata": {
+      "client_message_id": "4ad89588-473c-4b87-9acd-2006b7c12247",
+      "debug_enabled": true,
+      "open_file_context": null,
+      "server_message_id": "77300a58-e88f-4818-8e5a-295418264c9c"
+    },
+    "created_at": null
+  },
+  "trace": {
+    "message_id": "77300a58-e88f-4818-8e5a-295418264c9c",
+    "has_trace": true,
+    "events": [
+      {
+        "id": "fd436b95-dd17-415f-a49a-279f7bc8ecad",
+        "round_index": -100,
+        "event_type": "gate_decision",
+        "payload": {
+          "decision": "new_task",
+          "reason": "사용자가 '카카오에서 온 메일 요약'이라는 구체적인 새로운 업무를 요청하였으며, 이전 대화 내역이나 진행 중인 작업이 없는 상태에서의 첫 요청이므로 new_task로 판단합니다.",
+          "parent_intent_turn_id": null,
+          "artifact_path": null,
+          "artifact_kind": null,
+          "artifact_url": null,
+          "artifact_action": null,
+          "confidence": 1,
+          "source": "llm"
+        },
+        "duration_ms": null,
+        "created_at": "2026-05-12T13:35:54.934578+00:00"
+      },
+      {
+        "id": "6f0c358e-e413-4df1-b119-2471294233f8",
+        "round_index": -99,
+        "event_type": "router_result",
+        "payload": {
+          "user_content": "카카오에서 온 메일들 요약해줘",
+          "tool_selection_source": "policy",
+          "routing_context": {
+            "current_user_message": "카카오에서 온 메일들 요약해줘",
+            "routing_text": "카카오에서 온 메일들 요약해줘",
+            "chat_workspace": "/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513",
+            "gate_context": {
+              "decision": "new_task",
+              "reason": "사용자가 '카카오에서 온 메일 요약'이라는 구체적인 새로운 업무를 요청하였으며, 이전 대화 내역이나 진행 중인 작업이 없는 상태에서의 첫 요청이므로 new_task로 판단합니다.",
+              "source": "llm",
+              "confidence": 1,
+              "artifact_path": null,
+              "artifact_kind": null,
+              "artifact_url": null,
+              "artifact_action": null,
+              "intent_turn_id": null
+            },
+            "is_clarification_answer": false,
+            "previous_intent": null,
+            "clarification_question": null,
+            "latest_artifact": null,
+            "latest_preview": null,
+            "file_discovery_context": null,
+            "latest_assistant_message": null,
+            "recent_messages": [
+              {
+                "id": "77300a58-e88f-4818-8e5a-295418264c9c",
+                "role": "user",
+                "content": "카카오에서 온 메일들 요약해줘",
+                "created_at": "2026-05-12T13:35:49.905178+00:00"
+              }
+            ],
+            "recent_intents": [],
+            "execution_policy": {
+              "profile": "read_only",
+              "confidence": 0.86,
+              "risk_level": "low",
+              "reason": "파일, 폴더, 현재 화면, 산출물 상태 확인 작업입니다.",
+              "context_confidence": 0.68,
+              "target_confidence": 0.45,
+              "source_confidence": 0.55,
+              "operation_confidence": 0.84
+            }
+          }
+        },
+        "duration_ms": null,
+        "created_at": "2026-05-12T13:35:56.362877+00:00"
+      },
+      {
+        "id": "09b98a40-e8d8-40e5-9134-22dc96e9f28b",
+        "round_index": -98,
+        "event_type": "selected_tools",
+        "payload": {
+          "selected_tools": [
+            "file_search",
+            "dir_list",
+            "file_count",
+            "file_read",
+            "file_stats",
+            "file_search_content",
+            "file_read_range"
+          ],
+          "selected_skills": []
+        },
+        "duration_ms": null,
+        "created_at": "2026-05-12T13:35:56.427009+00:00"
+      },
+      {
+        "id": "a1451d08-e67e-4310-995b-32cabdba7560",
+        "round_index": -97,
+        "event_type": "result",
+        "payload": {
+          "summary": "작업이 완료되었습니다."
+        },
+        "duration_ms": null,
+        "created_at": "2026-05-12T13:36:22.962211+00:00"
+      },
+      {
+        "id": "82c31030-0c54-4938-81aa-d505028f04bc",
+        "round_index": -30,
+        "event_type": "gate_decision",
+        "payload": {
+          "decision": "new_task",
+          "reason": "사용자가 '카카오에서 온 메일 요약'이라는 구체적인 새로운 업무를 요청하였으며, 이전 대화 내역이나 진행 중인 작업이 없는 상태에서의 첫 요청이므로 new_task로 판단합니다.",
+          "intent_turn_id": null,
+          "artifact_path": null,
+          "artifact_kind": null,
+          "artifact_url": null,
+          "artifact_action": null,
+          "confidence": 1,
+          "source": "llm",
+          "candidates": []
+        },
+        "duration_ms": null,
+        "created_at": "2026-05-12T13:35:54.800159+00:00"
+      },
+      {
+        "id": "bf1d87c8-a0dc-4fb3-9c2a-5c917d2f8af4",
+        "round_index": 0,
+        "event_type": "llm_request",
+        "payload": {
+          "model": "gemini-3-flash-preview",
+          "system_instruction": "당신은 haro AI 에이전트입니다.\n사용자의 요청을 분석하고, 도구를 사용하여 파일을 생성·수정·삭제하며 작업을 수행합니다.\n\n역할:\n1. 사용자 의도를 분석합니다.\n2. 필요한 작업을 계획합니다.\n3. 도구를 호출하여 실제 작업을 수행합니다.\n4. 애매한 부분이 있으면 사용자에게 질문합니다.\n\n규칙:\n- 파일 작업 시 반드시 제공된 도구를 사용하세요.\n- 워크스페이스 파일 생성/수정/이동/삭제를 code_run으로 우회하지 말고 전용 파일/폴더 도구만 사용하세요.\n- 파일 구조 확인이 필요한 작업에는 이번 턴에 제공된 디렉토리/파일 DB 도구만 사용하세요.\n- 파일/폴더 검색, 개수, 요약 기반 탐색에는 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 개수만 묻는 질문에는 이번 턴에 개수 조회 도구가 제공된 경우 우선 사용하고, 요청하지 않은 폴더를 추가로 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하지 말고 필요한 범위만 도구로 조회하세요.\n- 한국어로 응답하세요.\n- 작업 계획을 먼저 설명한 후 도구를 호출하세요.\n- 별도 라우터가 작업 의미를 확정하지 않습니다. 현재 작업 맥락, 열린 파일, 최근 산출물, 대화, 도구 결과를 종합해 직접 판단하세요.\n- \"여기\", \"아래\", \"오늘\", \"방금\", \"이 파일\" 같은 지시어는 현재 열린 파일과 직전 도구 결과를 우선 근거로 해석하세요.\n- active file과 latest artifact가 다르면 active file을 현재 화면으로 우선하고, 두 대상을 혼동하지 말고 구분해서 설명하세요.\n- 낮은 위험의 읽기/요약/확인 요청은 맥락 확신도가 높으면 불필요하게 되묻지 말고 진행하세요.\n- 파일 수정/삭제/이동처럼 되돌리기 어려운 작업에서 대상 파일, source 파일, 작업 단위가 모호하면 후보와 이유를 들어 구체적으로 확인하세요.\n- 파일 작업 실패, 중복 검색, 사용자 정정(\"응?\", \"아니\", \"그게 맞아?\")이 나오면 같은 행동을 반복하지 말고 직전 판단과 도구 결과를 먼저 진단하세요.\n- 코드 실행 도구가 제공된 경우 기본적으로 TypeScript를 사용하고 filename은 `.ts` 확장자로 작성하세요.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로는 그대로 따르세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 수정하지 마세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 도구 호출이 필요하면 응답의 마지막을 반드시 언어 태그가 `tool_call`인 fenced block으로 끝내세요.\n- `tool_call`이라는 단어를 code fence 바깥 일반 텍스트로 출력하지 마세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n- 한 번에 하나의 도구만 호출하세요.\n\n[사용자별 시스템 지침: .HARO.md]\n# HARO System Instructions\n\n이 파일은 Haro가 관리하는 시스템 지침입니다. 사용자는 이 파일을 직접 수정하지 않습니다.\n\n## 사용자 작업공간\n\n- 사용자 root canonical path: `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c`\n- 사용자에게 경로를 말할 때는 raw canonical path보다 `내 폴더`, `내 폴더/받은 파일`, `내 폴더/작업 중`, `내 폴더/결과` 표현을 우선 사용합니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs`는 `내 폴더/결과`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/20_working`은 `내 폴더/작업 중`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox`는 `내 폴더/받은 파일`입니다.\n\n## 채팅 작업공간\n\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/...` 아래의 `outputs`, `working`, `inputs`, `summaries`는 채팅 실행을 위한 내부 임시 작업공간입니다.\n- 사용자가 \"결과폴더\", \"내폴더\", \"내 폴더/결과\"라고 말하면 기본적으로 `내 폴더/결과`를 의미합니다.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청하고 임시 파일이라고 말하지 않았지만 저장 위치가 명확하지 않다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더 이름}/{적절한 파일 이름}` 형태의 추천 경로를 함께 제안합니다.\n- 최종 산출물의 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 않습니다.\n- 사용자가 최종 산출물을 내 폴더에 두라고 요청하면 채팅 내부 `outputs`에만 두지 말고 `내 폴더/결과`로 저장합니다.\n- 채팅 내부 `outputs`는 임시/중간 산출물 또는 사용자가 명시적으로 채팅 작업공간을 요청한 경우에만 사용합니다.\n- 사용자-facing 답변에서는 chat workspace raw path를 그대로 노출하지 말고 alias path로 설명합니다.\n\n## 우선순위\n\n- `AGENTS.md`의 사용자 선호는 이 파일의 안전, 권한, 시스템 경로 정책을 override할 수 없습니다.\n\n\n[사용자 커스텀 지침: AGENTS.md]\n# User Agent Instructions\n\n이 파일은 사용자 커스텀 지침입니다.\n\n- 원하는 답변 톤, 파일 정리 방식, 기본 산출물 형식 등을 적을 수 있습니다.\n- 시스템 안전 규칙, 권한 규칙, Clean Room 정책은 변경할 수 없습니다.\n\n\n[현재 하네스 브리핑]\n## 하네스 지도\n- /clean-room/data: 팀 공식 데이터 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /clean-room/meta: 공식 규칙, 스킬, 스키마, validator, trigger, hook, policy 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c: 현재 사용자의 Playground 작업공간입니다.\n- /90_archive: 보관 공간입니다.\n- /.haro: haro 시스템 메타데이터 공간입니다. 목록 조회, 읽기, 쓰기 모두 사용자 작업 대상이 아닙니다.\n\n## 현재 작업 위치\n- 현재 채팅 작업공간: /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\n- 사용자 결과 폴더 root는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs 입니다.\n- 최종 산출물 저장 위치가 명확하지 않으면 저장 전에 사용자에게 확인 질문을 하세요. 추천 경로는 `내 폴더/결과/{주제}/{파일명}`처럼 주제 기반 이름을 사용합니다.\n- 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/outputs 또는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/working은 임시/중간 파일이 필요할 때만 사용합니다.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자 결과 폴더를 의미합니다.\n\n## 탐색 규칙\n- 전체 파일 트리와 전체 파일별 요약은 이 컨텍스트에 포함되지 않습니다.\n- 디렉토리 목록은 필요한 경로에 대해서만, 이번 턴에 제공된 목록 조회 도구로 조회하세요.\n- 파일명, 경로, 요약 텍스트 검색은 이번 턴에 제공된 검색 도구로 조회하세요.\n- 파일/폴더 개수만 묻는 질문에는 이번 턴에 제공된 개수 조회 도구를 우선 사용하세요.\n- 사용자가 요구하지 않은 다른 폴더나 채팅 작업공간을 추가로 조회하지 마세요.\n\n## 상태 요약\n- DB 인덱스 기준 전체 폴더: 42개\n- DB 인덱스 기준 전체 파일: 31개\n- 루트 하위 폴더: 3개\n- 현재 채팅 작업공간 하위 폴더: 4개\n- 현재 채팅 작업공간 하위 파일: 9개\n\n## 현재 채팅 압축 맥락\n## context.md\n# Current Chat Context\n\nchat_id: 4ddfc513-1a26-4926-a9c7-66d97728314b\nupdated_at: 2026-05-12T13:35:20.802068+00:00\n\n아직 압축된 맥락이 없습니다.\n\n## decisions.md\n# Decisions\n\n## rule-candidates.md\n# Rule Candidates\n\n## linked-files.json\n{\n  \"inputs\": [],\n  \"derived\": [],\n  \"outputs\": [],\n  \"exports\": []\n}\n사용 가능한 도구 목록:\n1. file_search(query, limit, item_type) - SQLite 파일 DB 기반 파일명, 경로, 요약 텍스트 검색.\n2. dir_list(path) - SQLite 파일 DB 기반 디렉토리 내용 조회. 기본 path는 \"/\".\n3. file_count(path, item_type, recursive) - SQLite 파일 DB 기반 파일/폴더 개수 조회.\n4. file_read(path) - 파일 내용 읽기.\n5. file_stats(path) - UTF-8 텍스트 파일의 줄 수, 글자 수, 단어/어절 추정, 예상 발표 시간, sha256을 반환합니다.\n6. file_search_content(path, query, regex, case_sensitive, glob, output_mode, max_results, offset, context_lines) - 파일 또는 폴더 내부 UTF-8 텍스트를 검색합니다.\n7. file_read_range(path, start_line, line_count) - UTF-8 텍스트 파일의 1-based 줄 범위만 읽습니다.\n\n채팅 작업공간 규칙:\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자의 `내 폴더/결과`를 의미합니다.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 명시 경로 없이 파일명만 path에 넣으면 저장 위치 확인이 필요합니다. 도구 호출 전에 사용자에게 확인하세요.\n- 최종 산출물 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로를 말한 경우에는 그 경로를 사용하세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 쓰지 마세요.\n\n파일 DB 조회 규칙:\n- 파일/폴더 검색, 개수, 요약 기반 탐색은 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 범위가 명확한 질문에는 해당 범위만 조회하고, 사용자가 요구하지 않은 채팅 폴더나 다른 폴더를 추가 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하거나 전체를 나열하지 말고 필요한 범위만 도구로 조회하세요.\n- \"몇 개\"처럼 개수만 묻는 요청에는 `file_count`를 우선 사용하세요.\n- 의미 있는 파일을 찾아야 하면 `file_search`로 파일명, 경로, 요약 텍스트를 검색하세요.\n- 검색 결과의 실제 내용을 확인해야 할 때만 `file_read`를 사용하세요.\n- 긴 파일, 분량 검증, 일부 수정 작업은 전체 `file_read` 전에 `file_stats`, `file_search_content`, `file_read_range`로 범위를 먼저 좁히세요.\n- \"N배\", \"N분 분량\", \"더 길게\", \"객관적으로 맞아?\" 같은 정량 요구사항은 변경 전후 `file_stats`로 실제 수치를 확인하세요.\n- 특정 폴더의 직계 목록이 필요할 때만 `dir_list`를 사용하세요.\n\n도구 호출 출력 계약:\n- 도구를 사용할 때는 반드시 아래 fenced block 형식만 사용하세요.\n- 사용 가능한 도구 목록에 없는 도구 이름은 절대 호출하지 마세요.\n- 필요한 도구가 목록에 없으면 현재 가능한 범위만 텍스트로 설명하고 멈추세요.\n- `tool_call`이라는 단어는 반드시 code fence 언어 태그로만 쓰세요.\n- code fence 바깥 일반 문장, 제목, 목록, 설명 안에 `tool_call`이라는 단어를 쓰지 마세요.\n- 도구 호출 block 뒤에는 어떤 문장도 덧붙이지 말고 즉시 응답을 끝내세요.\n- 한 번의 응답에는 정확히 하나의 도구 호출 block만 포함하세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n\n허용되는 유일한 형식:\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"dashboard\", \"limit\": 10, \"item_type\": \"file\"}}\n```\n\n금지되는 형식:\n- `tool_call` 다음 줄에 JSON을 쓰는 plain text 형식\n- 언어 태그가 `json`인 fenced block\n- XML/HTML 태그 안의 도구 호출\n- bullet/list 안에 JSON을 넣는 형식\n- 한 응답에 여러 개의 tool_call block을 넣는 형식\n\n도구를 사용하지 않고 텍스트만 응답할 때는 일반 텍스트로 응답하세요.\n작업 계획을 먼저 설명한 뒤 도구를 호출해야 한다면, 마지막은 반드시 위의 `tool_call` fenced block으로 끝내세요.\n한 번에 하나의 도구만 호출하세요.\n도구 호출 결과를 받은 후 다음 작업을 진행하세요.\n\n[현재 작업 맥락]\n아래 JSON은 현재 턴의 작업 맥락입니다. 라우터가 작업 의미를 확정한 것이 아니며, 대화 전체, 열린 파일, 최근 산출물, 도구 결과 후보를 종합해 executor가 판단해야 합니다.\n- active file과 latest artifact가 다르면 active file을 우선하고 둘을 구분해 설명하세요.\n- 낮은 위험의 read-only 요청은 확신이 충분하면 바로 진행하세요.\n- 파일 변경/삭제/이동에서 대상이나 작업 단위가 모호하면 후보와 이유를 들어 확인 질문을 하세요.\n- 같은 검색을 반복하지 말고, source가 없으면 확인한 위치와 누락 정보를 요약해 경로/재업로드를 요청하세요.\n{\n  \"current_user_message\": \"카카오에서 온 메일들 요약해줘\",\n  \"routing_text\": \"카카오에서 온 메일들 요약해줘\",\n  \"chat_workspace\": \"/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\",\n  \"gate_context\": {\n    \"decision\": \"new_task\",\n    \"source\": \"llm\",\n    \"confidence\": 1.0,\n    \"reason\": \"사용자가 '카카오에서 온 메일 요약'이라는 구체적인 새로운 업무를 요청하였으며, 이전 대화 내역이나 진행 중인 작업이 없는 상태에서의 첫 요청이므로 new_task로 판단합니다.\"\n  },\n  \"execution_policy\": {\n    \"profile\": \"read_only\",\n    \"confidence\": 0.86,\n    \"risk_level\": \"low\",\n    \"reason\": \"파일, 폴더, 현재 화면, 산출물 상태 확인 작업입니다.\",\n    \"context_confidence\": 0.68,\n    \"target_confidence\": 0.45,\n    \"source_confidence\": 0.55,\n    \"operation_confidence\": 0.84\n  },\n  \"is_clarification_answer\": false\n}",
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "카카오에서 온 메일들 요약해줘"
+                }
+              ]
+            }
+          ],
+          "config": {
+            "system_instruction": "당신은 haro AI 에이전트입니다.\n사용자의 요청을 분석하고, 도구를 사용하여 파일을 생성·수정·삭제하며 작업을 수행합니다.\n\n역할:\n1. 사용자 의도를 분석합니다.\n2. 필요한 작업을 계획합니다.\n3. 도구를 호출하여 실제 작업을 수행합니다.\n4. 애매한 부분이 있으면 사용자에게 질문합니다.\n\n규칙:\n- 파일 작업 시 반드시 제공된 도구를 사용하세요.\n- 워크스페이스 파일 생성/수정/이동/삭제를 code_run으로 우회하지 말고 전용 파일/폴더 도구만 사용하세요.\n- 파일 구조 확인이 필요한 작업에는 이번 턴에 제공된 디렉토리/파일 DB 도구만 사용하세요.\n- 파일/폴더 검색, 개수, 요약 기반 탐색에는 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 개수만 묻는 질문에는 이번 턴에 개수 조회 도구가 제공된 경우 우선 사용하고, 요청하지 않은 폴더를 추가로 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하지 말고 필요한 범위만 도구로 조회하세요.\n- 한국어로 응답하세요.\n- 작업 계획을 먼저 설명한 후 도구를 호출하세요.\n- 별도 라우터가 작업 의미를 확정하지 않습니다. 현재 작업 맥락, 열린 파일, 최근 산출물, 대화, 도구 결과를 종합해 직접 판단하세요.\n- \"여기\", \"아래\", \"오늘\", \"방금\", \"이 파일\" 같은 지시어는 현재 열린 파일과 직전 도구 결과를 우선 근거로 해석하세요.\n- active file과 latest artifact가 다르면 active file을 현재 화면으로 우선하고, 두 대상을 혼동하지 말고 구분해서 설명하세요.\n- 낮은 위험의 읽기/요약/확인 요청은 맥락 확신도가 높으면 불필요하게 되묻지 말고 진행하세요.\n- 파일 수정/삭제/이동처럼 되돌리기 어려운 작업에서 대상 파일, source 파일, 작업 단위가 모호하면 후보와 이유를 들어 구체적으로 확인하세요.\n- 파일 작업 실패, 중복 검색, 사용자 정정(\"응?\", \"아니\", \"그게 맞아?\")이 나오면 같은 행동을 반복하지 말고 직전 판단과 도구 결과를 먼저 진단하세요.\n- 코드 실행 도구가 제공된 경우 기본적으로 TypeScript를 사용하고 filename은 `.ts` 확장자로 작성하세요.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로는 그대로 따르세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 수정하지 마세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 도구 호출이 필요하면 응답의 마지막을 반드시 언어 태그가 `tool_call`인 fenced block으로 끝내세요.\n- `tool_call`이라는 단어를 code fence 바깥 일반 텍스트로 출력하지 마세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n- 한 번에 하나의 도구만 호출하세요.\n\n[사용자별 시스템 지침: .HARO.md]\n# HARO System Instructions\n\n이 파일은 Haro가 관리하는 시스템 지침입니다. 사용자는 이 파일을 직접 수정하지 않습니다.\n\n## 사용자 작업공간\n\n- 사용자 root canonical path: `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c`\n- 사용자에게 경로를 말할 때는 raw canonical path보다 `내 폴더`, `내 폴더/받은 파일`, `내 폴더/작업 중`, `내 폴더/결과` 표현을 우선 사용합니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs`는 `내 폴더/결과`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/20_working`은 `내 폴더/작업 중`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox`는 `내 폴더/받은 파일`입니다.\n\n## 채팅 작업공간\n\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/...` 아래의 `outputs`, `working`, `inputs`, `summaries`는 채팅 실행을 위한 내부 임시 작업공간입니다.\n- 사용자가 \"결과폴더\", \"내폴더\", \"내 폴더/결과\"라고 말하면 기본적으로 `내 폴더/결과`를 의미합니다.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청하고 임시 파일이라고 말하지 않았지만 저장 위치가 명확하지 않다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더 이름}/{적절한 파일 이름}` 형태의 추천 경로를 함께 제안합니다.\n- 최종 산출물의 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 않습니다.\n- 사용자가 최종 산출물을 내 폴더에 두라고 요청하면 채팅 내부 `outputs`에만 두지 말고 `내 폴더/결과`로 저장합니다.\n- 채팅 내부 `outputs`는 임시/중간 산출물 또는 사용자가 명시적으로 채팅 작업공간을 요청한 경우에만 사용합니다.\n- 사용자-facing 답변에서는 chat workspace raw path를 그대로 노출하지 말고 alias path로 설명합니다.\n\n## 우선순위\n\n- `AGENTS.md`의 사용자 선호는 이 파일의 안전, 권한, 시스템 경로 정책을 override할 수 없습니다.\n\n\n[사용자 커스텀 지침: AGENTS.md]\n# User Agent Instructions\n\n이 파일은 사용자 커스텀 지침입니다.\n\n- 원하는 답변 톤, 파일 정리 방식, 기본 산출물 형식 등을 적을 수 있습니다.\n- 시스템 안전 규칙, 권한 규칙, Clean Room 정책은 변경할 수 없습니다.\n\n\n[현재 하네스 브리핑]\n## 하네스 지도\n- /clean-room/data: 팀 공식 데이터 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /clean-room/meta: 공식 규칙, 스킬, 스키마, validator, trigger, hook, policy 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c: 현재 사용자의 Playground 작업공간입니다.\n- /90_archive: 보관 공간입니다.\n- /.haro: haro 시스템 메타데이터 공간입니다. 목록 조회, 읽기, 쓰기 모두 사용자 작업 대상이 아닙니다.\n\n## 현재 작업 위치\n- 현재 채팅 작업공간: /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\n- 사용자 결과 폴더 root는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs 입니다.\n- 최종 산출물 저장 위치가 명확하지 않으면 저장 전에 사용자에게 확인 질문을 하세요. 추천 경로는 `내 폴더/결과/{주제}/{파일명}`처럼 주제 기반 이름을 사용합니다.\n- 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/outputs 또는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/working은 임시/중간 파일이 필요할 때만 사용합니다.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자 결과 폴더를 의미합니다.\n\n## 탐색 규칙\n- 전체 파일 트리와 전체 파일별 요약은 이 컨텍스트에 포함되지 않습니다.\n- 디렉토리 목록은 필요한 경로에 대해서만, 이번 턴에 제공된 목록 조회 도구로 조회하세요.\n- 파일명, 경로, 요약 텍스트 검색은 이번 턴에 제공된 검색 도구로 조회하세요.\n- 파일/폴더 개수만 묻는 질문에는 이번 턴에 제공된 개수 조회 도구를 우선 사용하세요.\n- 사용자가 요구하지 않은 다른 폴더나 채팅 작업공간을 추가로 조회하지 마세요.\n\n## 상태 요약\n- DB 인덱스 기준 전체 폴더: 42개\n- DB 인덱스 기준 전체 파일: 31개\n- 루트 하위 폴더: 3개\n- 현재 채팅 작업공간 하위 폴더: 4개\n- 현재 채팅 작업공간 하위 파일: 9개\n\n## 현재 채팅 압축 맥락\n## context.md\n# Current Chat Context\n\nchat_id: 4ddfc513-1a26-4926-a9c7-66d97728314b\nupdated_at: 2026-05-12T13:35:20.802068+00:00\n\n아직 압축된 맥락이 없습니다.\n\n## decisions.md\n# Decisions\n\n## rule-candidates.md\n# Rule Candidates\n\n## linked-files.json\n{\n  \"inputs\": [],\n  \"derived\": [],\n  \"outputs\": [],\n  \"exports\": []\n}\n사용 가능한 도구 목록:\n1. file_search(query, limit, item_type) - SQLite 파일 DB 기반 파일명, 경로, 요약 텍스트 검색.\n2. dir_list(path) - SQLite 파일 DB 기반 디렉토리 내용 조회. 기본 path는 \"/\".\n3. file_count(path, item_type, recursive) - SQLite 파일 DB 기반 파일/폴더 개수 조회.\n4. file_read(path) - 파일 내용 읽기.\n5. file_stats(path) - UTF-8 텍스트 파일의 줄 수, 글자 수, 단어/어절 추정, 예상 발표 시간, sha256을 반환합니다.\n6. file_search_content(path, query, regex, case_sensitive, glob, output_mode, max_results, offset, context_lines) - 파일 또는 폴더 내부 UTF-8 텍스트를 검색합니다.\n7. file_read_range(path, start_line, line_count) - UTF-8 텍스트 파일의 1-based 줄 범위만 읽습니다.\n\n채팅 작업공간 규칙:\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자의 `내 폴더/결과`를 의미합니다.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 명시 경로 없이 파일명만 path에 넣으면 저장 위치 확인이 필요합니다. 도구 호출 전에 사용자에게 확인하세요.\n- 최종 산출물 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로를 말한 경우에는 그 경로를 사용하세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 쓰지 마세요.\n\n파일 DB 조회 규칙:\n- 파일/폴더 검색, 개수, 요약 기반 탐색은 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 범위가 명확한 질문에는 해당 범위만 조회하고, 사용자가 요구하지 않은 채팅 폴더나 다른 폴더를 추가 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하거나 전체를 나열하지 말고 필요한 범위만 도구로 조회하세요.\n- \"몇 개\"처럼 개수만 묻는 요청에는 `file_count`를 우선 사용하세요.\n- 의미 있는 파일을 찾아야 하면 `file_search`로 파일명, 경로, 요약 텍스트를 검색하세요.\n- 검색 결과의 실제 내용을 확인해야 할 때만 `file_read`를 사용하세요.\n- 긴 파일, 분량 검증, 일부 수정 작업은 전체 `file_read` 전에 `file_stats`, `file_search_content`, `file_read_range`로 범위를 먼저 좁히세요.\n- \"N배\", \"N분 분량\", \"더 길게\", \"객관적으로 맞아?\" 같은 정량 요구사항은 변경 전후 `file_stats`로 실제 수치를 확인하세요.\n- 특정 폴더의 직계 목록이 필요할 때만 `dir_list`를 사용하세요.\n\n도구 호출 출력 계약:\n- 도구를 사용할 때는 반드시 아래 fenced block 형식만 사용하세요.\n- 사용 가능한 도구 목록에 없는 도구 이름은 절대 호출하지 마세요.\n- 필요한 도구가 목록에 없으면 현재 가능한 범위만 텍스트로 설명하고 멈추세요.\n- `tool_call`이라는 단어는 반드시 code fence 언어 태그로만 쓰세요.\n- code fence 바깥 일반 문장, 제목, 목록, 설명 안에 `tool_call`이라는 단어를 쓰지 마세요.\n- 도구 호출 block 뒤에는 어떤 문장도 덧붙이지 말고 즉시 응답을 끝내세요.\n- 한 번의 응답에는 정확히 하나의 도구 호출 block만 포함하세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n\n허용되는 유일한 형식:\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"dashboard\", \"limit\": 10, \"item_type\": \"file\"}}\n```\n\n금지되는 형식:\n- `tool_call` 다음 줄에 JSON을 쓰는 plain text 형식\n- 언어 태그가 `json`인 fenced block\n- XML/HTML 태그 안의 도구 호출\n- bullet/list 안에 JSON을 넣는 형식\n- 한 응답에 여러 개의 tool_call block을 넣는 형식\n\n도구를 사용하지 않고 텍스트만 응답할 때는 일반 텍스트로 응답하세요.\n작업 계획을 먼저 설명한 뒤 도구를 호출해야 한다면, 마지막은 반드시 위의 `tool_call` fenced block으로 끝내세요.\n한 번에 하나의 도구만 호출하세요.\n도구 호출 결과를 받은 후 다음 작업을 진행하세요.\n\n[현재 작업 맥락]\n아래 JSON은 현재 턴의 작업 맥락입니다. 라우터가 작업 의미를 확정한 것이 아니며, 대화 전체, 열린 파일, 최근 산출물, 도구 결과 후보를 종합해 executor가 판단해야 합니다.\n- active file과 latest artifact가 다르면 active file을 우선하고 둘을 구분해 설명하세요.\n- 낮은 위험의 read-only 요청은 확신이 충분하면 바로 진행하세요.\n- 파일 변경/삭제/이동에서 대상이나 작업 단위가 모호하면 후보와 이유를 들어 확인 질문을 하세요.\n- 같은 검색을 반복하지 말고, source가 없으면 확인한 위치와 누락 정보를 요약해 경로/재업로드를 요청하세요.\n{\n  \"current_user_message\": \"카카오에서 온 메일들 요약해줘\",\n  \"routing_text\": \"카카오에서 온 메일들 요약해줘\",\n  \"chat_workspace\": \"/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\",\n  \"gate_context\": {\n    \"decision\": \"new_task\",\n    \"source\": \"llm\",\n    \"confidence\": 1.0,\n    \"reason\": \"사용자가 '카카오에서 온 메일 요약'이라는 구체적인 새로운 업무를 요청하였으며, 이전 대화 내역이나 진행 중인 작업이 없는 상태에서의 첫 요청이므로 new_task로 판단합니다.\"\n  },\n  \"execution_policy\": {\n    \"profile\": \"read_only\",\n    \"confidence\": 0.86,\n    \"risk_level\": \"low\",\n    \"reason\": \"파일, 폴더, 현재 화면, 산출물 상태 확인 작업입니다.\",\n    \"context_confidence\": 0.68,\n    \"target_confidence\": 0.45,\n    \"source_confidence\": 0.55,\n    \"operation_confidence\": 0.84\n  },\n  \"is_clarification_answer\": false\n}",
+            "temperature": 0.7
+          }
+        },
+        "duration_ms": null,
+        "created_at": "2026-05-12T13:35:57.150360+00:00"
+      },
+      {
+        "id": "dc4cf6fe-a44e-42d5-aec0-b3f49eef9669",
+        "round_index": 0,
+        "event_type": "llm_response",
+        "payload": {
+          "text": "카카오에서 온 메일들을 요약해 드리기 위해, 먼저 사용자님의 폴더에서 관련 파일을 찾아보겠습니다. `내 폴더/받은 파일`이나 다른 경로에 카카오와 관련된 메일 파일이 있는지 검색을 진행하겠습니다.\n\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"카카오\", \"limit\": 10, \"item_type\": \"file\"}}\n```",
+          "has_tool_call": true,
+          "has_tool_call_block": true,
+          "tool_call_parse_ok": true,
+          "tool_call_parse_error": null,
+          "parsed_tool_call": {
+            "tool": "file_search",
+            "args": {
+              "query": "카카오",
+              "limit": 10,
+              "item_type": "file"
+            }
+          }
+        },
+        "duration_ms": 2239.048480987549,
+        "created_at": "2026-05-12T13:35:59.458181+00:00"
+      },
+      {
+        "id": "09deb5e2-22d6-4928-9008-dacf7a8f9eeb",
+        "round_index": 0,
+        "event_type": "tool_call",
+        "payload": {
+          "tool": "file_search",
+          "args": {
+            "query": "카카오",
+            "limit": 10,
+            "item_type": "file"
+          }
+        },
+        "duration_ms": null,
+        "created_at": "2026-05-12T13:35:59.562902+00:00"
+      },
+      {
+        "id": "9387e129-919e-45a9-ac13-c6e4afa78121",
+        "round_index": 0,
+        "event_type": "tool_result",
+        "payload": {
+          "tool": "file_search",
+          "result": "검색 결과 없음: 카카오"
+        },
+        "duration_ms": 389.5556926727295,
+        "created_at": "2026-05-12T13:36:00.014679+00:00"
+      },
+      {
+        "id": "4bd07d24-f05d-47c5-9930-2ecafaf4d790",
+        "round_index": 1,
+        "event_type": "llm_request",
+        "payload": {
+          "model": "gemini-3-flash-preview",
+          "system_instruction": "당신은 haro AI 에이전트입니다.\n사용자의 요청을 분석하고, 도구를 사용하여 파일을 생성·수정·삭제하며 작업을 수행합니다.\n\n역할:\n1. 사용자 의도를 분석합니다.\n2. 필요한 작업을 계획합니다.\n3. 도구를 호출하여 실제 작업을 수행합니다.\n4. 애매한 부분이 있으면 사용자에게 질문합니다.\n\n규칙:\n- 파일 작업 시 반드시 제공된 도구를 사용하세요.\n- 워크스페이스 파일 생성/수정/이동/삭제를 code_run으로 우회하지 말고 전용 파일/폴더 도구만 사용하세요.\n- 파일 구조 확인이 필요한 작업에는 이번 턴에 제공된 디렉토리/파일 DB 도구만 사용하세요.\n- 파일/폴더 검색, 개수, 요약 기반 탐색에는 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 개수만 묻는 질문에는 이번 턴에 개수 조회 도구가 제공된 경우 우선 사용하고, 요청하지 않은 폴더를 추가로 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하지 말고 필요한 범위만 도구로 조회하세요.\n- 한국어로 응답하세요.\n- 작업 계획을 먼저 설명한 후 도구를 호출하세요.\n- 별도 라우터가 작업 의미를 확정하지 않습니다. 현재 작업 맥락, 열린 파일, 최근 산출물, 대화, 도구 결과를 종합해 직접 판단하세요.\n- \"여기\", \"아래\", \"오늘\", \"방금\", \"이 파일\" 같은 지시어는 현재 열린 파일과 직전 도구 결과를 우선 근거로 해석하세요.\n- active file과 latest artifact가 다르면 active file을 현재 화면으로 우선하고, 두 대상을 혼동하지 말고 구분해서 설명하세요.\n- 낮은 위험의 읽기/요약/확인 요청은 맥락 확신도가 높으면 불필요하게 되묻지 말고 진행하세요.\n- 파일 수정/삭제/이동처럼 되돌리기 어려운 작업에서 대상 파일, source 파일, 작업 단위가 모호하면 후보와 이유를 들어 구체적으로 확인하세요.\n- 파일 작업 실패, 중복 검색, 사용자 정정(\"응?\", \"아니\", \"그게 맞아?\")이 나오면 같은 행동을 반복하지 말고 직전 판단과 도구 결과를 먼저 진단하세요.\n- 코드 실행 도구가 제공된 경우 기본적으로 TypeScript를 사용하고 filename은 `.ts` 확장자로 작성하세요.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로는 그대로 따르세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 수정하지 마세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 도구 호출이 필요하면 응답의 마지막을 반드시 언어 태그가 `tool_call`인 fenced block으로 끝내세요.\n- `tool_call`이라는 단어를 code fence 바깥 일반 텍스트로 출력하지 마세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n- 한 번에 하나의 도구만 호출하세요.\n\n[사용자별 시스템 지침: .HARO.md]\n# HARO System Instructions\n\n이 파일은 Haro가 관리하는 시스템 지침입니다. 사용자는 이 파일을 직접 수정하지 않습니다.\n\n## 사용자 작업공간\n\n- 사용자 root canonical path: `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c`\n- 사용자에게 경로를 말할 때는 raw canonical path보다 `내 폴더`, `내 폴더/받은 파일`, `내 폴더/작업 중`, `내 폴더/결과` 표현을 우선 사용합니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs`는 `내 폴더/결과`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/20_working`은 `내 폴더/작업 중`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox`는 `내 폴더/받은 파일`입니다.\n\n## 채팅 작업공간\n\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/...` 아래의 `outputs`, `working`, `inputs`, `summaries`는 채팅 실행을 위한 내부 임시 작업공간입니다.\n- 사용자가 \"결과폴더\", \"내폴더\", \"내 폴더/결과\"라고 말하면 기본적으로 `내 폴더/결과`를 의미합니다.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청하고 임시 파일이라고 말하지 않았지만 저장 위치가 명확하지 않다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더 이름}/{적절한 파일 이름}` 형태의 추천 경로를 함께 제안합니다.\n- 최종 산출물의 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 않습니다.\n- 사용자가 최종 산출물을 내 폴더에 두라고 요청하면 채팅 내부 `outputs`에만 두지 말고 `내 폴더/결과`로 저장합니다.\n- 채팅 내부 `outputs`는 임시/중간 산출물 또는 사용자가 명시적으로 채팅 작업공간을 요청한 경우에만 사용합니다.\n- 사용자-facing 답변에서는 chat workspace raw path를 그대로 노출하지 말고 alias path로 설명합니다.\n\n## 우선순위\n\n- `AGENTS.md`의 사용자 선호는 이 파일의 안전, 권한, 시스템 경로 정책을 override할 수 없습니다.\n\n\n[사용자 커스텀 지침: AGENTS.md]\n# User Agent Instructions\n\n이 파일은 사용자 커스텀 지침입니다.\n\n- 원하는 답변 톤, 파일 정리 방식, 기본 산출물 형식 등을 적을 수 있습니다.\n- 시스템 안전 규칙, 권한 규칙, Clean Room 정책은 변경할 수 없습니다.\n\n\n[현재 하네스 브리핑]\n## 하네스 지도\n- /clean-room/data: 팀 공식 데이터 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /clean-room/meta: 공식 규칙, 스킬, 스키마, validator, trigger, hook, policy 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c: 현재 사용자의 Playground 작업공간입니다.\n- /90_archive: 보관 공간입니다.\n- /.haro: haro 시스템 메타데이터 공간입니다. 목록 조회, 읽기, 쓰기 모두 사용자 작업 대상이 아닙니다.\n\n## 현재 작업 위치\n- 현재 채팅 작업공간: /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\n- 사용자 결과 폴더 root는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs 입니다.\n- 최종 산출물 저장 위치가 명확하지 않으면 저장 전에 사용자에게 확인 질문을 하세요. 추천 경로는 `내 폴더/결과/{주제}/{파일명}`처럼 주제 기반 이름을 사용합니다.\n- 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/outputs 또는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/working은 임시/중간 파일이 필요할 때만 사용합니다.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자 결과 폴더를 의미합니다.\n\n## 탐색 규칙\n- 전체 파일 트리와 전체 파일별 요약은 이 컨텍스트에 포함되지 않습니다.\n- 디렉토리 목록은 필요한 경로에 대해서만, 이번 턴에 제공된 목록 조회 도구로 조회하세요.\n- 파일명, 경로, 요약 텍스트 검색은 이번 턴에 제공된 검색 도구로 조회하세요.\n- 파일/폴더 개수만 묻는 질문에는 이번 턴에 제공된 개수 조회 도구를 우선 사용하세요.\n- 사용자가 요구하지 않은 다른 폴더나 채팅 작업공간을 추가로 조회하지 마세요.\n\n## 상태 요약\n- DB 인덱스 기준 전체 폴더: 42개\n- DB 인덱스 기준 전체 파일: 31개\n- 루트 하위 폴더: 3개\n- 현재 채팅 작업공간 하위 폴더: 4개\n- 현재 채팅 작업공간 하위 파일: 9개\n\n## 현재 채팅 압축 맥락\n## context.md\n# Current Chat Context\n\nchat_id: 4ddfc513-1a26-4926-a9c7-66d97728314b\nupdated_at: 2026-05-12T13:35:20.802068+00:00\n\n아직 압축된 맥락이 없습니다.\n\n## decisions.md\n# Decisions\n\n## rule-candidates.md\n# Rule Candidates\n\n## linked-files.json\n{\n  \"inputs\": [],\n  \"derived\": [],\n  \"outputs\": [],\n  \"exports\": []\n}\n사용 가능한 도구 목록:\n1. file_search(query, limit, item_type) - SQLite 파일 DB 기반 파일명, 경로, 요약 텍스트 검색.\n2. dir_list(path) - SQLite 파일 DB 기반 디렉토리 내용 조회. 기본 path는 \"/\".\n3. file_count(path, item_type, recursive) - SQLite 파일 DB 기반 파일/폴더 개수 조회.\n4. file_read(path) - 파일 내용 읽기.\n5. file_stats(path) - UTF-8 텍스트 파일의 줄 수, 글자 수, 단어/어절 추정, 예상 발표 시간, sha256을 반환합니다.\n6. file_search_content(path, query, regex, case_sensitive, glob, output_mode, max_results, offset, context_lines) - 파일 또는 폴더 내부 UTF-8 텍스트를 검색합니다.\n7. file_read_range(path, start_line, line_count) - UTF-8 텍스트 파일의 1-based 줄 범위만 읽습니다.\n\n채팅 작업공간 규칙:\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자의 `내 폴더/결과`를 의미합니다.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 명시 경로 없이 파일명만 path에 넣으면 저장 위치 확인이 필요합니다. 도구 호출 전에 사용자에게 확인하세요.\n- 최종 산출물 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로를 말한 경우에는 그 경로를 사용하세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 쓰지 마세요.\n\n파일 DB 조회 규칙:\n- 파일/폴더 검색, 개수, 요약 기반 탐색은 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 범위가 명확한 질문에는 해당 범위만 조회하고, 사용자가 요구하지 않은 채팅 폴더나 다른 폴더를 추가 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하거나 전체를 나열하지 말고 필요한 범위만 도구로 조회하세요.\n- \"몇 개\"처럼 개수만 묻는 요청에는 `file_count`를 우선 사용하세요.\n- 의미 있는 파일을 찾아야 하면 `file_search`로 파일명, 경로, 요약 텍스트를 검색하세요.\n- 검색 결과의 실제 내용을 확인해야 할 때만 `file_read`를 사용하세요.\n- 긴 파일, 분량 검증, 일부 수정 작업은 전체 `file_read` 전에 `file_stats`, `file_search_content`, `file_read_range`로 범위를 먼저 좁히세요.\n- \"N배\", \"N분 분량\", \"더 길게\", \"객관적으로 맞아?\" 같은 정량 요구사항은 변경 전후 `file_stats`로 실제 수치를 확인하세요.\n- 특정 폴더의 직계 목록이 필요할 때만 `dir_list`를 사용하세요.\n\n도구 호출 출력 계약:\n- 도구를 사용할 때는 반드시 아래 fenced block 형식만 사용하세요.\n- 사용 가능한 도구 목록에 없는 도구 이름은 절대 호출하지 마세요.\n- 필요한 도구가 목록에 없으면 현재 가능한 범위만 텍스트로 설명하고 멈추세요.\n- `tool_call`이라는 단어는 반드시 code fence 언어 태그로만 쓰세요.\n- code fence 바깥 일반 문장, 제목, 목록, 설명 안에 `tool_call`이라는 단어를 쓰지 마세요.\n- 도구 호출 block 뒤에는 어떤 문장도 덧붙이지 말고 즉시 응답을 끝내세요.\n- 한 번의 응답에는 정확히 하나의 도구 호출 block만 포함하세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n\n허용되는 유일한 형식:\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"dashboard\", \"limit\": 10, \"item_type\": \"file\"}}\n```\n\n금지되는 형식:\n- `tool_call` 다음 줄에 JSON을 쓰는 plain text 형식\n- 언어 태그가 `json`인 fenced block\n- XML/HTML 태그 안의 도구 호출\n- bullet/list 안에 JSON을 넣는 형식\n- 한 응답에 여러 개의 tool_call block을 넣는 형식\n\n도구를 사용하지 않고 텍스트만 응답할 때는 일반 텍스트로 응답하세요.\n작업 계획을 먼저 설명한 뒤 도구를 호출해야 한다면, 마지막은 반드시 위의 `tool_call` fenced block으로 끝내세요.\n한 번에 하나의 도구만 호출하세요.\n도구 호출 결과를 받은 후 다음 작업을 진행하세요.\n\n[현재 작업 맥락]\n아래 JSON은 현재 턴의 작업 맥락입니다. 라우터가 작업 의미를 확정한 것이 아니며, 대화 전체, 열린 파일, 최근 산출물, 도구 결과 후보를 종합해 executor가 판단해야 합니다.\n- active file과 latest artifact가 다르면 active file을 우선하고 둘을 구분해 설명하세요.\n- 낮은 위험의 read-only 요청은 확신이 충분하면 바로 진행하세요.\n- 파일 변경/삭제/이동에서 대상이나 작업 단위가 모호하면 후보와 이유를 들어 확인 질문을 하세요.\n- 같은 검색을 반복하지 말고, source가 없으면 확인한 위치와 누락 정보를 요약해 경로/재업로드를 요청하세요.\n{\n  \"current_user_message\": \"카카오에서 온 메일들 요약해줘\",\n  \"routing_text\": \"카카오에서 온 메일들 요약해줘\",\n  \"chat_workspace\": \"/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\",\n  \"gate_context\": {\n    \"decision\": \"new_task\",\n    \"source\": \"llm\",\n    \"confidence\": 1.0,\n    \"reason\": \"사용자가 '카카오에서 온 메일 요약'이라는 구체적인 새로운 업무를 요청하였으며, 이전 대화 내역이나 진행 중인 작업이 없는 상태에서의 첫 요청이므로 new_task로 판단합니다.\"\n  },\n  \"execution_policy\": {\n    \"profile\": \"read_only\",\n    \"confidence\": 0.86,\n    \"risk_level\": \"low\",\n    \"reason\": \"파일, 폴더, 현재 화면, 산출물 상태 확인 작업입니다.\",\n    \"context_confidence\": 0.68,\n    \"target_confidence\": 0.45,\n    \"source_confidence\": 0.55,\n    \"operation_confidence\": 0.84\n  },\n  \"is_clarification_answer\": false\n}",
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "카카오에서 온 메일들 요약해줘"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "text": "카카오에서 온 메일들을 요약해 드리기 위해, 먼저 사용자님의 폴더에서 관련 파일을 찾아보겠습니다. `내 폴더/받은 파일`이나 다른 경로에 카카오와 관련된 메일 파일이 있는지 검색을 진행하겠습니다.\n\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"카카오\", \"limit\": 10, \"item_type\": \"file\"}}\n```"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "[도구 실행 결과]\n검색 결과 없음: 카카오"
+                }
+              ]
+            }
+          ],
+          "config": {
+            "system_instruction": "당신은 haro AI 에이전트입니다.\n사용자의 요청을 분석하고, 도구를 사용하여 파일을 생성·수정·삭제하며 작업을 수행합니다.\n\n역할:\n1. 사용자 의도를 분석합니다.\n2. 필요한 작업을 계획합니다.\n3. 도구를 호출하여 실제 작업을 수행합니다.\n4. 애매한 부분이 있으면 사용자에게 질문합니다.\n\n규칙:\n- 파일 작업 시 반드시 제공된 도구를 사용하세요.\n- 워크스페이스 파일 생성/수정/이동/삭제를 code_run으로 우회하지 말고 전용 파일/폴더 도구만 사용하세요.\n- 파일 구조 확인이 필요한 작업에는 이번 턴에 제공된 디렉토리/파일 DB 도구만 사용하세요.\n- 파일/폴더 검색, 개수, 요약 기반 탐색에는 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 개수만 묻는 질문에는 이번 턴에 개수 조회 도구가 제공된 경우 우선 사용하고, 요청하지 않은 폴더를 추가로 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하지 말고 필요한 범위만 도구로 조회하세요.\n- 한국어로 응답하세요.\n- 작업 계획을 먼저 설명한 후 도구를 호출하세요.\n- 별도 라우터가 작업 의미를 확정하지 않습니다. 현재 작업 맥락, 열린 파일, 최근 산출물, 대화, 도구 결과를 종합해 직접 판단하세요.\n- \"여기\", \"아래\", \"오늘\", \"방금\", \"이 파일\" 같은 지시어는 현재 열린 파일과 직전 도구 결과를 우선 근거로 해석하세요.\n- active file과 latest artifact가 다르면 active file을 현재 화면으로 우선하고, 두 대상을 혼동하지 말고 구분해서 설명하세요.\n- 낮은 위험의 읽기/요약/확인 요청은 맥락 확신도가 높으면 불필요하게 되묻지 말고 진행하세요.\n- 파일 수정/삭제/이동처럼 되돌리기 어려운 작업에서 대상 파일, source 파일, 작업 단위가 모호하면 후보와 이유를 들어 구체적으로 확인하세요.\n- 파일 작업 실패, 중복 검색, 사용자 정정(\"응?\", \"아니\", \"그게 맞아?\")이 나오면 같은 행동을 반복하지 말고 직전 판단과 도구 결과를 먼저 진단하세요.\n- 코드 실행 도구가 제공된 경우 기본적으로 TypeScript를 사용하고 filename은 `.ts` 확장자로 작성하세요.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로는 그대로 따르세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 수정하지 마세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 도구 호출이 필요하면 응답의 마지막을 반드시 언어 태그가 `tool_call`인 fenced block으로 끝내세요.\n- `tool_call`이라는 단어를 code fence 바깥 일반 텍스트로 출력하지 마세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n- 한 번에 하나의 도구만 호출하세요.\n\n[사용자별 시스템 지침: .HARO.md]\n# HARO System Instructions\n\n이 파일은 Haro가 관리하는 시스템 지침입니다. 사용자는 이 파일을 직접 수정하지 않습니다.\n\n## 사용자 작업공간\n\n- 사용자 root canonical path: `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c`\n- 사용자에게 경로를 말할 때는 raw canonical path보다 `내 폴더`, `내 폴더/받은 파일`, `내 폴더/작업 중`, `내 폴더/결과` 표현을 우선 사용합니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs`는 `내 폴더/결과`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/20_working`은 `내 폴더/작업 중`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox`는 `내 폴더/받은 파일`입니다.\n\n## 채팅 작업공간\n\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/...` 아래의 `outputs`, `working`, `inputs`, `summaries`는 채팅 실행을 위한 내부 임시 작업공간입니다.\n- 사용자가 \"결과폴더\", \"내폴더\", \"내 폴더/결과\"라고 말하면 기본적으로 `내 폴더/결과`를 의미합니다.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청하고 임시 파일이라고 말하지 않았지만 저장 위치가 명확하지 않다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더 이름}/{적절한 파일 이름}` 형태의 추천 경로를 함께 제안합니다.\n- 최종 산출물의 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 않습니다.\n- 사용자가 최종 산출물을 내 폴더에 두라고 요청하면 채팅 내부 `outputs`에만 두지 말고 `내 폴더/결과`로 저장합니다.\n- 채팅 내부 `outputs`는 임시/중간 산출물 또는 사용자가 명시적으로 채팅 작업공간을 요청한 경우에만 사용합니다.\n- 사용자-facing 답변에서는 chat workspace raw path를 그대로 노출하지 말고 alias path로 설명합니다.\n\n## 우선순위\n\n- `AGENTS.md`의 사용자 선호는 이 파일의 안전, 권한, 시스템 경로 정책을 override할 수 없습니다.\n\n\n[사용자 커스텀 지침: AGENTS.md]\n# User Agent Instructions\n\n이 파일은 사용자 커스텀 지침입니다.\n\n- 원하는 답변 톤, 파일 정리 방식, 기본 산출물 형식 등을 적을 수 있습니다.\n- 시스템 안전 규칙, 권한 규칙, Clean Room 정책은 변경할 수 없습니다.\n\n\n[현재 하네스 브리핑]\n## 하네스 지도\n- /clean-room/data: 팀 공식 데이터 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /clean-room/meta: 공식 규칙, 스킬, 스키마, validator, trigger, hook, policy 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c: 현재 사용자의 Playground 작업공간입니다.\n- /90_archive: 보관 공간입니다.\n- /.haro: haro 시스템 메타데이터 공간입니다. 목록 조회, 읽기, 쓰기 모두 사용자 작업 대상이 아닙니다.\n\n## 현재 작업 위치\n- 현재 채팅 작업공간: /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\n- 사용자 결과 폴더 root는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs 입니다.\n- 최종 산출물 저장 위치가 명확하지 않으면 저장 전에 사용자에게 확인 질문을 하세요. 추천 경로는 `내 폴더/결과/{주제}/{파일명}`처럼 주제 기반 이름을 사용합니다.\n- 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/outputs 또는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/working은 임시/중간 파일이 필요할 때만 사용합니다.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자 결과 폴더를 의미합니다.\n\n## 탐색 규칙\n- 전체 파일 트리와 전체 파일별 요약은 이 컨텍스트에 포함되지 않습니다.\n- 디렉토리 목록은 필요한 경로에 대해서만, 이번 턴에 제공된 목록 조회 도구로 조회하세요.\n- 파일명, 경로, 요약 텍스트 검색은 이번 턴에 제공된 검색 도구로 조회하세요.\n- 파일/폴더 개수만 묻는 질문에는 이번 턴에 제공된 개수 조회 도구를 우선 사용하세요.\n- 사용자가 요구하지 않은 다른 폴더나 채팅 작업공간을 추가로 조회하지 마세요.\n\n## 상태 요약\n- DB 인덱스 기준 전체 폴더: 42개\n- DB 인덱스 기준 전체 파일: 31개\n- 루트 하위 폴더: 3개\n- 현재 채팅 작업공간 하위 폴더: 4개\n- 현재 채팅 작업공간 하위 파일: 9개\n\n## 현재 채팅 압축 맥락\n## context.md\n# Current Chat Context\n\nchat_id: 4ddfc513-1a26-4926-a9c7-66d97728314b\nupdated_at: 2026-05-12T13:35:20.802068+00:00\n\n아직 압축된 맥락이 없습니다.\n\n## decisions.md\n# Decisions\n\n## rule-candidates.md\n# Rule Candidates\n\n## linked-files.json\n{\n  \"inputs\": [],\n  \"derived\": [],\n  \"outputs\": [],\n  \"exports\": []\n}\n사용 가능한 도구 목록:\n1. file_search(query, limit, item_type) - SQLite 파일 DB 기반 파일명, 경로, 요약 텍스트 검색.\n2. dir_list(path) - SQLite 파일 DB 기반 디렉토리 내용 조회. 기본 path는 \"/\".\n3. file_count(path, item_type, recursive) - SQLite 파일 DB 기반 파일/폴더 개수 조회.\n4. file_read(path) - 파일 내용 읽기.\n5. file_stats(path) - UTF-8 텍스트 파일의 줄 수, 글자 수, 단어/어절 추정, 예상 발표 시간, sha256을 반환합니다.\n6. file_search_content(path, query, regex, case_sensitive, glob, output_mode, max_results, offset, context_lines) - 파일 또는 폴더 내부 UTF-8 텍스트를 검색합니다.\n7. file_read_range(path, start_line, line_count) - UTF-8 텍스트 파일의 1-based 줄 범위만 읽습니다.\n\n채팅 작업공간 규칙:\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자의 `내 폴더/결과`를 의미합니다.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 명시 경로 없이 파일명만 path에 넣으면 저장 위치 확인이 필요합니다. 도구 호출 전에 사용자에게 확인하세요.\n- 최종 산출물 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로를 말한 경우에는 그 경로를 사용하세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 쓰지 마세요.\n\n파일 DB 조회 규칙:\n- 파일/폴더 검색, 개수, 요약 기반 탐색은 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 범위가 명확한 질문에는 해당 범위만 조회하고, 사용자가 요구하지 않은 채팅 폴더나 다른 폴더를 추가 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하거나 전체를 나열하지 말고 필요한 범위만 도구로 조회하세요.\n- \"몇 개\"처럼 개수만 묻는 요청에는 `file_count`를 우선 사용하세요.\n- 의미 있는 파일을 찾아야 하면 `file_search`로 파일명, 경로, 요약 텍스트를 검색하세요.\n- 검색 결과의 실제 내용을 확인해야 할 때만 `file_read`를 사용하세요.\n- 긴 파일, 분량 검증, 일부 수정 작업은 전체 `file_read` 전에 `file_stats`, `file_search_content`, `file_read_range`로 범위를 먼저 좁히세요.\n- \"N배\", \"N분 분량\", \"더 길게\", \"객관적으로 맞아?\" 같은 정량 요구사항은 변경 전후 `file_stats`로 실제 수치를 확인하세요.\n- 특정 폴더의 직계 목록이 필요할 때만 `dir_list`를 사용하세요.\n\n도구 호출 출력 계약:\n- 도구를 사용할 때는 반드시 아래 fenced block 형식만 사용하세요.\n- 사용 가능한 도구 목록에 없는 도구 이름은 절대 호출하지 마세요.\n- 필요한 도구가 목록에 없으면 현재 가능한 범위만 텍스트로 설명하고 멈추세요.\n- `tool_call`이라는 단어는 반드시 code fence 언어 태그로만 쓰세요.\n- code fence 바깥 일반 문장, 제목, 목록, 설명 안에 `tool_call`이라는 단어를 쓰지 마세요.\n- 도구 호출 block 뒤에는 어떤 문장도 덧붙이지 말고 즉시 응답을 끝내세요.\n- 한 번의 응답에는 정확히 하나의 도구 호출 block만 포함하세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n\n허용되는 유일한 형식:\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"dashboard\", \"limit\": 10, \"item_type\": \"file\"}}\n```\n\n금지되는 형식:\n- `tool_call` 다음 줄에 JSON을 쓰는 plain text 형식\n- 언어 태그가 `json`인 fenced block\n- XML/HTML 태그 안의 도구 호출\n- bullet/list 안에 JSON을 넣는 형식\n- 한 응답에 여러 개의 tool_call block을 넣는 형식\n\n도구를 사용하지 않고 텍스트만 응답할 때는 일반 텍스트로 응답하세요.\n작업 계획을 먼저 설명한 뒤 도구를 호출해야 한다면, 마지막은 반드시 위의 `tool_call` fenced block으로 끝내세요.\n한 번에 하나의 도구만 호출하세요.\n도구 호출 결과를 받은 후 다음 작업을 진행하세요.\n\n[현재 작업 맥락]\n아래 JSON은 현재 턴의 작업 맥락입니다. 라우터가 작업 의미를 확정한 것이 아니며, 대화 전체, 열린 파일, 최근 산출물, 도구 결과 후보를 종합해 executor가 판단해야 합니다.\n- active file과 latest artifact가 다르면 active file을 우선하고 둘을 구분해 설명하세요.\n- 낮은 위험의 read-only 요청은 확신이 충분하면 바로 진행하세요.\n- 파일 변경/삭제/이동에서 대상이나 작업 단위가 모호하면 후보와 이유를 들어 확인 질문을 하세요.\n- 같은 검색을 반복하지 말고, source가 없으면 확인한 위치와 누락 정보를 요약해 경로/재업로드를 요청하세요.\n{\n  \"current_user_message\": \"카카오에서 온 메일들 요약해줘\",\n  \"routing_text\": \"카카오에서 온 메일들 요약해줘\",\n  \"chat_workspace\": \"/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\",\n  \"gate_context\": {\n    \"decision\": \"new_task\",\n    \"source\": \"llm\",\n    \"confidence\": 1.0,\n    \"reason\": \"사용자가 '카카오에서 온 메일 요약'이라는 구체적인 새로운 업무를 요청하였으며, 이전 대화 내역이나 진행 중인 작업이 없는 상태에서의 첫 요청이므로 new_task로 판단합니다.\"\n  },\n  \"execution_policy\": {\n    \"profile\": \"read_only\",\n    \"confidence\": 0.86,\n    \"risk_level\": \"low\",\n    \"reason\": \"파일, 폴더, 현재 화면, 산출물 상태 확인 작업입니다.\",\n    \"context_confidence\": 0.68,\n    \"target_confidence\": 0.45,\n    \"source_confidence\": 0.55,\n    \"operation_confidence\": 0.84\n  },\n  \"is_clarification_answer\": false\n}",
+            "temperature": 0.7
+          }
+        },
+        "duration_ms": null,
+        "created_at": "2026-05-12T13:36:00.112463+00:00"
+      },
+      {
+        "id": "0a411deb-de88-432d-9013-0c75addb2aec",
+        "round_index": 1,
+        "event_type": "llm_response",
+        "payload": {
+          "text": "카카오(Kakao)와 관련된 파일을 찾지 못했습니다. 영문명인 'Kakao'로 다시 한번 검색해 보고, 검색 결과가 없으면 `내 폴더/받은 파일` 목록을 직접 확인해 보겠습니다.\n\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"Kakao\", \"limit\": 10, \"item_type\": \"file\"}}\n```",
+          "has_tool_call": true,
+          "has_tool_call_block": true,
+          "tool_call_parse_ok": true,
+          "tool_call_parse_error": null,
+          "parsed_tool_call": {
+            "tool": "file_search",
+            "args": {
+              "query": "Kakao",
+              "limit": 10,
+              "item_type": "file"
+            }
+          }
+        },
+        "duration_ms": 2195.6465244293213,
+        "created_at": "2026-05-12T13:36:02.421830+00:00"
+      },
+      {
+        "id": "b62b4df8-938f-4ae6-86e1-b6ae07a41c95",
+        "round_index": 1,
+        "event_type": "tool_call",
+        "payload": {
+          "tool": "file_search",
+          "args": {
+            "query": "Kakao",
+            "limit": 10,
+            "item_type": "file"
+          }
+        },
+        "duration_ms": null,
+        "created_at": "2026-05-12T13:36:02.557867+00:00"
+      },
+      {
+        "id": "76521339-541c-4fbd-8774-95c74fe998b5",
+        "round_index": 1,
+        "event_type": "tool_result",
+        "payload": {
+          "tool": "file_search",
+          "result": "검색 결과 없음: Kakao"
+        },
+        "duration_ms": 411.5734100341797,
+        "created_at": "2026-05-12T13:36:03.063278+00:00"
+      },
+      {
+        "id": "9e451616-4ccf-4bdd-bc92-aa065512fe84",
+        "round_index": 2,
+        "event_type": "llm_request",
+        "payload": {
+          "model": "gemini-3-flash-preview",
+          "system_instruction": "당신은 haro AI 에이전트입니다.\n사용자의 요청을 분석하고, 도구를 사용하여 파일을 생성·수정·삭제하며 작업을 수행합니다.\n\n역할:\n1. 사용자 의도를 분석합니다.\n2. 필요한 작업을 계획합니다.\n3. 도구를 호출하여 실제 작업을 수행합니다.\n4. 애매한 부분이 있으면 사용자에게 질문합니다.\n\n규칙:\n- 파일 작업 시 반드시 제공된 도구를 사용하세요.\n- 워크스페이스 파일 생성/수정/이동/삭제를 code_run으로 우회하지 말고 전용 파일/폴더 도구만 사용하세요.\n- 파일 구조 확인이 필요한 작업에는 이번 턴에 제공된 디렉토리/파일 DB 도구만 사용하세요.\n- 파일/폴더 검색, 개수, 요약 기반 탐색에는 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 개수만 묻는 질문에는 이번 턴에 개수 조회 도구가 제공된 경우 우선 사용하고, 요청하지 않은 폴더를 추가로 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하지 말고 필요한 범위만 도구로 조회하세요.\n- 한국어로 응답하세요.\n- 작업 계획을 먼저 설명한 후 도구를 호출하세요.\n- 별도 라우터가 작업 의미를 확정하지 않습니다. 현재 작업 맥락, 열린 파일, 최근 산출물, 대화, 도구 결과를 종합해 직접 판단하세요.\n- \"여기\", \"아래\", \"오늘\", \"방금\", \"이 파일\" 같은 지시어는 현재 열린 파일과 직전 도구 결과를 우선 근거로 해석하세요.\n- active file과 latest artifact가 다르면 active file을 현재 화면으로 우선하고, 두 대상을 혼동하지 말고 구분해서 설명하세요.\n- 낮은 위험의 읽기/요약/확인 요청은 맥락 확신도가 높으면 불필요하게 되묻지 말고 진행하세요.\n- 파일 수정/삭제/이동처럼 되돌리기 어려운 작업에서 대상 파일, source 파일, 작업 단위가 모호하면 후보와 이유를 들어 구체적으로 확인하세요.\n- 파일 작업 실패, 중복 검색, 사용자 정정(\"응?\", \"아니\", \"그게 맞아?\")이 나오면 같은 행동을 반복하지 말고 직전 판단과 도구 결과를 먼저 진단하세요.\n- 코드 실행 도구가 제공된 경우 기본적으로 TypeScript를 사용하고 filename은 `.ts` 확장자로 작성하세요.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로는 그대로 따르세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 수정하지 마세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 도구 호출이 필요하면 응답의 마지막을 반드시 언어 태그가 `tool_call`인 fenced block으로 끝내세요.\n- `tool_call`이라는 단어를 code fence 바깥 일반 텍스트로 출력하지 마세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n- 한 번에 하나의 도구만 호출하세요.\n\n[사용자별 시스템 지침: .HARO.md]\n# HARO System Instructions\n\n이 파일은 Haro가 관리하는 시스템 지침입니다. 사용자는 이 파일을 직접 수정하지 않습니다.\n\n## 사용자 작업공간\n\n- 사용자 root canonical path: `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c`\n- 사용자에게 경로를 말할 때는 raw canonical path보다 `내 폴더`, `내 폴더/받은 파일`, `내 폴더/작업 중`, `내 폴더/결과` 표현을 우선 사용합니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs`는 `내 폴더/결과`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/20_working`은 `내 폴더/작업 중`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox`는 `내 폴더/받은 파일`입니다.\n\n## 채팅 작업공간\n\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/...` 아래의 `outputs`, `working`, `inputs`, `summaries`는 채팅 실행을 위한 내부 임시 작업공간입니다.\n- 사용자가 \"결과폴더\", \"내폴더\", \"내 폴더/결과\"라고 말하면 기본적으로 `내 폴더/결과`를 의미합니다.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청하고 임시 파일이라고 말하지 않았지만 저장 위치가 명확하지 않다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더 이름}/{적절한 파일 이름}` 형태의 추천 경로를 함께 제안합니다.\n- 최종 산출물의 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 않습니다.\n- 사용자가 최종 산출물을 내 폴더에 두라고 요청하면 채팅 내부 `outputs`에만 두지 말고 `내 폴더/결과`로 저장합니다.\n- 채팅 내부 `outputs`는 임시/중간 산출물 또는 사용자가 명시적으로 채팅 작업공간을 요청한 경우에만 사용합니다.\n- 사용자-facing 답변에서는 chat workspace raw path를 그대로 노출하지 말고 alias path로 설명합니다.\n\n## 우선순위\n\n- `AGENTS.md`의 사용자 선호는 이 파일의 안전, 권한, 시스템 경로 정책을 override할 수 없습니다.\n\n\n[사용자 커스텀 지침: AGENTS.md]\n# User Agent Instructions\n\n이 파일은 사용자 커스텀 지침입니다.\n\n- 원하는 답변 톤, 파일 정리 방식, 기본 산출물 형식 등을 적을 수 있습니다.\n- 시스템 안전 규칙, 권한 규칙, Clean Room 정책은 변경할 수 없습니다.\n\n\n[현재 하네스 브리핑]\n## 하네스 지도\n- /clean-room/data: 팀 공식 데이터 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /clean-room/meta: 공식 규칙, 스킬, 스키마, validator, trigger, hook, policy 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c: 현재 사용자의 Playground 작업공간입니다.\n- /90_archive: 보관 공간입니다.\n- /.haro: haro 시스템 메타데이터 공간입니다. 목록 조회, 읽기, 쓰기 모두 사용자 작업 대상이 아닙니다.\n\n## 현재 작업 위치\n- 현재 채팅 작업공간: /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\n- 사용자 결과 폴더 root는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs 입니다.\n- 최종 산출물 저장 위치가 명확하지 않으면 저장 전에 사용자에게 확인 질문을 하세요. 추천 경로는 `내 폴더/결과/{주제}/{파일명}`처럼 주제 기반 이름을 사용합니다.\n- 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/outputs 또는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/working은 임시/중간 파일이 필요할 때만 사용합니다.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자 결과 폴더를 의미합니다.\n\n## 탐색 규칙\n- 전체 파일 트리와 전체 파일별 요약은 이 컨텍스트에 포함되지 않습니다.\n- 디렉토리 목록은 필요한 경로에 대해서만, 이번 턴에 제공된 목록 조회 도구로 조회하세요.\n- 파일명, 경로, 요약 텍스트 검색은 이번 턴에 제공된 검색 도구로 조회하세요.\n- 파일/폴더 개수만 묻는 질문에는 이번 턴에 제공된 개수 조회 도구를 우선 사용하세요.\n- 사용자가 요구하지 않은 다른 폴더나 채팅 작업공간을 추가로 조회하지 마세요.\n\n## 상태 요약\n- DB 인덱스 기준 전체 폴더: 42개\n- DB 인덱스 기준 전체 파일: 31개\n- 루트 하위 폴더: 3개\n- 현재 채팅 작업공간 하위 폴더: 4개\n- 현재 채팅 작업공간 하위 파일: 9개\n\n## 현재 채팅 압축 맥락\n## context.md\n# Current Chat Context\n\nchat_id: 4ddfc513-1a26-4926-a9c7-66d97728314b\nupdated_at: 2026-05-12T13:35:20.802068+00:00\n\n아직 압축된 맥락이 없습니다.\n\n## decisions.md\n# Decisions\n\n## rule-candidates.md\n# Rule Candidates\n\n## linked-files.json\n{\n  \"inputs\": [],\n  \"derived\": [],\n  \"outputs\": [],\n  \"exports\": []\n}\n사용 가능한 도구 목록:\n1. file_search(query, limit, item_type) - SQLite 파일 DB 기반 파일명, 경로, 요약 텍스트 검색.\n2. dir_list(path) - SQLite 파일 DB 기반 디렉토리 내용 조회. 기본 path는 \"/\".\n3. file_count(path, item_type, recursive) - SQLite 파일 DB 기반 파일/폴더 개수 조회.\n4. file_read(path) - 파일 내용 읽기.\n5. file_stats(path) - UTF-8 텍스트 파일의 줄 수, 글자 수, 단어/어절 추정, 예상 발표 시간, sha256을 반환합니다.\n6. file_search_content(path, query, regex, case_sensitive, glob, output_mode, max_results, offset, context_lines) - 파일 또는 폴더 내부 UTF-8 텍스트를 검색합니다.\n7. file_read_range(path, start_line, line_count) - UTF-8 텍스트 파일의 1-based 줄 범위만 읽습니다.\n\n채팅 작업공간 규칙:\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자의 `내 폴더/결과`를 의미합니다.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 명시 경로 없이 파일명만 path에 넣으면 저장 위치 확인이 필요합니다. 도구 호출 전에 사용자에게 확인하세요.\n- 최종 산출물 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로를 말한 경우에는 그 경로를 사용하세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 쓰지 마세요.\n\n파일 DB 조회 규칙:\n- 파일/폴더 검색, 개수, 요약 기반 탐색은 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 범위가 명확한 질문에는 해당 범위만 조회하고, 사용자가 요구하지 않은 채팅 폴더나 다른 폴더를 추가 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하거나 전체를 나열하지 말고 필요한 범위만 도구로 조회하세요.\n- \"몇 개\"처럼 개수만 묻는 요청에는 `file_count`를 우선 사용하세요.\n- 의미 있는 파일을 찾아야 하면 `file_search`로 파일명, 경로, 요약 텍스트를 검색하세요.\n- 검색 결과의 실제 내용을 확인해야 할 때만 `file_read`를 사용하세요.\n- 긴 파일, 분량 검증, 일부 수정 작업은 전체 `file_read` 전에 `file_stats`, `file_search_content`, `file_read_range`로 범위를 먼저 좁히세요.\n- \"N배\", \"N분 분량\", \"더 길게\", \"객관적으로 맞아?\" 같은 정량 요구사항은 변경 전후 `file_stats`로 실제 수치를 확인하세요.\n- 특정 폴더의 직계 목록이 필요할 때만 `dir_list`를 사용하세요.\n\n도구 호출 출력 계약:\n- 도구를 사용할 때는 반드시 아래 fenced block 형식만 사용하세요.\n- 사용 가능한 도구 목록에 없는 도구 이름은 절대 호출하지 마세요.\n- 필요한 도구가 목록에 없으면 현재 가능한 범위만 텍스트로 설명하고 멈추세요.\n- `tool_call`이라는 단어는 반드시 code fence 언어 태그로만 쓰세요.\n- code fence 바깥 일반 문장, 제목, 목록, 설명 안에 `tool_call`이라는 단어를 쓰지 마세요.\n- 도구 호출 block 뒤에는 어떤 문장도 덧붙이지 말고 즉시 응답을 끝내세요.\n- 한 번의 응답에는 정확히 하나의 도구 호출 block만 포함하세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n\n허용되는 유일한 형식:\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"dashboard\", \"limit\": 10, \"item_type\": \"file\"}}\n```\n\n금지되는 형식:\n- `tool_call` 다음 줄에 JSON을 쓰는 plain text 형식\n- 언어 태그가 `json`인 fenced block\n- XML/HTML 태그 안의 도구 호출\n- bullet/list 안에 JSON을 넣는 형식\n- 한 응답에 여러 개의 tool_call block을 넣는 형식\n\n도구를 사용하지 않고 텍스트만 응답할 때는 일반 텍스트로 응답하세요.\n작업 계획을 먼저 설명한 뒤 도구를 호출해야 한다면, 마지막은 반드시 위의 `tool_call` fenced block으로 끝내세요.\n한 번에 하나의 도구만 호출하세요.\n도구 호출 결과를 받은 후 다음 작업을 진행하세요.\n\n[현재 작업 맥락]\n아래 JSON은 현재 턴의 작업 맥락입니다. 라우터가 작업 의미를 확정한 것이 아니며, 대화 전체, 열린 파일, 최근 산출물, 도구 결과 후보를 종합해 executor가 판단해야 합니다.\n- active file과 latest artifact가 다르면 active file을 우선하고 둘을 구분해 설명하세요.\n- 낮은 위험의 read-only 요청은 확신이 충분하면 바로 진행하세요.\n- 파일 변경/삭제/이동에서 대상이나 작업 단위가 모호하면 후보와 이유를 들어 확인 질문을 하세요.\n- 같은 검색을 반복하지 말고, source가 없으면 확인한 위치와 누락 정보를 요약해 경로/재업로드를 요청하세요.\n{\n  \"current_user_message\": \"카카오에서 온 메일들 요약해줘\",\n  \"routing_text\": \"카카오에서 온 메일들 요약해줘\",\n  \"chat_workspace\": \"/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\",\n  \"gate_context\": {\n    \"decision\": \"new_task\",\n    \"source\": \"llm\",\n    \"confidence\": 1.0,\n    \"reason\": \"사용자가 '카카오에서 온 메일 요약'이라는 구체적인 새로운 업무를 요청하였으며, 이전 대화 내역이나 진행 중인 작업이 없는 상태에서의 첫 요청이므로 new_task로 판단합니다.\"\n  },\n  \"execution_policy\": {\n    \"profile\": \"read_only\",\n    \"confidence\": 0.86,\n    \"risk_level\": \"low\",\n    \"reason\": \"파일, 폴더, 현재 화면, 산출물 상태 확인 작업입니다.\",\n    \"context_confidence\": 0.68,\n    \"target_confidence\": 0.45,\n    \"source_confidence\": 0.55,\n    \"operation_confidence\": 0.84\n  },\n  \"is_clarification_answer\": false\n}",
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "카카오에서 온 메일들 요약해줘"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "text": "카카오에서 온 메일들을 요약해 드리기 위해, 먼저 사용자님의 폴더에서 관련 파일을 찾아보겠습니다. `내 폴더/받은 파일`이나 다른 경로에 카카오와 관련된 메일 파일이 있는지 검색을 진행하겠습니다.\n\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"카카오\", \"limit\": 10, \"item_type\": \"file\"}}\n```"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "[도구 실행 결과]\n검색 결과 없음: 카카오"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "text": "카카오(Kakao)와 관련된 파일을 찾지 못했습니다. 영문명인 'Kakao'로 다시 한번 검색해 보고, 검색 결과가 없으면 `내 폴더/받은 파일` 목록을 직접 확인해 보겠습니다.\n\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"Kakao\", \"limit\": 10, \"item_type\": \"file\"}}\n```"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "[도구 실행 결과]\n검색 결과 없음: Kakao"
+                }
+              ]
+            }
+          ],
+          "config": {
+            "system_instruction": "당신은 haro AI 에이전트입니다.\n사용자의 요청을 분석하고, 도구를 사용하여 파일을 생성·수정·삭제하며 작업을 수행합니다.\n\n역할:\n1. 사용자 의도를 분석합니다.\n2. 필요한 작업을 계획합니다.\n3. 도구를 호출하여 실제 작업을 수행합니다.\n4. 애매한 부분이 있으면 사용자에게 질문합니다.\n\n규칙:\n- 파일 작업 시 반드시 제공된 도구를 사용하세요.\n- 워크스페이스 파일 생성/수정/이동/삭제를 code_run으로 우회하지 말고 전용 파일/폴더 도구만 사용하세요.\n- 파일 구조 확인이 필요한 작업에는 이번 턴에 제공된 디렉토리/파일 DB 도구만 사용하세요.\n- 파일/폴더 검색, 개수, 요약 기반 탐색에는 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 개수만 묻는 질문에는 이번 턴에 개수 조회 도구가 제공된 경우 우선 사용하고, 요청하지 않은 폴더를 추가로 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하지 말고 필요한 범위만 도구로 조회하세요.\n- 한국어로 응답하세요.\n- 작업 계획을 먼저 설명한 후 도구를 호출하세요.\n- 별도 라우터가 작업 의미를 확정하지 않습니다. 현재 작업 맥락, 열린 파일, 최근 산출물, 대화, 도구 결과를 종합해 직접 판단하세요.\n- \"여기\", \"아래\", \"오늘\", \"방금\", \"이 파일\" 같은 지시어는 현재 열린 파일과 직전 도구 결과를 우선 근거로 해석하세요.\n- active file과 latest artifact가 다르면 active file을 현재 화면으로 우선하고, 두 대상을 혼동하지 말고 구분해서 설명하세요.\n- 낮은 위험의 읽기/요약/확인 요청은 맥락 확신도가 높으면 불필요하게 되묻지 말고 진행하세요.\n- 파일 수정/삭제/이동처럼 되돌리기 어려운 작업에서 대상 파일, source 파일, 작업 단위가 모호하면 후보와 이유를 들어 구체적으로 확인하세요.\n- 파일 작업 실패, 중복 검색, 사용자 정정(\"응?\", \"아니\", \"그게 맞아?\")이 나오면 같은 행동을 반복하지 말고 직전 판단과 도구 결과를 먼저 진단하세요.\n- 코드 실행 도구가 제공된 경우 기본적으로 TypeScript를 사용하고 filename은 `.ts` 확장자로 작성하세요.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로는 그대로 따르세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 수정하지 마세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 도구 호출이 필요하면 응답의 마지막을 반드시 언어 태그가 `tool_call`인 fenced block으로 끝내세요.\n- `tool_call`이라는 단어를 code fence 바깥 일반 텍스트로 출력하지 마세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n- 한 번에 하나의 도구만 호출하세요.\n\n[사용자별 시스템 지침: .HARO.md]\n# HARO System Instructions\n\n이 파일은 Haro가 관리하는 시스템 지침입니다. 사용자는 이 파일을 직접 수정하지 않습니다.\n\n## 사용자 작업공간\n\n- 사용자 root canonical path: `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c`\n- 사용자에게 경로를 말할 때는 raw canonical path보다 `내 폴더`, `내 폴더/받은 파일`, `내 폴더/작업 중`, `내 폴더/결과` 표현을 우선 사용합니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs`는 `내 폴더/결과`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/20_working`은 `내 폴더/작업 중`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox`는 `내 폴더/받은 파일`입니다.\n\n## 채팅 작업공간\n\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/...` 아래의 `outputs`, `working`, `inputs`, `summaries`는 채팅 실행을 위한 내부 임시 작업공간입니다.\n- 사용자가 \"결과폴더\", \"내폴더\", \"내 폴더/결과\"라고 말하면 기본적으로 `내 폴더/결과`를 의미합니다.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청하고 임시 파일이라고 말하지 않았지만 저장 위치가 명확하지 않다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더 이름}/{적절한 파일 이름}` 형태의 추천 경로를 함께 제안합니다.\n- 최종 산출물의 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 않습니다.\n- 사용자가 최종 산출물을 내 폴더에 두라고 요청하면 채팅 내부 `outputs`에만 두지 말고 `내 폴더/결과`로 저장합니다.\n- 채팅 내부 `outputs`는 임시/중간 산출물 또는 사용자가 명시적으로 채팅 작업공간을 요청한 경우에만 사용합니다.\n- 사용자-facing 답변에서는 chat workspace raw path를 그대로 노출하지 말고 alias path로 설명합니다.\n\n## 우선순위\n\n- `AGENTS.md`의 사용자 선호는 이 파일의 안전, 권한, 시스템 경로 정책을 override할 수 없습니다.\n\n\n[사용자 커스텀 지침: AGENTS.md]\n# User Agent Instructions\n\n이 파일은 사용자 커스텀 지침입니다.\n\n- 원하는 답변 톤, 파일 정리 방식, 기본 산출물 형식 등을 적을 수 있습니다.\n- 시스템 안전 규칙, 권한 규칙, Clean Room 정책은 변경할 수 없습니다.\n\n\n[현재 하네스 브리핑]\n## 하네스 지도\n- /clean-room/data: 팀 공식 데이터 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /clean-room/meta: 공식 규칙, 스킬, 스키마, validator, trigger, hook, policy 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c: 현재 사용자의 Playground 작업공간입니다.\n- /90_archive: 보관 공간입니다.\n- /.haro: haro 시스템 메타데이터 공간입니다. 목록 조회, 읽기, 쓰기 모두 사용자 작업 대상이 아닙니다.\n\n## 현재 작업 위치\n- 현재 채팅 작업공간: /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\n- 사용자 결과 폴더 root는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs 입니다.\n- 최종 산출물 저장 위치가 명확하지 않으면 저장 전에 사용자에게 확인 질문을 하세요. 추천 경로는 `내 폴더/결과/{주제}/{파일명}`처럼 주제 기반 이름을 사용합니다.\n- 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/outputs 또는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/working은 임시/중간 파일이 필요할 때만 사용합니다.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자 결과 폴더를 의미합니다.\n\n## 탐색 규칙\n- 전체 파일 트리와 전체 파일별 요약은 이 컨텍스트에 포함되지 않습니다.\n- 디렉토리 목록은 필요한 경로에 대해서만, 이번 턴에 제공된 목록 조회 도구로 조회하세요.\n- 파일명, 경로, 요약 텍스트 검색은 이번 턴에 제공된 검색 도구로 조회하세요.\n- 파일/폴더 개수만 묻는 질문에는 이번 턴에 제공된 개수 조회 도구를 우선 사용하세요.\n- 사용자가 요구하지 않은 다른 폴더나 채팅 작업공간을 추가로 조회하지 마세요.\n\n## 상태 요약\n- DB 인덱스 기준 전체 폴더: 42개\n- DB 인덱스 기준 전체 파일: 31개\n- 루트 하위 폴더: 3개\n- 현재 채팅 작업공간 하위 폴더: 4개\n- 현재 채팅 작업공간 하위 파일: 9개\n\n## 현재 채팅 압축 맥락\n## context.md\n# Current Chat Context\n\nchat_id: 4ddfc513-1a26-4926-a9c7-66d97728314b\nupdated_at: 2026-05-12T13:35:20.802068+00:00\n\n아직 압축된 맥락이 없습니다.\n\n## decisions.md\n# Decisions\n\n## rule-candidates.md\n# Rule Candidates\n\n## linked-files.json\n{\n  \"inputs\": [],\n  \"derived\": [],\n  \"outputs\": [],\n  \"exports\": []\n}\n사용 가능한 도구 목록:\n1. file_search(query, limit, item_type) - SQLite 파일 DB 기반 파일명, 경로, 요약 텍스트 검색.\n2. dir_list(path) - SQLite 파일 DB 기반 디렉토리 내용 조회. 기본 path는 \"/\".\n3. file_count(path, item_type, recursive) - SQLite 파일 DB 기반 파일/폴더 개수 조회.\n4. file_read(path) - 파일 내용 읽기.\n5. file_stats(path) - UTF-8 텍스트 파일의 줄 수, 글자 수, 단어/어절 추정, 예상 발표 시간, sha256을 반환합니다.\n6. file_search_content(path, query, regex, case_sensitive, glob, output_mode, max_results, offset, context_lines) - 파일 또는 폴더 내부 UTF-8 텍스트를 검색합니다.\n7. file_read_range(path, start_line, line_count) - UTF-8 텍스트 파일의 1-based 줄 범위만 읽습니다.\n\n채팅 작업공간 규칙:\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자의 `내 폴더/결과`를 의미합니다.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 명시 경로 없이 파일명만 path에 넣으면 저장 위치 확인이 필요합니다. 도구 호출 전에 사용자에게 확인하세요.\n- 최종 산출물 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로를 말한 경우에는 그 경로를 사용하세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 쓰지 마세요.\n\n파일 DB 조회 규칙:\n- 파일/폴더 검색, 개수, 요약 기반 탐색은 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 범위가 명확한 질문에는 해당 범위만 조회하고, 사용자가 요구하지 않은 채팅 폴더나 다른 폴더를 추가 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하거나 전체를 나열하지 말고 필요한 범위만 도구로 조회하세요.\n- \"몇 개\"처럼 개수만 묻는 요청에는 `file_count`를 우선 사용하세요.\n- 의미 있는 파일을 찾아야 하면 `file_search`로 파일명, 경로, 요약 텍스트를 검색하세요.\n- 검색 결과의 실제 내용을 확인해야 할 때만 `file_read`를 사용하세요.\n- 긴 파일, 분량 검증, 일부 수정 작업은 전체 `file_read` 전에 `file_stats`, `file_search_content`, `file_read_range`로 범위를 먼저 좁히세요.\n- \"N배\", \"N분 분량\", \"더 길게\", \"객관적으로 맞아?\" 같은 정량 요구사항은 변경 전후 `file_stats`로 실제 수치를 확인하세요.\n- 특정 폴더의 직계 목록이 필요할 때만 `dir_list`를 사용하세요.\n\n도구 호출 출력 계약:\n- 도구를 사용할 때는 반드시 아래 fenced block 형식만 사용하세요.\n- 사용 가능한 도구 목록에 없는 도구 이름은 절대 호출하지 마세요.\n- 필요한 도구가 목록에 없으면 현재 가능한 범위만 텍스트로 설명하고 멈추세요.\n- `tool_call`이라는 단어는 반드시 code fence 언어 태그로만 쓰세요.\n- code fence 바깥 일반 문장, 제목, 목록, 설명 안에 `tool_call`이라는 단어를 쓰지 마세요.\n- 도구 호출 block 뒤에는 어떤 문장도 덧붙이지 말고 즉시 응답을 끝내세요.\n- 한 번의 응답에는 정확히 하나의 도구 호출 block만 포함하세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n\n허용되는 유일한 형식:\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"dashboard\", \"limit\": 10, \"item_type\": \"file\"}}\n```\n\n금지되는 형식:\n- `tool_call` 다음 줄에 JSON을 쓰는 plain text 형식\n- 언어 태그가 `json`인 fenced block\n- XML/HTML 태그 안의 도구 호출\n- bullet/list 안에 JSON을 넣는 형식\n- 한 응답에 여러 개의 tool_call block을 넣는 형식\n\n도구를 사용하지 않고 텍스트만 응답할 때는 일반 텍스트로 응답하세요.\n작업 계획을 먼저 설명한 뒤 도구를 호출해야 한다면, 마지막은 반드시 위의 `tool_call` fenced block으로 끝내세요.\n한 번에 하나의 도구만 호출하세요.\n도구 호출 결과를 받은 후 다음 작업을 진행하세요.\n\n[현재 작업 맥락]\n아래 JSON은 현재 턴의 작업 맥락입니다. 라우터가 작업 의미를 확정한 것이 아니며, 대화 전체, 열린 파일, 최근 산출물, 도구 결과 후보를 종합해 executor가 판단해야 합니다.\n- active file과 latest artifact가 다르면 active file을 우선하고 둘을 구분해 설명하세요.\n- 낮은 위험의 read-only 요청은 확신이 충분하면 바로 진행하세요.\n- 파일 변경/삭제/이동에서 대상이나 작업 단위가 모호하면 후보와 이유를 들어 확인 질문을 하세요.\n- 같은 검색을 반복하지 말고, source가 없으면 확인한 위치와 누락 정보를 요약해 경로/재업로드를 요청하세요.\n{\n  \"current_user_message\": \"카카오에서 온 메일들 요약해줘\",\n  \"routing_text\": \"카카오에서 온 메일들 요약해줘\",\n  \"chat_workspace\": \"/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\",\n  \"gate_context\": {\n    \"decision\": \"new_task\",\n    \"source\": \"llm\",\n    \"confidence\": 1.0,\n    \"reason\": \"사용자가 '카카오에서 온 메일 요약'이라는 구체적인 새로운 업무를 요청하였으며, 이전 대화 내역이나 진행 중인 작업이 없는 상태에서의 첫 요청이므로 new_task로 판단합니다.\"\n  },\n  \"execution_policy\": {\n    \"profile\": \"read_only\",\n    \"confidence\": 0.86,\n    \"risk_level\": \"low\",\n    \"reason\": \"파일, 폴더, 현재 화면, 산출물 상태 확인 작업입니다.\",\n    \"context_confidence\": 0.68,\n    \"target_confidence\": 0.45,\n    \"source_confidence\": 0.55,\n    \"operation_confidence\": 0.84\n  },\n  \"is_clarification_answer\": false\n}",
+            "temperature": 0.7
+          }
+        },
+        "duration_ms": null,
+        "created_at": "2026-05-12T13:36:03.151706+00:00"
+      },
+      {
+        "id": "ce16bcf8-e3e1-46c0-93a5-64ff7d7e878e",
+        "round_index": 2,
+        "event_type": "llm_response",
+        "payload": {
+          "text": "카카오와 관련된 키워드로 검색된 파일이 없습니다. 메일 파일이 다른 이름으로 저장되어 있을 수 있으니, 우선 `내 폴더/받은 파일`(/00_inbox)의 목록을 직접 확인하여 요약할 만한 메일 데이터가 있는지 찾아보겠습니다.\n\n```tool_call\n{\"tool\": \"dir_list\", \"args\": {\"path\": \"/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox\"}}\n```",
+          "has_tool_call": true,
+          "has_tool_call_block": true,
+          "tool_call_parse_ok": true,
+          "tool_call_parse_error": null,
+          "parsed_tool_call": {
+            "tool": "dir_list",
+            "args": {
+              "path": "/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox"
+            }
+          }
+        },
+        "duration_ms": 3175.3039360046387,
+        "created_at": "2026-05-12T13:36:07.240228+00:00"
+      },
+      {
+        "id": "95c295fb-424d-41c9-9d45-2b2e012a6fc5",
+        "round_index": 2,
+        "event_type": "tool_call",
+        "payload": {
+          "tool": "dir_list",
+          "args": {
+            "path": "/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox"
+          }
+        },
+        "duration_ms": null,
+        "created_at": "2026-05-12T13:36:07.398661+00:00"
+      },
+      {
+        "id": "6a97b582-2467-4000-b2f9-070db3be46de",
+        "round_index": 2,
+        "event_type": "tool_result",
+        "payload": {
+          "tool": "dir_list",
+          "result": "빈 디렉토리: /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox"
+        },
+        "duration_ms": 207.3960304260254,
+        "created_at": "2026-05-12T13:36:07.767142+00:00"
+      },
+      {
+        "id": "90635272-6ac0-49fb-9ea9-8552b0ad5e8b",
+        "round_index": 3,
+        "event_type": "llm_request",
+        "payload": {
+          "model": "gemini-3-flash-preview",
+          "system_instruction": "당신은 haro AI 에이전트입니다.\n사용자의 요청을 분석하고, 도구를 사용하여 파일을 생성·수정·삭제하며 작업을 수행합니다.\n\n역할:\n1. 사용자 의도를 분석합니다.\n2. 필요한 작업을 계획합니다.\n3. 도구를 호출하여 실제 작업을 수행합니다.\n4. 애매한 부분이 있으면 사용자에게 질문합니다.\n\n규칙:\n- 파일 작업 시 반드시 제공된 도구를 사용하세요.\n- 워크스페이스 파일 생성/수정/이동/삭제를 code_run으로 우회하지 말고 전용 파일/폴더 도구만 사용하세요.\n- 파일 구조 확인이 필요한 작업에는 이번 턴에 제공된 디렉토리/파일 DB 도구만 사용하세요.\n- 파일/폴더 검색, 개수, 요약 기반 탐색에는 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 개수만 묻는 질문에는 이번 턴에 개수 조회 도구가 제공된 경우 우선 사용하고, 요청하지 않은 폴더를 추가로 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하지 말고 필요한 범위만 도구로 조회하세요.\n- 한국어로 응답하세요.\n- 작업 계획을 먼저 설명한 후 도구를 호출하세요.\n- 별도 라우터가 작업 의미를 확정하지 않습니다. 현재 작업 맥락, 열린 파일, 최근 산출물, 대화, 도구 결과를 종합해 직접 판단하세요.\n- \"여기\", \"아래\", \"오늘\", \"방금\", \"이 파일\" 같은 지시어는 현재 열린 파일과 직전 도구 결과를 우선 근거로 해석하세요.\n- active file과 latest artifact가 다르면 active file을 현재 화면으로 우선하고, 두 대상을 혼동하지 말고 구분해서 설명하세요.\n- 낮은 위험의 읽기/요약/확인 요청은 맥락 확신도가 높으면 불필요하게 되묻지 말고 진행하세요.\n- 파일 수정/삭제/이동처럼 되돌리기 어려운 작업에서 대상 파일, source 파일, 작업 단위가 모호하면 후보와 이유를 들어 구체적으로 확인하세요.\n- 파일 작업 실패, 중복 검색, 사용자 정정(\"응?\", \"아니\", \"그게 맞아?\")이 나오면 같은 행동을 반복하지 말고 직전 판단과 도구 결과를 먼저 진단하세요.\n- 코드 실행 도구가 제공된 경우 기본적으로 TypeScript를 사용하고 filename은 `.ts` 확장자로 작성하세요.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로는 그대로 따르세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 수정하지 마세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 도구 호출이 필요하면 응답의 마지막을 반드시 언어 태그가 `tool_call`인 fenced block으로 끝내세요.\n- `tool_call`이라는 단어를 code fence 바깥 일반 텍스트로 출력하지 마세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n- 한 번에 하나의 도구만 호출하세요.\n\n[사용자별 시스템 지침: .HARO.md]\n# HARO System Instructions\n\n이 파일은 Haro가 관리하는 시스템 지침입니다. 사용자는 이 파일을 직접 수정하지 않습니다.\n\n## 사용자 작업공간\n\n- 사용자 root canonical path: `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c`\n- 사용자에게 경로를 말할 때는 raw canonical path보다 `내 폴더`, `내 폴더/받은 파일`, `내 폴더/작업 중`, `내 폴더/결과` 표현을 우선 사용합니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs`는 `내 폴더/결과`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/20_working`은 `내 폴더/작업 중`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox`는 `내 폴더/받은 파일`입니다.\n\n## 채팅 작업공간\n\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/...` 아래의 `outputs`, `working`, `inputs`, `summaries`는 채팅 실행을 위한 내부 임시 작업공간입니다.\n- 사용자가 \"결과폴더\", \"내폴더\", \"내 폴더/결과\"라고 말하면 기본적으로 `내 폴더/결과`를 의미합니다.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청하고 임시 파일이라고 말하지 않았지만 저장 위치가 명확하지 않다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더 이름}/{적절한 파일 이름}` 형태의 추천 경로를 함께 제안합니다.\n- 최종 산출물의 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 않습니다.\n- 사용자가 최종 산출물을 내 폴더에 두라고 요청하면 채팅 내부 `outputs`에만 두지 말고 `내 폴더/결과`로 저장합니다.\n- 채팅 내부 `outputs`는 임시/중간 산출물 또는 사용자가 명시적으로 채팅 작업공간을 요청한 경우에만 사용합니다.\n- 사용자-facing 답변에서는 chat workspace raw path를 그대로 노출하지 말고 alias path로 설명합니다.\n\n## 우선순위\n\n- `AGENTS.md`의 사용자 선호는 이 파일의 안전, 권한, 시스템 경로 정책을 override할 수 없습니다.\n\n\n[사용자 커스텀 지침: AGENTS.md]\n# User Agent Instructions\n\n이 파일은 사용자 커스텀 지침입니다.\n\n- 원하는 답변 톤, 파일 정리 방식, 기본 산출물 형식 등을 적을 수 있습니다.\n- 시스템 안전 규칙, 권한 규칙, Clean Room 정책은 변경할 수 없습니다.\n\n\n[현재 하네스 브리핑]\n## 하네스 지도\n- /clean-room/data: 팀 공식 데이터 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /clean-room/meta: 공식 규칙, 스킬, 스키마, validator, trigger, hook, policy 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c: 현재 사용자의 Playground 작업공간입니다.\n- /90_archive: 보관 공간입니다.\n- /.haro: haro 시스템 메타데이터 공간입니다. 목록 조회, 읽기, 쓰기 모두 사용자 작업 대상이 아닙니다.\n\n## 현재 작업 위치\n- 현재 채팅 작업공간: /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\n- 사용자 결과 폴더 root는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs 입니다.\n- 최종 산출물 저장 위치가 명확하지 않으면 저장 전에 사용자에게 확인 질문을 하세요. 추천 경로는 `내 폴더/결과/{주제}/{파일명}`처럼 주제 기반 이름을 사용합니다.\n- 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/outputs 또는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/working은 임시/중간 파일이 필요할 때만 사용합니다.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자 결과 폴더를 의미합니다.\n\n## 탐색 규칙\n- 전체 파일 트리와 전체 파일별 요약은 이 컨텍스트에 포함되지 않습니다.\n- 디렉토리 목록은 필요한 경로에 대해서만, 이번 턴에 제공된 목록 조회 도구로 조회하세요.\n- 파일명, 경로, 요약 텍스트 검색은 이번 턴에 제공된 검색 도구로 조회하세요.\n- 파일/폴더 개수만 묻는 질문에는 이번 턴에 제공된 개수 조회 도구를 우선 사용하세요.\n- 사용자가 요구하지 않은 다른 폴더나 채팅 작업공간을 추가로 조회하지 마세요.\n\n## 상태 요약\n- DB 인덱스 기준 전체 폴더: 42개\n- DB 인덱스 기준 전체 파일: 31개\n- 루트 하위 폴더: 3개\n- 현재 채팅 작업공간 하위 폴더: 4개\n- 현재 채팅 작업공간 하위 파일: 9개\n\n## 현재 채팅 압축 맥락\n## context.md\n# Current Chat Context\n\nchat_id: 4ddfc513-1a26-4926-a9c7-66d97728314b\nupdated_at: 2026-05-12T13:35:20.802068+00:00\n\n아직 압축된 맥락이 없습니다.\n\n## decisions.md\n# Decisions\n\n## rule-candidates.md\n# Rule Candidates\n\n## linked-files.json\n{\n  \"inputs\": [],\n  \"derived\": [],\n  \"outputs\": [],\n  \"exports\": []\n}\n사용 가능한 도구 목록:\n1. file_search(query, limit, item_type) - SQLite 파일 DB 기반 파일명, 경로, 요약 텍스트 검색.\n2. dir_list(path) - SQLite 파일 DB 기반 디렉토리 내용 조회. 기본 path는 \"/\".\n3. file_count(path, item_type, recursive) - SQLite 파일 DB 기반 파일/폴더 개수 조회.\n4. file_read(path) - 파일 내용 읽기.\n5. file_stats(path) - UTF-8 텍스트 파일의 줄 수, 글자 수, 단어/어절 추정, 예상 발표 시간, sha256을 반환합니다.\n6. file_search_content(path, query, regex, case_sensitive, glob, output_mode, max_results, offset, context_lines) - 파일 또는 폴더 내부 UTF-8 텍스트를 검색합니다.\n7. file_read_range(path, start_line, line_count) - UTF-8 텍스트 파일의 1-based 줄 범위만 읽습니다.\n\n채팅 작업공간 규칙:\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자의 `내 폴더/결과`를 의미합니다.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 명시 경로 없이 파일명만 path에 넣으면 저장 위치 확인이 필요합니다. 도구 호출 전에 사용자에게 확인하세요.\n- 최종 산출물 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로를 말한 경우에는 그 경로를 사용하세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 쓰지 마세요.\n\n파일 DB 조회 규칙:\n- 파일/폴더 검색, 개수, 요약 기반 탐색은 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 범위가 명확한 질문에는 해당 범위만 조회하고, 사용자가 요구하지 않은 채팅 폴더나 다른 폴더를 추가 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하거나 전체를 나열하지 말고 필요한 범위만 도구로 조회하세요.\n- \"몇 개\"처럼 개수만 묻는 요청에는 `file_count`를 우선 사용하세요.\n- 의미 있는 파일을 찾아야 하면 `file_search`로 파일명, 경로, 요약 텍스트를 검색하세요.\n- 검색 결과의 실제 내용을 확인해야 할 때만 `file_read`를 사용하세요.\n- 긴 파일, 분량 검증, 일부 수정 작업은 전체 `file_read` 전에 `file_stats`, `file_search_content`, `file_read_range`로 범위를 먼저 좁히세요.\n- \"N배\", \"N분 분량\", \"더 길게\", \"객관적으로 맞아?\" 같은 정량 요구사항은 변경 전후 `file_stats`로 실제 수치를 확인하세요.\n- 특정 폴더의 직계 목록이 필요할 때만 `dir_list`를 사용하세요.\n\n도구 호출 출력 계약:\n- 도구를 사용할 때는 반드시 아래 fenced block 형식만 사용하세요.\n- 사용 가능한 도구 목록에 없는 도구 이름은 절대 호출하지 마세요.\n- 필요한 도구가 목록에 없으면 현재 가능한 범위만 텍스트로 설명하고 멈추세요.\n- `tool_call`이라는 단어는 반드시 code fence 언어 태그로만 쓰세요.\n- code fence 바깥 일반 문장, 제목, 목록, 설명 안에 `tool_call`이라는 단어를 쓰지 마세요.\n- 도구 호출 block 뒤에는 어떤 문장도 덧붙이지 말고 즉시 응답을 끝내세요.\n- 한 번의 응답에는 정확히 하나의 도구 호출 block만 포함하세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n\n허용되는 유일한 형식:\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"dashboard\", \"limit\": 10, \"item_type\": \"file\"}}\n```\n\n금지되는 형식:\n- `tool_call` 다음 줄에 JSON을 쓰는 plain text 형식\n- 언어 태그가 `json`인 fenced block\n- XML/HTML 태그 안의 도구 호출\n- bullet/list 안에 JSON을 넣는 형식\n- 한 응답에 여러 개의 tool_call block을 넣는 형식\n\n도구를 사용하지 않고 텍스트만 응답할 때는 일반 텍스트로 응답하세요.\n작업 계획을 먼저 설명한 뒤 도구를 호출해야 한다면, 마지막은 반드시 위의 `tool_call` fenced block으로 끝내세요.\n한 번에 하나의 도구만 호출하세요.\n도구 호출 결과를 받은 후 다음 작업을 진행하세요.\n\n[현재 작업 맥락]\n아래 JSON은 현재 턴의 작업 맥락입니다. 라우터가 작업 의미를 확정한 것이 아니며, 대화 전체, 열린 파일, 최근 산출물, 도구 결과 후보를 종합해 executor가 판단해야 합니다.\n- active file과 latest artifact가 다르면 active file을 우선하고 둘을 구분해 설명하세요.\n- 낮은 위험의 read-only 요청은 확신이 충분하면 바로 진행하세요.\n- 파일 변경/삭제/이동에서 대상이나 작업 단위가 모호하면 후보와 이유를 들어 확인 질문을 하세요.\n- 같은 검색을 반복하지 말고, source가 없으면 확인한 위치와 누락 정보를 요약해 경로/재업로드를 요청하세요.\n{\n  \"current_user_message\": \"카카오에서 온 메일들 요약해줘\",\n  \"routing_text\": \"카카오에서 온 메일들 요약해줘\",\n  \"chat_workspace\": \"/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\",\n  \"gate_context\": {\n    \"decision\": \"new_task\",\n    \"source\": \"llm\",\n    \"confidence\": 1.0,\n    \"reason\": \"사용자가 '카카오에서 온 메일 요약'이라는 구체적인 새로운 업무를 요청하였으며, 이전 대화 내역이나 진행 중인 작업이 없는 상태에서의 첫 요청이므로 new_task로 판단합니다.\"\n  },\n  \"execution_policy\": {\n    \"profile\": \"read_only\",\n    \"confidence\": 0.86,\n    \"risk_level\": \"low\",\n    \"reason\": \"파일, 폴더, 현재 화면, 산출물 상태 확인 작업입니다.\",\n    \"context_confidence\": 0.68,\n    \"target_confidence\": 0.45,\n    \"source_confidence\": 0.55,\n    \"operation_confidence\": 0.84\n  },\n  \"is_clarification_answer\": false\n}",
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "카카오에서 온 메일들 요약해줘"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "text": "카카오에서 온 메일들을 요약해 드리기 위해, 먼저 사용자님의 폴더에서 관련 파일을 찾아보겠습니다. `내 폴더/받은 파일`이나 다른 경로에 카카오와 관련된 메일 파일이 있는지 검색을 진행하겠습니다.\n\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"카카오\", \"limit\": 10, \"item_type\": \"file\"}}\n```"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "[도구 실행 결과]\n검색 결과 없음: 카카오"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "text": "카카오(Kakao)와 관련된 파일을 찾지 못했습니다. 영문명인 'Kakao'로 다시 한번 검색해 보고, 검색 결과가 없으면 `내 폴더/받은 파일` 목록을 직접 확인해 보겠습니다.\n\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"Kakao\", \"limit\": 10, \"item_type\": \"file\"}}\n```"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "[도구 실행 결과]\n검색 결과 없음: Kakao"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "text": "카카오와 관련된 키워드로 검색된 파일이 없습니다. 메일 파일이 다른 이름으로 저장되어 있을 수 있으니, 우선 `내 폴더/받은 파일`(/00_inbox)의 목록을 직접 확인하여 요약할 만한 메일 데이터가 있는지 찾아보겠습니다.\n\n```tool_call\n{\"tool\": \"dir_list\", \"args\": {\"path\": \"/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox\"}}\n```"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "[도구 실행 결과]\n빈 디렉토리: /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox"
+                }
+              ]
+            }
+          ],
+          "config": {
+            "system_instruction": "당신은 haro AI 에이전트입니다.\n사용자의 요청을 분석하고, 도구를 사용하여 파일을 생성·수정·삭제하며 작업을 수행합니다.\n\n역할:\n1. 사용자 의도를 분석합니다.\n2. 필요한 작업을 계획합니다.\n3. 도구를 호출하여 실제 작업을 수행합니다.\n4. 애매한 부분이 있으면 사용자에게 질문합니다.\n\n규칙:\n- 파일 작업 시 반드시 제공된 도구를 사용하세요.\n- 워크스페이스 파일 생성/수정/이동/삭제를 code_run으로 우회하지 말고 전용 파일/폴더 도구만 사용하세요.\n- 파일 구조 확인이 필요한 작업에는 이번 턴에 제공된 디렉토리/파일 DB 도구만 사용하세요.\n- 파일/폴더 검색, 개수, 요약 기반 탐색에는 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 개수만 묻는 질문에는 이번 턴에 개수 조회 도구가 제공된 경우 우선 사용하고, 요청하지 않은 폴더를 추가로 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하지 말고 필요한 범위만 도구로 조회하세요.\n- 한국어로 응답하세요.\n- 작업 계획을 먼저 설명한 후 도구를 호출하세요.\n- 별도 라우터가 작업 의미를 확정하지 않습니다. 현재 작업 맥락, 열린 파일, 최근 산출물, 대화, 도구 결과를 종합해 직접 판단하세요.\n- \"여기\", \"아래\", \"오늘\", \"방금\", \"이 파일\" 같은 지시어는 현재 열린 파일과 직전 도구 결과를 우선 근거로 해석하세요.\n- active file과 latest artifact가 다르면 active file을 현재 화면으로 우선하고, 두 대상을 혼동하지 말고 구분해서 설명하세요.\n- 낮은 위험의 읽기/요약/확인 요청은 맥락 확신도가 높으면 불필요하게 되묻지 말고 진행하세요.\n- 파일 수정/삭제/이동처럼 되돌리기 어려운 작업에서 대상 파일, source 파일, 작업 단위가 모호하면 후보와 이유를 들어 구체적으로 확인하세요.\n- 파일 작업 실패, 중복 검색, 사용자 정정(\"응?\", \"아니\", \"그게 맞아?\")이 나오면 같은 행동을 반복하지 말고 직전 판단과 도구 결과를 먼저 진단하세요.\n- 코드 실행 도구가 제공된 경우 기본적으로 TypeScript를 사용하고 filename은 `.ts` 확장자로 작성하세요.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로는 그대로 따르세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 수정하지 마세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 도구 호출이 필요하면 응답의 마지막을 반드시 언어 태그가 `tool_call`인 fenced block으로 끝내세요.\n- `tool_call`이라는 단어를 code fence 바깥 일반 텍스트로 출력하지 마세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n- 한 번에 하나의 도구만 호출하세요.\n\n[사용자별 시스템 지침: .HARO.md]\n# HARO System Instructions\n\n이 파일은 Haro가 관리하는 시스템 지침입니다. 사용자는 이 파일을 직접 수정하지 않습니다.\n\n## 사용자 작업공간\n\n- 사용자 root canonical path: `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c`\n- 사용자에게 경로를 말할 때는 raw canonical path보다 `내 폴더`, `내 폴더/받은 파일`, `내 폴더/작업 중`, `내 폴더/결과` 표현을 우선 사용합니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs`는 `내 폴더/결과`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/20_working`은 `내 폴더/작업 중`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox`는 `내 폴더/받은 파일`입니다.\n\n## 채팅 작업공간\n\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/...` 아래의 `outputs`, `working`, `inputs`, `summaries`는 채팅 실행을 위한 내부 임시 작업공간입니다.\n- 사용자가 \"결과폴더\", \"내폴더\", \"내 폴더/결과\"라고 말하면 기본적으로 `내 폴더/결과`를 의미합니다.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청하고 임시 파일이라고 말하지 않았지만 저장 위치가 명확하지 않다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더 이름}/{적절한 파일 이름}` 형태의 추천 경로를 함께 제안합니다.\n- 최종 산출물의 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 않습니다.\n- 사용자가 최종 산출물을 내 폴더에 두라고 요청하면 채팅 내부 `outputs`에만 두지 말고 `내 폴더/결과`로 저장합니다.\n- 채팅 내부 `outputs`는 임시/중간 산출물 또는 사용자가 명시적으로 채팅 작업공간을 요청한 경우에만 사용합니다.\n- 사용자-facing 답변에서는 chat workspace raw path를 그대로 노출하지 말고 alias path로 설명합니다.\n\n## 우선순위\n\n- `AGENTS.md`의 사용자 선호는 이 파일의 안전, 권한, 시스템 경로 정책을 override할 수 없습니다.\n\n\n[사용자 커스텀 지침: AGENTS.md]\n# User Agent Instructions\n\n이 파일은 사용자 커스텀 지침입니다.\n\n- 원하는 답변 톤, 파일 정리 방식, 기본 산출물 형식 등을 적을 수 있습니다.\n- 시스템 안전 규칙, 권한 규칙, Clean Room 정책은 변경할 수 없습니다.\n\n\n[현재 하네스 브리핑]\n## 하네스 지도\n- /clean-room/data: 팀 공식 데이터 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /clean-room/meta: 공식 규칙, 스킬, 스키마, validator, trigger, hook, policy 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c: 현재 사용자의 Playground 작업공간입니다.\n- /90_archive: 보관 공간입니다.\n- /.haro: haro 시스템 메타데이터 공간입니다. 목록 조회, 읽기, 쓰기 모두 사용자 작업 대상이 아닙니다.\n\n## 현재 작업 위치\n- 현재 채팅 작업공간: /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\n- 사용자 결과 폴더 root는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs 입니다.\n- 최종 산출물 저장 위치가 명확하지 않으면 저장 전에 사용자에게 확인 질문을 하세요. 추천 경로는 `내 폴더/결과/{주제}/{파일명}`처럼 주제 기반 이름을 사용합니다.\n- 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/outputs 또는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/working은 임시/중간 파일이 필요할 때만 사용합니다.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자 결과 폴더를 의미합니다.\n\n## 탐색 규칙\n- 전체 파일 트리와 전체 파일별 요약은 이 컨텍스트에 포함되지 않습니다.\n- 디렉토리 목록은 필요한 경로에 대해서만, 이번 턴에 제공된 목록 조회 도구로 조회하세요.\n- 파일명, 경로, 요약 텍스트 검색은 이번 턴에 제공된 검색 도구로 조회하세요.\n- 파일/폴더 개수만 묻는 질문에는 이번 턴에 제공된 개수 조회 도구를 우선 사용하세요.\n- 사용자가 요구하지 않은 다른 폴더나 채팅 작업공간을 추가로 조회하지 마세요.\n\n## 상태 요약\n- DB 인덱스 기준 전체 폴더: 42개\n- DB 인덱스 기준 전체 파일: 31개\n- 루트 하위 폴더: 3개\n- 현재 채팅 작업공간 하위 폴더: 4개\n- 현재 채팅 작업공간 하위 파일: 9개\n\n## 현재 채팅 압축 맥락\n## context.md\n# Current Chat Context\n\nchat_id: 4ddfc513-1a26-4926-a9c7-66d97728314b\nupdated_at: 2026-05-12T13:35:20.802068+00:00\n\n아직 압축된 맥락이 없습니다.\n\n## decisions.md\n# Decisions\n\n## rule-candidates.md\n# Rule Candidates\n\n## linked-files.json\n{\n  \"inputs\": [],\n  \"derived\": [],\n  \"outputs\": [],\n  \"exports\": []\n}\n사용 가능한 도구 목록:\n1. file_search(query, limit, item_type) - SQLite 파일 DB 기반 파일명, 경로, 요약 텍스트 검색.\n2. dir_list(path) - SQLite 파일 DB 기반 디렉토리 내용 조회. 기본 path는 \"/\".\n3. file_count(path, item_type, recursive) - SQLite 파일 DB 기반 파일/폴더 개수 조회.\n4. file_read(path) - 파일 내용 읽기.\n5. file_stats(path) - UTF-8 텍스트 파일의 줄 수, 글자 수, 단어/어절 추정, 예상 발표 시간, sha256을 반환합니다.\n6. file_search_content(path, query, regex, case_sensitive, glob, output_mode, max_results, offset, context_lines) - 파일 또는 폴더 내부 UTF-8 텍스트를 검색합니다.\n7. file_read_range(path, start_line, line_count) - UTF-8 텍스트 파일의 1-based 줄 범위만 읽습니다.\n\n채팅 작업공간 규칙:\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자의 `내 폴더/결과`를 의미합니다.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 명시 경로 없이 파일명만 path에 넣으면 저장 위치 확인이 필요합니다. 도구 호출 전에 사용자에게 확인하세요.\n- 최종 산출물 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로를 말한 경우에는 그 경로를 사용하세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 쓰지 마세요.\n\n파일 DB 조회 규칙:\n- 파일/폴더 검색, 개수, 요약 기반 탐색은 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 범위가 명확한 질문에는 해당 범위만 조회하고, 사용자가 요구하지 않은 채팅 폴더나 다른 폴더를 추가 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하거나 전체를 나열하지 말고 필요한 범위만 도구로 조회하세요.\n- \"몇 개\"처럼 개수만 묻는 요청에는 `file_count`를 우선 사용하세요.\n- 의미 있는 파일을 찾아야 하면 `file_search`로 파일명, 경로, 요약 텍스트를 검색하세요.\n- 검색 결과의 실제 내용을 확인해야 할 때만 `file_read`를 사용하세요.\n- 긴 파일, 분량 검증, 일부 수정 작업은 전체 `file_read` 전에 `file_stats`, `file_search_content`, `file_read_range`로 범위를 먼저 좁히세요.\n- \"N배\", \"N분 분량\", \"더 길게\", \"객관적으로 맞아?\" 같은 정량 요구사항은 변경 전후 `file_stats`로 실제 수치를 확인하세요.\n- 특정 폴더의 직계 목록이 필요할 때만 `dir_list`를 사용하세요.\n\n도구 호출 출력 계약:\n- 도구를 사용할 때는 반드시 아래 fenced block 형식만 사용하세요.\n- 사용 가능한 도구 목록에 없는 도구 이름은 절대 호출하지 마세요.\n- 필요한 도구가 목록에 없으면 현재 가능한 범위만 텍스트로 설명하고 멈추세요.\n- `tool_call`이라는 단어는 반드시 code fence 언어 태그로만 쓰세요.\n- code fence 바깥 일반 문장, 제목, 목록, 설명 안에 `tool_call`이라는 단어를 쓰지 마세요.\n- 도구 호출 block 뒤에는 어떤 문장도 덧붙이지 말고 즉시 응답을 끝내세요.\n- 한 번의 응답에는 정확히 하나의 도구 호출 block만 포함하세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n\n허용되는 유일한 형식:\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"dashboard\", \"limit\": 10, \"item_type\": \"file\"}}\n```\n\n금지되는 형식:\n- `tool_call` 다음 줄에 JSON을 쓰는 plain text 형식\n- 언어 태그가 `json`인 fenced block\n- XML/HTML 태그 안의 도구 호출\n- bullet/list 안에 JSON을 넣는 형식\n- 한 응답에 여러 개의 tool_call block을 넣는 형식\n\n도구를 사용하지 않고 텍스트만 응답할 때는 일반 텍스트로 응답하세요.\n작업 계획을 먼저 설명한 뒤 도구를 호출해야 한다면, 마지막은 반드시 위의 `tool_call` fenced block으로 끝내세요.\n한 번에 하나의 도구만 호출하세요.\n도구 호출 결과를 받은 후 다음 작업을 진행하세요.\n\n[현재 작업 맥락]\n아래 JSON은 현재 턴의 작업 맥락입니다. 라우터가 작업 의미를 확정한 것이 아니며, 대화 전체, 열린 파일, 최근 산출물, 도구 결과 후보를 종합해 executor가 판단해야 합니다.\n- active file과 latest artifact가 다르면 active file을 우선하고 둘을 구분해 설명하세요.\n- 낮은 위험의 read-only 요청은 확신이 충분하면 바로 진행하세요.\n- 파일 변경/삭제/이동에서 대상이나 작업 단위가 모호하면 후보와 이유를 들어 확인 질문을 하세요.\n- 같은 검색을 반복하지 말고, source가 없으면 확인한 위치와 누락 정보를 요약해 경로/재업로드를 요청하세요.\n{\n  \"current_user_message\": \"카카오에서 온 메일들 요약해줘\",\n  \"routing_text\": \"카카오에서 온 메일들 요약해줘\",\n  \"chat_workspace\": \"/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\",\n  \"gate_context\": {\n    \"decision\": \"new_task\",\n    \"source\": \"llm\",\n    \"confidence\": 1.0,\n    \"reason\": \"사용자가 '카카오에서 온 메일 요약'이라는 구체적인 새로운 업무를 요청하였으며, 이전 대화 내역이나 진행 중인 작업이 없는 상태에서의 첫 요청이므로 new_task로 판단합니다.\"\n  },\n  \"execution_policy\": {\n    \"profile\": \"read_only\",\n    \"confidence\": 0.86,\n    \"risk_level\": \"low\",\n    \"reason\": \"파일, 폴더, 현재 화면, 산출물 상태 확인 작업입니다.\",\n    \"context_confidence\": 0.68,\n    \"target_confidence\": 0.45,\n    \"source_confidence\": 0.55,\n    \"operation_confidence\": 0.84\n  },\n  \"is_clarification_answer\": false\n}",
+            "temperature": 0.7
+          }
+        },
+        "duration_ms": null,
+        "created_at": "2026-05-12T13:36:07.843027+00:00"
+      },
+      {
+        "id": "6bbec841-77b6-4986-ae7c-c43c8994059c",
+        "round_index": 3,
+        "event_type": "llm_response",
+        "payload": {
+          "text": "`내 폴더/받은 파일`(/00_inbox)이 비어 있고, '카카오'나 'Kakao' 키워드로 검색된 파일이 없습니다. \n\n혹시 메일 파일이 'mail'이나 'email' 같은 다른 이름으로 저장되어 있는지 확인하기 위해 관련 키워드로 다시 한번 검색해 보겠습니다. 만약 여기서도 결과가 나오지 않는다면, 사용자님께서 파일을 어느 폴더에 두셨는지 혹은 아직 업로드 전인지 여쭤보겠습니다.\n\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"mail\", \"limit\": 10, \"item_type\": \"file\"}}\n```",
+          "has_tool_call": true,
+          "has_tool_call_block": true,
+          "tool_call_parse_ok": true,
+          "tool_call_parse_error": null,
+          "parsed_tool_call": {
+            "tool": "file_search",
+            "args": {
+              "query": "mail",
+              "limit": 10,
+              "item_type": "file"
+            }
+          }
+        },
+        "duration_ms": 4118.7708377838135,
+        "created_at": "2026-05-12T13:36:12.832215+00:00"
+      },
+      {
+        "id": "15a029ad-0efb-48d1-9b04-5f99e433e76f",
+        "round_index": 3,
+        "event_type": "tool_call",
+        "payload": {
+          "tool": "file_search",
+          "args": {
+            "query": "mail",
+            "limit": 10,
+            "item_type": "file"
+          }
+        },
+        "duration_ms": null,
+        "created_at": "2026-05-12T13:36:12.957545+00:00"
+      },
+      {
+        "id": "9d32ff1e-4e5e-44a4-beff-87d290271278",
+        "round_index": 3,
+        "event_type": "tool_result",
+        "payload": {
+          "tool": "file_search",
+          "result": "검색 결과 없음: mail"
+        },
+        "duration_ms": 387.3028755187988,
+        "created_at": "2026-05-12T13:36:13.498822+00:00"
+      },
+      {
+        "id": "80b21a0c-2cbc-438f-adc1-a4450b3b565f",
+        "round_index": 4,
+        "event_type": "llm_request",
+        "payload": {
+          "model": "gemini-3-flash-preview",
+          "system_instruction": "당신은 haro AI 에이전트입니다.\n사용자의 요청을 분석하고, 도구를 사용하여 파일을 생성·수정·삭제하며 작업을 수행합니다.\n\n역할:\n1. 사용자 의도를 분석합니다.\n2. 필요한 작업을 계획합니다.\n3. 도구를 호출하여 실제 작업을 수행합니다.\n4. 애매한 부분이 있으면 사용자에게 질문합니다.\n\n규칙:\n- 파일 작업 시 반드시 제공된 도구를 사용하세요.\n- 워크스페이스 파일 생성/수정/이동/삭제를 code_run으로 우회하지 말고 전용 파일/폴더 도구만 사용하세요.\n- 파일 구조 확인이 필요한 작업에는 이번 턴에 제공된 디렉토리/파일 DB 도구만 사용하세요.\n- 파일/폴더 검색, 개수, 요약 기반 탐색에는 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 개수만 묻는 질문에는 이번 턴에 개수 조회 도구가 제공된 경우 우선 사용하고, 요청하지 않은 폴더를 추가로 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하지 말고 필요한 범위만 도구로 조회하세요.\n- 한국어로 응답하세요.\n- 작업 계획을 먼저 설명한 후 도구를 호출하세요.\n- 별도 라우터가 작업 의미를 확정하지 않습니다. 현재 작업 맥락, 열린 파일, 최근 산출물, 대화, 도구 결과를 종합해 직접 판단하세요.\n- \"여기\", \"아래\", \"오늘\", \"방금\", \"이 파일\" 같은 지시어는 현재 열린 파일과 직전 도구 결과를 우선 근거로 해석하세요.\n- active file과 latest artifact가 다르면 active file을 현재 화면으로 우선하고, 두 대상을 혼동하지 말고 구분해서 설명하세요.\n- 낮은 위험의 읽기/요약/확인 요청은 맥락 확신도가 높으면 불필요하게 되묻지 말고 진행하세요.\n- 파일 수정/삭제/이동처럼 되돌리기 어려운 작업에서 대상 파일, source 파일, 작업 단위가 모호하면 후보와 이유를 들어 구체적으로 확인하세요.\n- 파일 작업 실패, 중복 검색, 사용자 정정(\"응?\", \"아니\", \"그게 맞아?\")이 나오면 같은 행동을 반복하지 말고 직전 판단과 도구 결과를 먼저 진단하세요.\n- 코드 실행 도구가 제공된 경우 기본적으로 TypeScript를 사용하고 filename은 `.ts` 확장자로 작성하세요.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로는 그대로 따르세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 수정하지 마세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 도구 호출이 필요하면 응답의 마지막을 반드시 언어 태그가 `tool_call`인 fenced block으로 끝내세요.\n- `tool_call`이라는 단어를 code fence 바깥 일반 텍스트로 출력하지 마세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n- 한 번에 하나의 도구만 호출하세요.\n\n[사용자별 시스템 지침: .HARO.md]\n# HARO System Instructions\n\n이 파일은 Haro가 관리하는 시스템 지침입니다. 사용자는 이 파일을 직접 수정하지 않습니다.\n\n## 사용자 작업공간\n\n- 사용자 root canonical path: `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c`\n- 사용자에게 경로를 말할 때는 raw canonical path보다 `내 폴더`, `내 폴더/받은 파일`, `내 폴더/작업 중`, `내 폴더/결과` 표현을 우선 사용합니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs`는 `내 폴더/결과`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/20_working`은 `내 폴더/작업 중`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox`는 `내 폴더/받은 파일`입니다.\n\n## 채팅 작업공간\n\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/...` 아래의 `outputs`, `working`, `inputs`, `summaries`는 채팅 실행을 위한 내부 임시 작업공간입니다.\n- 사용자가 \"결과폴더\", \"내폴더\", \"내 폴더/결과\"라고 말하면 기본적으로 `내 폴더/결과`를 의미합니다.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청하고 임시 파일이라고 말하지 않았지만 저장 위치가 명확하지 않다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더 이름}/{적절한 파일 이름}` 형태의 추천 경로를 함께 제안합니다.\n- 최종 산출물의 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 않습니다.\n- 사용자가 최종 산출물을 내 폴더에 두라고 요청하면 채팅 내부 `outputs`에만 두지 말고 `내 폴더/결과`로 저장합니다.\n- 채팅 내부 `outputs`는 임시/중간 산출물 또는 사용자가 명시적으로 채팅 작업공간을 요청한 경우에만 사용합니다.\n- 사용자-facing 답변에서는 chat workspace raw path를 그대로 노출하지 말고 alias path로 설명합니다.\n\n## 우선순위\n\n- `AGENTS.md`의 사용자 선호는 이 파일의 안전, 권한, 시스템 경로 정책을 override할 수 없습니다.\n\n\n[사용자 커스텀 지침: AGENTS.md]\n# User Agent Instructions\n\n이 파일은 사용자 커스텀 지침입니다.\n\n- 원하는 답변 톤, 파일 정리 방식, 기본 산출물 형식 등을 적을 수 있습니다.\n- 시스템 안전 규칙, 권한 규칙, Clean Room 정책은 변경할 수 없습니다.\n\n\n[현재 하네스 브리핑]\n## 하네스 지도\n- /clean-room/data: 팀 공식 데이터 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /clean-room/meta: 공식 규칙, 스킬, 스키마, validator, trigger, hook, policy 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c: 현재 사용자의 Playground 작업공간입니다.\n- /90_archive: 보관 공간입니다.\n- /.haro: haro 시스템 메타데이터 공간입니다. 목록 조회, 읽기, 쓰기 모두 사용자 작업 대상이 아닙니다.\n\n## 현재 작업 위치\n- 현재 채팅 작업공간: /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\n- 사용자 결과 폴더 root는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs 입니다.\n- 최종 산출물 저장 위치가 명확하지 않으면 저장 전에 사용자에게 확인 질문을 하세요. 추천 경로는 `내 폴더/결과/{주제}/{파일명}`처럼 주제 기반 이름을 사용합니다.\n- 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/outputs 또는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/working은 임시/중간 파일이 필요할 때만 사용합니다.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자 결과 폴더를 의미합니다.\n\n## 탐색 규칙\n- 전체 파일 트리와 전체 파일별 요약은 이 컨텍스트에 포함되지 않습니다.\n- 디렉토리 목록은 필요한 경로에 대해서만, 이번 턴에 제공된 목록 조회 도구로 조회하세요.\n- 파일명, 경로, 요약 텍스트 검색은 이번 턴에 제공된 검색 도구로 조회하세요.\n- 파일/폴더 개수만 묻는 질문에는 이번 턴에 제공된 개수 조회 도구를 우선 사용하세요.\n- 사용자가 요구하지 않은 다른 폴더나 채팅 작업공간을 추가로 조회하지 마세요.\n\n## 상태 요약\n- DB 인덱스 기준 전체 폴더: 42개\n- DB 인덱스 기준 전체 파일: 31개\n- 루트 하위 폴더: 3개\n- 현재 채팅 작업공간 하위 폴더: 4개\n- 현재 채팅 작업공간 하위 파일: 9개\n\n## 현재 채팅 압축 맥락\n## context.md\n# Current Chat Context\n\nchat_id: 4ddfc513-1a26-4926-a9c7-66d97728314b\nupdated_at: 2026-05-12T13:35:20.802068+00:00\n\n아직 압축된 맥락이 없습니다.\n\n## decisions.md\n# Decisions\n\n## rule-candidates.md\n# Rule Candidates\n\n## linked-files.json\n{\n  \"inputs\": [],\n  \"derived\": [],\n  \"outputs\": [],\n  \"exports\": []\n}\n사용 가능한 도구 목록:\n1. file_search(query, limit, item_type) - SQLite 파일 DB 기반 파일명, 경로, 요약 텍스트 검색.\n2. dir_list(path) - SQLite 파일 DB 기반 디렉토리 내용 조회. 기본 path는 \"/\".\n3. file_count(path, item_type, recursive) - SQLite 파일 DB 기반 파일/폴더 개수 조회.\n4. file_read(path) - 파일 내용 읽기.\n5. file_stats(path) - UTF-8 텍스트 파일의 줄 수, 글자 수, 단어/어절 추정, 예상 발표 시간, sha256을 반환합니다.\n6. file_search_content(path, query, regex, case_sensitive, glob, output_mode, max_results, offset, context_lines) - 파일 또는 폴더 내부 UTF-8 텍스트를 검색합니다.\n7. file_read_range(path, start_line, line_count) - UTF-8 텍스트 파일의 1-based 줄 범위만 읽습니다.\n\n채팅 작업공간 규칙:\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자의 `내 폴더/결과`를 의미합니다.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 명시 경로 없이 파일명만 path에 넣으면 저장 위치 확인이 필요합니다. 도구 호출 전에 사용자에게 확인하세요.\n- 최종 산출물 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로를 말한 경우에는 그 경로를 사용하세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 쓰지 마세요.\n\n파일 DB 조회 규칙:\n- 파일/폴더 검색, 개수, 요약 기반 탐색은 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 범위가 명확한 질문에는 해당 범위만 조회하고, 사용자가 요구하지 않은 채팅 폴더나 다른 폴더를 추가 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하거나 전체를 나열하지 말고 필요한 범위만 도구로 조회하세요.\n- \"몇 개\"처럼 개수만 묻는 요청에는 `file_count`를 우선 사용하세요.\n- 의미 있는 파일을 찾아야 하면 `file_search`로 파일명, 경로, 요약 텍스트를 검색하세요.\n- 검색 결과의 실제 내용을 확인해야 할 때만 `file_read`를 사용하세요.\n- 긴 파일, 분량 검증, 일부 수정 작업은 전체 `file_read` 전에 `file_stats`, `file_search_content`, `file_read_range`로 범위를 먼저 좁히세요.\n- \"N배\", \"N분 분량\", \"더 길게\", \"객관적으로 맞아?\" 같은 정량 요구사항은 변경 전후 `file_stats`로 실제 수치를 확인하세요.\n- 특정 폴더의 직계 목록이 필요할 때만 `dir_list`를 사용하세요.\n\n도구 호출 출력 계약:\n- 도구를 사용할 때는 반드시 아래 fenced block 형식만 사용하세요.\n- 사용 가능한 도구 목록에 없는 도구 이름은 절대 호출하지 마세요.\n- 필요한 도구가 목록에 없으면 현재 가능한 범위만 텍스트로 설명하고 멈추세요.\n- `tool_call`이라는 단어는 반드시 code fence 언어 태그로만 쓰세요.\n- code fence 바깥 일반 문장, 제목, 목록, 설명 안에 `tool_call`이라는 단어를 쓰지 마세요.\n- 도구 호출 block 뒤에는 어떤 문장도 덧붙이지 말고 즉시 응답을 끝내세요.\n- 한 번의 응답에는 정확히 하나의 도구 호출 block만 포함하세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n\n허용되는 유일한 형식:\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"dashboard\", \"limit\": 10, \"item_type\": \"file\"}}\n```\n\n금지되는 형식:\n- `tool_call` 다음 줄에 JSON을 쓰는 plain text 형식\n- 언어 태그가 `json`인 fenced block\n- XML/HTML 태그 안의 도구 호출\n- bullet/list 안에 JSON을 넣는 형식\n- 한 응답에 여러 개의 tool_call block을 넣는 형식\n\n도구를 사용하지 않고 텍스트만 응답할 때는 일반 텍스트로 응답하세요.\n작업 계획을 먼저 설명한 뒤 도구를 호출해야 한다면, 마지막은 반드시 위의 `tool_call` fenced block으로 끝내세요.\n한 번에 하나의 도구만 호출하세요.\n도구 호출 결과를 받은 후 다음 작업을 진행하세요.\n\n[현재 작업 맥락]\n아래 JSON은 현재 턴의 작업 맥락입니다. 라우터가 작업 의미를 확정한 것이 아니며, 대화 전체, 열린 파일, 최근 산출물, 도구 결과 후보를 종합해 executor가 판단해야 합니다.\n- active file과 latest artifact가 다르면 active file을 우선하고 둘을 구분해 설명하세요.\n- 낮은 위험의 read-only 요청은 확신이 충분하면 바로 진행하세요.\n- 파일 변경/삭제/이동에서 대상이나 작업 단위가 모호하면 후보와 이유를 들어 확인 질문을 하세요.\n- 같은 검색을 반복하지 말고, source가 없으면 확인한 위치와 누락 정보를 요약해 경로/재업로드를 요청하세요.\n{\n  \"current_user_message\": \"카카오에서 온 메일들 요약해줘\",\n  \"routing_text\": \"카카오에서 온 메일들 요약해줘\",\n  \"chat_workspace\": \"/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\",\n  \"gate_context\": {\n    \"decision\": \"new_task\",\n    \"source\": \"llm\",\n    \"confidence\": 1.0,\n    \"reason\": \"사용자가 '카카오에서 온 메일 요약'이라는 구체적인 새로운 업무를 요청하였으며, 이전 대화 내역이나 진행 중인 작업이 없는 상태에서의 첫 요청이므로 new_task로 판단합니다.\"\n  },\n  \"execution_policy\": {\n    \"profile\": \"read_only\",\n    \"confidence\": 0.86,\n    \"risk_level\": \"low\",\n    \"reason\": \"파일, 폴더, 현재 화면, 산출물 상태 확인 작업입니다.\",\n    \"context_confidence\": 0.68,\n    \"target_confidence\": 0.45,\n    \"source_confidence\": 0.55,\n    \"operation_confidence\": 0.84\n  },\n  \"is_clarification_answer\": false\n}",
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "카카오에서 온 메일들 요약해줘"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "text": "카카오에서 온 메일들을 요약해 드리기 위해, 먼저 사용자님의 폴더에서 관련 파일을 찾아보겠습니다. `내 폴더/받은 파일`이나 다른 경로에 카카오와 관련된 메일 파일이 있는지 검색을 진행하겠습니다.\n\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"카카오\", \"limit\": 10, \"item_type\": \"file\"}}\n```"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "[도구 실행 결과]\n검색 결과 없음: 카카오"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "text": "카카오(Kakao)와 관련된 파일을 찾지 못했습니다. 영문명인 'Kakao'로 다시 한번 검색해 보고, 검색 결과가 없으면 `내 폴더/받은 파일` 목록을 직접 확인해 보겠습니다.\n\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"Kakao\", \"limit\": 10, \"item_type\": \"file\"}}\n```"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "[도구 실행 결과]\n검색 결과 없음: Kakao"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "text": "카카오와 관련된 키워드로 검색된 파일이 없습니다. 메일 파일이 다른 이름으로 저장되어 있을 수 있으니, 우선 `내 폴더/받은 파일`(/00_inbox)의 목록을 직접 확인하여 요약할 만한 메일 데이터가 있는지 찾아보겠습니다.\n\n```tool_call\n{\"tool\": \"dir_list\", \"args\": {\"path\": \"/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox\"}}\n```"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "[도구 실행 결과]\n빈 디렉토리: /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "text": "`내 폴더/받은 파일`(/00_inbox)이 비어 있고, '카카오'나 'Kakao' 키워드로 검색된 파일이 없습니다. \n\n혹시 메일 파일이 'mail'이나 'email' 같은 다른 이름으로 저장되어 있는지 확인하기 위해 관련 키워드로 다시 한번 검색해 보겠습니다. 만약 여기서도 결과가 나오지 않는다면, 사용자님께서 파일을 어느 폴더에 두셨는지 혹은 아직 업로드 전인지 여쭤보겠습니다.\n\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"mail\", \"limit\": 10, \"item_type\": \"file\"}}\n```"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "[도구 실행 결과]\n검색 결과 없음: mail"
+                }
+              ]
+            }
+          ],
+          "config": {
+            "system_instruction": "당신은 haro AI 에이전트입니다.\n사용자의 요청을 분석하고, 도구를 사용하여 파일을 생성·수정·삭제하며 작업을 수행합니다.\n\n역할:\n1. 사용자 의도를 분석합니다.\n2. 필요한 작업을 계획합니다.\n3. 도구를 호출하여 실제 작업을 수행합니다.\n4. 애매한 부분이 있으면 사용자에게 질문합니다.\n\n규칙:\n- 파일 작업 시 반드시 제공된 도구를 사용하세요.\n- 워크스페이스 파일 생성/수정/이동/삭제를 code_run으로 우회하지 말고 전용 파일/폴더 도구만 사용하세요.\n- 파일 구조 확인이 필요한 작업에는 이번 턴에 제공된 디렉토리/파일 DB 도구만 사용하세요.\n- 파일/폴더 검색, 개수, 요약 기반 탐색에는 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 개수만 묻는 질문에는 이번 턴에 개수 조회 도구가 제공된 경우 우선 사용하고, 요청하지 않은 폴더를 추가로 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하지 말고 필요한 범위만 도구로 조회하세요.\n- 한국어로 응답하세요.\n- 작업 계획을 먼저 설명한 후 도구를 호출하세요.\n- 별도 라우터가 작업 의미를 확정하지 않습니다. 현재 작업 맥락, 열린 파일, 최근 산출물, 대화, 도구 결과를 종합해 직접 판단하세요.\n- \"여기\", \"아래\", \"오늘\", \"방금\", \"이 파일\" 같은 지시어는 현재 열린 파일과 직전 도구 결과를 우선 근거로 해석하세요.\n- active file과 latest artifact가 다르면 active file을 현재 화면으로 우선하고, 두 대상을 혼동하지 말고 구분해서 설명하세요.\n- 낮은 위험의 읽기/요약/확인 요청은 맥락 확신도가 높으면 불필요하게 되묻지 말고 진행하세요.\n- 파일 수정/삭제/이동처럼 되돌리기 어려운 작업에서 대상 파일, source 파일, 작업 단위가 모호하면 후보와 이유를 들어 구체적으로 확인하세요.\n- 파일 작업 실패, 중복 검색, 사용자 정정(\"응?\", \"아니\", \"그게 맞아?\")이 나오면 같은 행동을 반복하지 말고 직전 판단과 도구 결과를 먼저 진단하세요.\n- 코드 실행 도구가 제공된 경우 기본적으로 TypeScript를 사용하고 filename은 `.ts` 확장자로 작성하세요.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로는 그대로 따르세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 수정하지 마세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 도구 호출이 필요하면 응답의 마지막을 반드시 언어 태그가 `tool_call`인 fenced block으로 끝내세요.\n- `tool_call`이라는 단어를 code fence 바깥 일반 텍스트로 출력하지 마세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n- 한 번에 하나의 도구만 호출하세요.\n\n[사용자별 시스템 지침: .HARO.md]\n# HARO System Instructions\n\n이 파일은 Haro가 관리하는 시스템 지침입니다. 사용자는 이 파일을 직접 수정하지 않습니다.\n\n## 사용자 작업공간\n\n- 사용자 root canonical path: `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c`\n- 사용자에게 경로를 말할 때는 raw canonical path보다 `내 폴더`, `내 폴더/받은 파일`, `내 폴더/작업 중`, `내 폴더/결과` 표현을 우선 사용합니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs`는 `내 폴더/결과`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/20_working`은 `내 폴더/작업 중`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox`는 `내 폴더/받은 파일`입니다.\n\n## 채팅 작업공간\n\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/...` 아래의 `outputs`, `working`, `inputs`, `summaries`는 채팅 실행을 위한 내부 임시 작업공간입니다.\n- 사용자가 \"결과폴더\", \"내폴더\", \"내 폴더/결과\"라고 말하면 기본적으로 `내 폴더/결과`를 의미합니다.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청하고 임시 파일이라고 말하지 않았지만 저장 위치가 명확하지 않다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더 이름}/{적절한 파일 이름}` 형태의 추천 경로를 함께 제안합니다.\n- 최종 산출물의 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 않습니다.\n- 사용자가 최종 산출물을 내 폴더에 두라고 요청하면 채팅 내부 `outputs`에만 두지 말고 `내 폴더/결과`로 저장합니다.\n- 채팅 내부 `outputs`는 임시/중간 산출물 또는 사용자가 명시적으로 채팅 작업공간을 요청한 경우에만 사용합니다.\n- 사용자-facing 답변에서는 chat workspace raw path를 그대로 노출하지 말고 alias path로 설명합니다.\n\n## 우선순위\n\n- `AGENTS.md`의 사용자 선호는 이 파일의 안전, 권한, 시스템 경로 정책을 override할 수 없습니다.\n\n\n[사용자 커스텀 지침: AGENTS.md]\n# User Agent Instructions\n\n이 파일은 사용자 커스텀 지침입니다.\n\n- 원하는 답변 톤, 파일 정리 방식, 기본 산출물 형식 등을 적을 수 있습니다.\n- 시스템 안전 규칙, 권한 규칙, Clean Room 정책은 변경할 수 없습니다.\n\n\n[현재 하네스 브리핑]\n## 하네스 지도\n- /clean-room/data: 팀 공식 데이터 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /clean-room/meta: 공식 규칙, 스킬, 스키마, validator, trigger, hook, policy 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c: 현재 사용자의 Playground 작업공간입니다.\n- /90_archive: 보관 공간입니다.\n- /.haro: haro 시스템 메타데이터 공간입니다. 목록 조회, 읽기, 쓰기 모두 사용자 작업 대상이 아닙니다.\n\n## 현재 작업 위치\n- 현재 채팅 작업공간: /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\n- 사용자 결과 폴더 root는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs 입니다.\n- 최종 산출물 저장 위치가 명확하지 않으면 저장 전에 사용자에게 확인 질문을 하세요. 추천 경로는 `내 폴더/결과/{주제}/{파일명}`처럼 주제 기반 이름을 사용합니다.\n- 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/outputs 또는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/working은 임시/중간 파일이 필요할 때만 사용합니다.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자 결과 폴더를 의미합니다.\n\n## 탐색 규칙\n- 전체 파일 트리와 전체 파일별 요약은 이 컨텍스트에 포함되지 않습니다.\n- 디렉토리 목록은 필요한 경로에 대해서만, 이번 턴에 제공된 목록 조회 도구로 조회하세요.\n- 파일명, 경로, 요약 텍스트 검색은 이번 턴에 제공된 검색 도구로 조회하세요.\n- 파일/폴더 개수만 묻는 질문에는 이번 턴에 제공된 개수 조회 도구를 우선 사용하세요.\n- 사용자가 요구하지 않은 다른 폴더나 채팅 작업공간을 추가로 조회하지 마세요.\n\n## 상태 요약\n- DB 인덱스 기준 전체 폴더: 42개\n- DB 인덱스 기준 전체 파일: 31개\n- 루트 하위 폴더: 3개\n- 현재 채팅 작업공간 하위 폴더: 4개\n- 현재 채팅 작업공간 하위 파일: 9개\n\n## 현재 채팅 압축 맥락\n## context.md\n# Current Chat Context\n\nchat_id: 4ddfc513-1a26-4926-a9c7-66d97728314b\nupdated_at: 2026-05-12T13:35:20.802068+00:00\n\n아직 압축된 맥락이 없습니다.\n\n## decisions.md\n# Decisions\n\n## rule-candidates.md\n# Rule Candidates\n\n## linked-files.json\n{\n  \"inputs\": [],\n  \"derived\": [],\n  \"outputs\": [],\n  \"exports\": []\n}\n사용 가능한 도구 목록:\n1. file_search(query, limit, item_type) - SQLite 파일 DB 기반 파일명, 경로, 요약 텍스트 검색.\n2. dir_list(path) - SQLite 파일 DB 기반 디렉토리 내용 조회. 기본 path는 \"/\".\n3. file_count(path, item_type, recursive) - SQLite 파일 DB 기반 파일/폴더 개수 조회.\n4. file_read(path) - 파일 내용 읽기.\n5. file_stats(path) - UTF-8 텍스트 파일의 줄 수, 글자 수, 단어/어절 추정, 예상 발표 시간, sha256을 반환합니다.\n6. file_search_content(path, query, regex, case_sensitive, glob, output_mode, max_results, offset, context_lines) - 파일 또는 폴더 내부 UTF-8 텍스트를 검색합니다.\n7. file_read_range(path, start_line, line_count) - UTF-8 텍스트 파일의 1-based 줄 범위만 읽습니다.\n\n채팅 작업공간 규칙:\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자의 `내 폴더/결과`를 의미합니다.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 명시 경로 없이 파일명만 path에 넣으면 저장 위치 확인이 필요합니다. 도구 호출 전에 사용자에게 확인하세요.\n- 최종 산출물 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로를 말한 경우에는 그 경로를 사용하세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 쓰지 마세요.\n\n파일 DB 조회 규칙:\n- 파일/폴더 검색, 개수, 요약 기반 탐색은 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 범위가 명확한 질문에는 해당 범위만 조회하고, 사용자가 요구하지 않은 채팅 폴더나 다른 폴더를 추가 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하거나 전체를 나열하지 말고 필요한 범위만 도구로 조회하세요.\n- \"몇 개\"처럼 개수만 묻는 요청에는 `file_count`를 우선 사용하세요.\n- 의미 있는 파일을 찾아야 하면 `file_search`로 파일명, 경로, 요약 텍스트를 검색하세요.\n- 검색 결과의 실제 내용을 확인해야 할 때만 `file_read`를 사용하세요.\n- 긴 파일, 분량 검증, 일부 수정 작업은 전체 `file_read` 전에 `file_stats`, `file_search_content`, `file_read_range`로 범위를 먼저 좁히세요.\n- \"N배\", \"N분 분량\", \"더 길게\", \"객관적으로 맞아?\" 같은 정량 요구사항은 변경 전후 `file_stats`로 실제 수치를 확인하세요.\n- 특정 폴더의 직계 목록이 필요할 때만 `dir_list`를 사용하세요.\n\n도구 호출 출력 계약:\n- 도구를 사용할 때는 반드시 아래 fenced block 형식만 사용하세요.\n- 사용 가능한 도구 목록에 없는 도구 이름은 절대 호출하지 마세요.\n- 필요한 도구가 목록에 없으면 현재 가능한 범위만 텍스트로 설명하고 멈추세요.\n- `tool_call`이라는 단어는 반드시 code fence 언어 태그로만 쓰세요.\n- code fence 바깥 일반 문장, 제목, 목록, 설명 안에 `tool_call`이라는 단어를 쓰지 마세요.\n- 도구 호출 block 뒤에는 어떤 문장도 덧붙이지 말고 즉시 응답을 끝내세요.\n- 한 번의 응답에는 정확히 하나의 도구 호출 block만 포함하세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n\n허용되는 유일한 형식:\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"dashboard\", \"limit\": 10, \"item_type\": \"file\"}}\n```\n\n금지되는 형식:\n- `tool_call` 다음 줄에 JSON을 쓰는 plain text 형식\n- 언어 태그가 `json`인 fenced block\n- XML/HTML 태그 안의 도구 호출\n- bullet/list 안에 JSON을 넣는 형식\n- 한 응답에 여러 개의 tool_call block을 넣는 형식\n\n도구를 사용하지 않고 텍스트만 응답할 때는 일반 텍스트로 응답하세요.\n작업 계획을 먼저 설명한 뒤 도구를 호출해야 한다면, 마지막은 반드시 위의 `tool_call` fenced block으로 끝내세요.\n한 번에 하나의 도구만 호출하세요.\n도구 호출 결과를 받은 후 다음 작업을 진행하세요.\n\n[현재 작업 맥락]\n아래 JSON은 현재 턴의 작업 맥락입니다. 라우터가 작업 의미를 확정한 것이 아니며, 대화 전체, 열린 파일, 최근 산출물, 도구 결과 후보를 종합해 executor가 판단해야 합니다.\n- active file과 latest artifact가 다르면 active file을 우선하고 둘을 구분해 설명하세요.\n- 낮은 위험의 read-only 요청은 확신이 충분하면 바로 진행하세요.\n- 파일 변경/삭제/이동에서 대상이나 작업 단위가 모호하면 후보와 이유를 들어 확인 질문을 하세요.\n- 같은 검색을 반복하지 말고, source가 없으면 확인한 위치와 누락 정보를 요약해 경로/재업로드를 요청하세요.\n{\n  \"current_user_message\": \"카카오에서 온 메일들 요약해줘\",\n  \"routing_text\": \"카카오에서 온 메일들 요약해줘\",\n  \"chat_workspace\": \"/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\",\n  \"gate_context\": {\n    \"decision\": \"new_task\",\n    \"source\": \"llm\",\n    \"confidence\": 1.0,\n    \"reason\": \"사용자가 '카카오에서 온 메일 요약'이라는 구체적인 새로운 업무를 요청하였으며, 이전 대화 내역이나 진행 중인 작업이 없는 상태에서의 첫 요청이므로 new_task로 판단합니다.\"\n  },\n  \"execution_policy\": {\n    \"profile\": \"read_only\",\n    \"confidence\": 0.86,\n    \"risk_level\": \"low\",\n    \"reason\": \"파일, 폴더, 현재 화면, 산출물 상태 확인 작업입니다.\",\n    \"context_confidence\": 0.68,\n    \"target_confidence\": 0.45,\n    \"source_confidence\": 0.55,\n    \"operation_confidence\": 0.84\n  },\n  \"is_clarification_answer\": false\n}",
+            "temperature": 0.7
+          }
+        },
+        "duration_ms": null,
+        "created_at": "2026-05-12T13:36:13.573598+00:00"
+      },
+      {
+        "id": "f8debc8f-b13d-420e-afe7-6578da47a098",
+        "round_index": 4,
+        "event_type": "llm_response",
+        "payload": {
+          "text": "'카카오', 'Kakao', 'mail' 키워드로 검색했으나 관련 파일을 찾지 못했습니다. 메일 파일이 '메일'이라는 한국어 키워드로 저장되어 있을 수 있으니 마지막으로 확인해 보겠습니다. \n\n만약 이번에도 결과가 나오지 않는다면, 현재 `내 폴더/받은 파일`이 비어 있는 상태라 사용자님께서 파일을 어디에 저장하셨는지 혹은 새로 업로드하실 계획인지 확인이 필요합니다.\n\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"메일\", \"limit\": 10, \"item_type\": \"file\"}}\n```",
+          "has_tool_call": true,
+          "has_tool_call_block": true,
+          "tool_call_parse_ok": true,
+          "tool_call_parse_error": null,
+          "parsed_tool_call": {
+            "tool": "file_search",
+            "args": {
+              "query": "메일",
+              "limit": 10,
+              "item_type": "file"
+            }
+          }
+        },
+        "duration_ms": 4053.0831813812256,
+        "created_at": "2026-05-12T13:36:18.752000+00:00"
+      },
+      {
+        "id": "0b6bbba4-24ec-43ee-8bd5-32791e5b4587",
+        "round_index": 4,
+        "event_type": "tool_call",
+        "payload": {
+          "tool": "file_search",
+          "args": {
+            "query": "메일",
+            "limit": 10,
+            "item_type": "file"
+          }
+        },
+        "duration_ms": null,
+        "created_at": "2026-05-12T13:36:19.060171+00:00"
+      },
+      {
+        "id": "1378f28b-bda5-47d6-b654-05d9eeaed7a1",
+        "round_index": 4,
+        "event_type": "tool_result",
+        "payload": {
+          "tool": "file_search",
+          "result": "검색 결과 없음: 메일"
+        },
+        "duration_ms": 442.61860847473145,
+        "created_at": "2026-05-12T13:36:19.567902+00:00"
+      },
+      {
+        "id": "ab09c241-6379-4dc7-97d2-139835aa9951",
+        "round_index": 5,
+        "event_type": "llm_request",
+        "payload": {
+          "model": "gemini-3-flash-preview",
+          "system_instruction": "당신은 haro AI 에이전트입니다.\n사용자의 요청을 분석하고, 도구를 사용하여 파일을 생성·수정·삭제하며 작업을 수행합니다.\n\n역할:\n1. 사용자 의도를 분석합니다.\n2. 필요한 작업을 계획합니다.\n3. 도구를 호출하여 실제 작업을 수행합니다.\n4. 애매한 부분이 있으면 사용자에게 질문합니다.\n\n규칙:\n- 파일 작업 시 반드시 제공된 도구를 사용하세요.\n- 워크스페이스 파일 생성/수정/이동/삭제를 code_run으로 우회하지 말고 전용 파일/폴더 도구만 사용하세요.\n- 파일 구조 확인이 필요한 작업에는 이번 턴에 제공된 디렉토리/파일 DB 도구만 사용하세요.\n- 파일/폴더 검색, 개수, 요약 기반 탐색에는 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 개수만 묻는 질문에는 이번 턴에 개수 조회 도구가 제공된 경우 우선 사용하고, 요청하지 않은 폴더를 추가로 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하지 말고 필요한 범위만 도구로 조회하세요.\n- 한국어로 응답하세요.\n- 작업 계획을 먼저 설명한 후 도구를 호출하세요.\n- 별도 라우터가 작업 의미를 확정하지 않습니다. 현재 작업 맥락, 열린 파일, 최근 산출물, 대화, 도구 결과를 종합해 직접 판단하세요.\n- \"여기\", \"아래\", \"오늘\", \"방금\", \"이 파일\" 같은 지시어는 현재 열린 파일과 직전 도구 결과를 우선 근거로 해석하세요.\n- active file과 latest artifact가 다르면 active file을 현재 화면으로 우선하고, 두 대상을 혼동하지 말고 구분해서 설명하세요.\n- 낮은 위험의 읽기/요약/확인 요청은 맥락 확신도가 높으면 불필요하게 되묻지 말고 진행하세요.\n- 파일 수정/삭제/이동처럼 되돌리기 어려운 작업에서 대상 파일, source 파일, 작업 단위가 모호하면 후보와 이유를 들어 구체적으로 확인하세요.\n- 파일 작업 실패, 중복 검색, 사용자 정정(\"응?\", \"아니\", \"그게 맞아?\")이 나오면 같은 행동을 반복하지 말고 직전 판단과 도구 결과를 먼저 진단하세요.\n- 코드 실행 도구가 제공된 경우 기본적으로 TypeScript를 사용하고 filename은 `.ts` 확장자로 작성하세요.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로는 그대로 따르세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 수정하지 마세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 도구 호출이 필요하면 응답의 마지막을 반드시 언어 태그가 `tool_call`인 fenced block으로 끝내세요.\n- `tool_call`이라는 단어를 code fence 바깥 일반 텍스트로 출력하지 마세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n- 한 번에 하나의 도구만 호출하세요.\n\n[사용자별 시스템 지침: .HARO.md]\n# HARO System Instructions\n\n이 파일은 Haro가 관리하는 시스템 지침입니다. 사용자는 이 파일을 직접 수정하지 않습니다.\n\n## 사용자 작업공간\n\n- 사용자 root canonical path: `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c`\n- 사용자에게 경로를 말할 때는 raw canonical path보다 `내 폴더`, `내 폴더/받은 파일`, `내 폴더/작업 중`, `내 폴더/결과` 표현을 우선 사용합니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs`는 `내 폴더/결과`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/20_working`은 `내 폴더/작업 중`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox`는 `내 폴더/받은 파일`입니다.\n\n## 채팅 작업공간\n\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/...` 아래의 `outputs`, `working`, `inputs`, `summaries`는 채팅 실행을 위한 내부 임시 작업공간입니다.\n- 사용자가 \"결과폴더\", \"내폴더\", \"내 폴더/결과\"라고 말하면 기본적으로 `내 폴더/결과`를 의미합니다.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청하고 임시 파일이라고 말하지 않았지만 저장 위치가 명확하지 않다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더 이름}/{적절한 파일 이름}` 형태의 추천 경로를 함께 제안합니다.\n- 최종 산출물의 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 않습니다.\n- 사용자가 최종 산출물을 내 폴더에 두라고 요청하면 채팅 내부 `outputs`에만 두지 말고 `내 폴더/결과`로 저장합니다.\n- 채팅 내부 `outputs`는 임시/중간 산출물 또는 사용자가 명시적으로 채팅 작업공간을 요청한 경우에만 사용합니다.\n- 사용자-facing 답변에서는 chat workspace raw path를 그대로 노출하지 말고 alias path로 설명합니다.\n\n## 우선순위\n\n- `AGENTS.md`의 사용자 선호는 이 파일의 안전, 권한, 시스템 경로 정책을 override할 수 없습니다.\n\n\n[사용자 커스텀 지침: AGENTS.md]\n# User Agent Instructions\n\n이 파일은 사용자 커스텀 지침입니다.\n\n- 원하는 답변 톤, 파일 정리 방식, 기본 산출물 형식 등을 적을 수 있습니다.\n- 시스템 안전 규칙, 권한 규칙, Clean Room 정책은 변경할 수 없습니다.\n\n\n[현재 하네스 브리핑]\n## 하네스 지도\n- /clean-room/data: 팀 공식 데이터 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /clean-room/meta: 공식 규칙, 스킬, 스키마, validator, trigger, hook, policy 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c: 현재 사용자의 Playground 작업공간입니다.\n- /90_archive: 보관 공간입니다.\n- /.haro: haro 시스템 메타데이터 공간입니다. 목록 조회, 읽기, 쓰기 모두 사용자 작업 대상이 아닙니다.\n\n## 현재 작업 위치\n- 현재 채팅 작업공간: /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\n- 사용자 결과 폴더 root는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs 입니다.\n- 최종 산출물 저장 위치가 명확하지 않으면 저장 전에 사용자에게 확인 질문을 하세요. 추천 경로는 `내 폴더/결과/{주제}/{파일명}`처럼 주제 기반 이름을 사용합니다.\n- 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/outputs 또는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/working은 임시/중간 파일이 필요할 때만 사용합니다.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자 결과 폴더를 의미합니다.\n\n## 탐색 규칙\n- 전체 파일 트리와 전체 파일별 요약은 이 컨텍스트에 포함되지 않습니다.\n- 디렉토리 목록은 필요한 경로에 대해서만, 이번 턴에 제공된 목록 조회 도구로 조회하세요.\n- 파일명, 경로, 요약 텍스트 검색은 이번 턴에 제공된 검색 도구로 조회하세요.\n- 파일/폴더 개수만 묻는 질문에는 이번 턴에 제공된 개수 조회 도구를 우선 사용하세요.\n- 사용자가 요구하지 않은 다른 폴더나 채팅 작업공간을 추가로 조회하지 마세요.\n\n## 상태 요약\n- DB 인덱스 기준 전체 폴더: 42개\n- DB 인덱스 기준 전체 파일: 31개\n- 루트 하위 폴더: 3개\n- 현재 채팅 작업공간 하위 폴더: 4개\n- 현재 채팅 작업공간 하위 파일: 9개\n\n## 현재 채팅 압축 맥락\n## context.md\n# Current Chat Context\n\nchat_id: 4ddfc513-1a26-4926-a9c7-66d97728314b\nupdated_at: 2026-05-12T13:35:20.802068+00:00\n\n아직 압축된 맥락이 없습니다.\n\n## decisions.md\n# Decisions\n\n## rule-candidates.md\n# Rule Candidates\n\n## linked-files.json\n{\n  \"inputs\": [],\n  \"derived\": [],\n  \"outputs\": [],\n  \"exports\": []\n}\n사용 가능한 도구 목록:\n1. file_search(query, limit, item_type) - SQLite 파일 DB 기반 파일명, 경로, 요약 텍스트 검색.\n2. dir_list(path) - SQLite 파일 DB 기반 디렉토리 내용 조회. 기본 path는 \"/\".\n3. file_count(path, item_type, recursive) - SQLite 파일 DB 기반 파일/폴더 개수 조회.\n4. file_read(path) - 파일 내용 읽기.\n5. file_stats(path) - UTF-8 텍스트 파일의 줄 수, 글자 수, 단어/어절 추정, 예상 발표 시간, sha256을 반환합니다.\n6. file_search_content(path, query, regex, case_sensitive, glob, output_mode, max_results, offset, context_lines) - 파일 또는 폴더 내부 UTF-8 텍스트를 검색합니다.\n7. file_read_range(path, start_line, line_count) - UTF-8 텍스트 파일의 1-based 줄 범위만 읽습니다.\n\n채팅 작업공간 규칙:\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자의 `내 폴더/결과`를 의미합니다.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 명시 경로 없이 파일명만 path에 넣으면 저장 위치 확인이 필요합니다. 도구 호출 전에 사용자에게 확인하세요.\n- 최종 산출물 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로를 말한 경우에는 그 경로를 사용하세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 쓰지 마세요.\n\n파일 DB 조회 규칙:\n- 파일/폴더 검색, 개수, 요약 기반 탐색은 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 범위가 명확한 질문에는 해당 범위만 조회하고, 사용자가 요구하지 않은 채팅 폴더나 다른 폴더를 추가 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하거나 전체를 나열하지 말고 필요한 범위만 도구로 조회하세요.\n- \"몇 개\"처럼 개수만 묻는 요청에는 `file_count`를 우선 사용하세요.\n- 의미 있는 파일을 찾아야 하면 `file_search`로 파일명, 경로, 요약 텍스트를 검색하세요.\n- 검색 결과의 실제 내용을 확인해야 할 때만 `file_read`를 사용하세요.\n- 긴 파일, 분량 검증, 일부 수정 작업은 전체 `file_read` 전에 `file_stats`, `file_search_content`, `file_read_range`로 범위를 먼저 좁히세요.\n- \"N배\", \"N분 분량\", \"더 길게\", \"객관적으로 맞아?\" 같은 정량 요구사항은 변경 전후 `file_stats`로 실제 수치를 확인하세요.\n- 특정 폴더의 직계 목록이 필요할 때만 `dir_list`를 사용하세요.\n\n도구 호출 출력 계약:\n- 도구를 사용할 때는 반드시 아래 fenced block 형식만 사용하세요.\n- 사용 가능한 도구 목록에 없는 도구 이름은 절대 호출하지 마세요.\n- 필요한 도구가 목록에 없으면 현재 가능한 범위만 텍스트로 설명하고 멈추세요.\n- `tool_call`이라는 단어는 반드시 code fence 언어 태그로만 쓰세요.\n- code fence 바깥 일반 문장, 제목, 목록, 설명 안에 `tool_call`이라는 단어를 쓰지 마세요.\n- 도구 호출 block 뒤에는 어떤 문장도 덧붙이지 말고 즉시 응답을 끝내세요.\n- 한 번의 응답에는 정확히 하나의 도구 호출 block만 포함하세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n\n허용되는 유일한 형식:\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"dashboard\", \"limit\": 10, \"item_type\": \"file\"}}\n```\n\n금지되는 형식:\n- `tool_call` 다음 줄에 JSON을 쓰는 plain text 형식\n- 언어 태그가 `json`인 fenced block\n- XML/HTML 태그 안의 도구 호출\n- bullet/list 안에 JSON을 넣는 형식\n- 한 응답에 여러 개의 tool_call block을 넣는 형식\n\n도구를 사용하지 않고 텍스트만 응답할 때는 일반 텍스트로 응답하세요.\n작업 계획을 먼저 설명한 뒤 도구를 호출해야 한다면, 마지막은 반드시 위의 `tool_call` fenced block으로 끝내세요.\n한 번에 하나의 도구만 호출하세요.\n도구 호출 결과를 받은 후 다음 작업을 진행하세요.\n\n[현재 작업 맥락]\n아래 JSON은 현재 턴의 작업 맥락입니다. 라우터가 작업 의미를 확정한 것이 아니며, 대화 전체, 열린 파일, 최근 산출물, 도구 결과 후보를 종합해 executor가 판단해야 합니다.\n- active file과 latest artifact가 다르면 active file을 우선하고 둘을 구분해 설명하세요.\n- 낮은 위험의 read-only 요청은 확신이 충분하면 바로 진행하세요.\n- 파일 변경/삭제/이동에서 대상이나 작업 단위가 모호하면 후보와 이유를 들어 확인 질문을 하세요.\n- 같은 검색을 반복하지 말고, source가 없으면 확인한 위치와 누락 정보를 요약해 경로/재업로드를 요청하세요.\n{\n  \"current_user_message\": \"카카오에서 온 메일들 요약해줘\",\n  \"routing_text\": \"카카오에서 온 메일들 요약해줘\",\n  \"chat_workspace\": \"/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\",\n  \"gate_context\": {\n    \"decision\": \"new_task\",\n    \"source\": \"llm\",\n    \"confidence\": 1.0,\n    \"reason\": \"사용자가 '카카오에서 온 메일 요약'이라는 구체적인 새로운 업무를 요청하였으며, 이전 대화 내역이나 진행 중인 작업이 없는 상태에서의 첫 요청이므로 new_task로 판단합니다.\"\n  },\n  \"execution_policy\": {\n    \"profile\": \"read_only\",\n    \"confidence\": 0.86,\n    \"risk_level\": \"low\",\n    \"reason\": \"파일, 폴더, 현재 화면, 산출물 상태 확인 작업입니다.\",\n    \"context_confidence\": 0.68,\n    \"target_confidence\": 0.45,\n    \"source_confidence\": 0.55,\n    \"operation_confidence\": 0.84\n  },\n  \"is_clarification_answer\": false\n}",
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "카카오에서 온 메일들 요약해줘"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "text": "카카오에서 온 메일들을 요약해 드리기 위해, 먼저 사용자님의 폴더에서 관련 파일을 찾아보겠습니다. `내 폴더/받은 파일`이나 다른 경로에 카카오와 관련된 메일 파일이 있는지 검색을 진행하겠습니다.\n\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"카카오\", \"limit\": 10, \"item_type\": \"file\"}}\n```"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "[도구 실행 결과]\n검색 결과 없음: 카카오"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "text": "카카오(Kakao)와 관련된 파일을 찾지 못했습니다. 영문명인 'Kakao'로 다시 한번 검색해 보고, 검색 결과가 없으면 `내 폴더/받은 파일` 목록을 직접 확인해 보겠습니다.\n\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"Kakao\", \"limit\": 10, \"item_type\": \"file\"}}\n```"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "[도구 실행 결과]\n검색 결과 없음: Kakao"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "text": "카카오와 관련된 키워드로 검색된 파일이 없습니다. 메일 파일이 다른 이름으로 저장되어 있을 수 있으니, 우선 `내 폴더/받은 파일`(/00_inbox)의 목록을 직접 확인하여 요약할 만한 메일 데이터가 있는지 찾아보겠습니다.\n\n```tool_call\n{\"tool\": \"dir_list\", \"args\": {\"path\": \"/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox\"}}\n```"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "[도구 실행 결과]\n빈 디렉토리: /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "text": "`내 폴더/받은 파일`(/00_inbox)이 비어 있고, '카카오'나 'Kakao' 키워드로 검색된 파일이 없습니다. \n\n혹시 메일 파일이 'mail'이나 'email' 같은 다른 이름으로 저장되어 있는지 확인하기 위해 관련 키워드로 다시 한번 검색해 보겠습니다. 만약 여기서도 결과가 나오지 않는다면, 사용자님께서 파일을 어느 폴더에 두셨는지 혹은 아직 업로드 전인지 여쭤보겠습니다.\n\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"mail\", \"limit\": 10, \"item_type\": \"file\"}}\n```"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "[도구 실행 결과]\n검색 결과 없음: mail"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "text": "'카카오', 'Kakao', 'mail' 키워드로 검색했으나 관련 파일을 찾지 못했습니다. 메일 파일이 '메일'이라는 한국어 키워드로 저장되어 있을 수 있으니 마지막으로 확인해 보겠습니다. \n\n만약 이번에도 결과가 나오지 않는다면, 현재 `내 폴더/받은 파일`이 비어 있는 상태라 사용자님께서 파일을 어디에 저장하셨는지 혹은 새로 업로드하실 계획인지 확인이 필요합니다.\n\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"메일\", \"limit\": 10, \"item_type\": \"file\"}}\n```"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "[도구 실행 결과]\n검색 결과 없음: 메일"
+                }
+              ]
+            }
+          ],
+          "config": {
+            "system_instruction": "당신은 haro AI 에이전트입니다.\n사용자의 요청을 분석하고, 도구를 사용하여 파일을 생성·수정·삭제하며 작업을 수행합니다.\n\n역할:\n1. 사용자 의도를 분석합니다.\n2. 필요한 작업을 계획합니다.\n3. 도구를 호출하여 실제 작업을 수행합니다.\n4. 애매한 부분이 있으면 사용자에게 질문합니다.\n\n규칙:\n- 파일 작업 시 반드시 제공된 도구를 사용하세요.\n- 워크스페이스 파일 생성/수정/이동/삭제를 code_run으로 우회하지 말고 전용 파일/폴더 도구만 사용하세요.\n- 파일 구조 확인이 필요한 작업에는 이번 턴에 제공된 디렉토리/파일 DB 도구만 사용하세요.\n- 파일/폴더 검색, 개수, 요약 기반 탐색에는 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 개수만 묻는 질문에는 이번 턴에 개수 조회 도구가 제공된 경우 우선 사용하고, 요청하지 않은 폴더를 추가로 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하지 말고 필요한 범위만 도구로 조회하세요.\n- 한국어로 응답하세요.\n- 작업 계획을 먼저 설명한 후 도구를 호출하세요.\n- 별도 라우터가 작업 의미를 확정하지 않습니다. 현재 작업 맥락, 열린 파일, 최근 산출물, 대화, 도구 결과를 종합해 직접 판단하세요.\n- \"여기\", \"아래\", \"오늘\", \"방금\", \"이 파일\" 같은 지시어는 현재 열린 파일과 직전 도구 결과를 우선 근거로 해석하세요.\n- active file과 latest artifact가 다르면 active file을 현재 화면으로 우선하고, 두 대상을 혼동하지 말고 구분해서 설명하세요.\n- 낮은 위험의 읽기/요약/확인 요청은 맥락 확신도가 높으면 불필요하게 되묻지 말고 진행하세요.\n- 파일 수정/삭제/이동처럼 되돌리기 어려운 작업에서 대상 파일, source 파일, 작업 단위가 모호하면 후보와 이유를 들어 구체적으로 확인하세요.\n- 파일 작업 실패, 중복 검색, 사용자 정정(\"응?\", \"아니\", \"그게 맞아?\")이 나오면 같은 행동을 반복하지 말고 직전 판단과 도구 결과를 먼저 진단하세요.\n- 코드 실행 도구가 제공된 경우 기본적으로 TypeScript를 사용하고 filename은 `.ts` 확장자로 작성하세요.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로는 그대로 따르세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 수정하지 마세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 도구 호출이 필요하면 응답의 마지막을 반드시 언어 태그가 `tool_call`인 fenced block으로 끝내세요.\n- `tool_call`이라는 단어를 code fence 바깥 일반 텍스트로 출력하지 마세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n- 한 번에 하나의 도구만 호출하세요.\n\n[사용자별 시스템 지침: .HARO.md]\n# HARO System Instructions\n\n이 파일은 Haro가 관리하는 시스템 지침입니다. 사용자는 이 파일을 직접 수정하지 않습니다.\n\n## 사용자 작업공간\n\n- 사용자 root canonical path: `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c`\n- 사용자에게 경로를 말할 때는 raw canonical path보다 `내 폴더`, `내 폴더/받은 파일`, `내 폴더/작업 중`, `내 폴더/결과` 표현을 우선 사용합니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs`는 `내 폴더/결과`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/20_working`은 `내 폴더/작업 중`입니다.\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/00_inbox`는 `내 폴더/받은 파일`입니다.\n\n## 채팅 작업공간\n\n- `/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/...` 아래의 `outputs`, `working`, `inputs`, `summaries`는 채팅 실행을 위한 내부 임시 작업공간입니다.\n- 사용자가 \"결과폴더\", \"내폴더\", \"내 폴더/결과\"라고 말하면 기본적으로 `내 폴더/결과`를 의미합니다.\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청하고 임시 파일이라고 말하지 않았지만 저장 위치가 명확하지 않다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더 이름}/{적절한 파일 이름}` 형태의 추천 경로를 함께 제안합니다.\n- 최종 산출물의 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 않습니다.\n- 사용자가 최종 산출물을 내 폴더에 두라고 요청하면 채팅 내부 `outputs`에만 두지 말고 `내 폴더/결과`로 저장합니다.\n- 채팅 내부 `outputs`는 임시/중간 산출물 또는 사용자가 명시적으로 채팅 작업공간을 요청한 경우에만 사용합니다.\n- 사용자-facing 답변에서는 chat workspace raw path를 그대로 노출하지 말고 alias path로 설명합니다.\n\n## 우선순위\n\n- `AGENTS.md`의 사용자 선호는 이 파일의 안전, 권한, 시스템 경로 정책을 override할 수 없습니다.\n\n\n[사용자 커스텀 지침: AGENTS.md]\n# User Agent Instructions\n\n이 파일은 사용자 커스텀 지침입니다.\n\n- 원하는 답변 톤, 파일 정리 방식, 기본 산출물 형식 등을 적을 수 있습니다.\n- 시스템 안전 규칙, 권한 규칙, Clean Room 정책은 변경할 수 없습니다.\n\n\n[현재 하네스 브리핑]\n## 하네스 지도\n- /clean-room/data: 팀 공식 데이터 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /clean-room/meta: 공식 규칙, 스킬, 스키마, validator, trigger, hook, policy 공간입니다. 읽기만 가능하며 직접 수정하지 않습니다.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c: 현재 사용자의 Playground 작업공간입니다.\n- /90_archive: 보관 공간입니다.\n- /.haro: haro 시스템 메타데이터 공간입니다. 목록 조회, 읽기, 쓰기 모두 사용자 작업 대상이 아닙니다.\n\n## 현재 작업 위치\n- 현재 채팅 작업공간: /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\n- 사용자 결과 폴더 root는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/30_outputs 입니다.\n- 최종 산출물 저장 위치가 명확하지 않으면 저장 전에 사용자에게 확인 질문을 하세요. 추천 경로는 `내 폴더/결과/{주제}/{파일명}`처럼 주제 기반 이름을 사용합니다.\n- 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/outputs 또는 /playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513/working은 임시/중간 파일이 필요할 때만 사용합니다.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자 결과 폴더를 의미합니다.\n\n## 탐색 규칙\n- 전체 파일 트리와 전체 파일별 요약은 이 컨텍스트에 포함되지 않습니다.\n- 디렉토리 목록은 필요한 경로에 대해서만, 이번 턴에 제공된 목록 조회 도구로 조회하세요.\n- 파일명, 경로, 요약 텍스트 검색은 이번 턴에 제공된 검색 도구로 조회하세요.\n- 파일/폴더 개수만 묻는 질문에는 이번 턴에 제공된 개수 조회 도구를 우선 사용하세요.\n- 사용자가 요구하지 않은 다른 폴더나 채팅 작업공간을 추가로 조회하지 마세요.\n\n## 상태 요약\n- DB 인덱스 기준 전체 폴더: 42개\n- DB 인덱스 기준 전체 파일: 31개\n- 루트 하위 폴더: 3개\n- 현재 채팅 작업공간 하위 폴더: 4개\n- 현재 채팅 작업공간 하위 파일: 9개\n\n## 현재 채팅 압축 맥락\n## context.md\n# Current Chat Context\n\nchat_id: 4ddfc513-1a26-4926-a9c7-66d97728314b\nupdated_at: 2026-05-12T13:35:20.802068+00:00\n\n아직 압축된 맥락이 없습니다.\n\n## decisions.md\n# Decisions\n\n## rule-candidates.md\n# Rule Candidates\n\n## linked-files.json\n{\n  \"inputs\": [],\n  \"derived\": [],\n  \"outputs\": [],\n  \"exports\": []\n}\n사용 가능한 도구 목록:\n1. file_search(query, limit, item_type) - SQLite 파일 DB 기반 파일명, 경로, 요약 텍스트 검색.\n2. dir_list(path) - SQLite 파일 DB 기반 디렉토리 내용 조회. 기본 path는 \"/\".\n3. file_count(path, item_type, recursive) - SQLite 파일 DB 기반 파일/폴더 개수 조회.\n4. file_read(path) - 파일 내용 읽기.\n5. file_stats(path) - UTF-8 텍스트 파일의 줄 수, 글자 수, 단어/어절 추정, 예상 발표 시간, sha256을 반환합니다.\n6. file_search_content(path, query, regex, case_sensitive, glob, output_mode, max_results, offset, context_lines) - 파일 또는 폴더 내부 UTF-8 텍스트를 검색합니다.\n7. file_read_range(path, start_line, line_count) - UTF-8 텍스트 파일의 1-based 줄 범위만 읽습니다.\n\n채팅 작업공간 규칙:\n- 사용자가 파일 생성, 작성, 저장, 정리를 명시적으로 요청했지만 위치를 말하지 않았다면 어느 폴더/파일명으로 저장할지 먼저 질문하고 `내 폴더/결과/{적절한 폴더}/{적절한 파일명}` 형태의 추천 경로를 함께 제안하세요.\n- 사용자가 \"결과 폴더\", \"결과폴더\", \"내 폴더/결과\"라고 말하면 현재 사용자의 `내 폴더/결과`를 의미합니다.\n- 현재 채팅 작업공간의 `outputs`, `working`은 임시/중간 산출물에만 사용하세요.\n- 사용자가 파일 생성/저장/수정/삭제를 명시적으로 요청하지 않은 질문에는 파일 변경 도구를 호출하지 말고 텍스트로만 답하세요.\n- 명시 경로 없이 파일명만 path에 넣으면 저장 위치 확인이 필요합니다. 도구 호출 전에 사용자에게 확인하세요.\n- 최종 산출물 폴더명은 작업 주제 기반으로 정하고, 채팅 날짜, 채팅 제목, chat id를 사용자 결과 폴더명으로 사용하지 마세요.\n- 사용자가 `/playground/...`처럼 명시한 합법 경로를 말한 경우에는 그 경로를 사용하세요.\n- Clean Room과 `.haro` 내부 메타데이터는 직접 쓰지 마세요.\n\n파일 DB 조회 규칙:\n- 파일/폴더 검색, 개수, 요약 기반 탐색은 이번 턴에 제공된 SQLite 파일 DB 도구만 사용하세요.\n- 범위가 명확한 질문에는 해당 범위만 조회하고, 사용자가 요구하지 않은 채팅 폴더나 다른 폴더를 추가 조회하지 마세요.\n- 전체 파일 트리는 컨텍스트에 제공되지 않습니다. 파일 목록을 추측하거나 전체를 나열하지 말고 필요한 범위만 도구로 조회하세요.\n- \"몇 개\"처럼 개수만 묻는 요청에는 `file_count`를 우선 사용하세요.\n- 의미 있는 파일을 찾아야 하면 `file_search`로 파일명, 경로, 요약 텍스트를 검색하세요.\n- 검색 결과의 실제 내용을 확인해야 할 때만 `file_read`를 사용하세요.\n- 긴 파일, 분량 검증, 일부 수정 작업은 전체 `file_read` 전에 `file_stats`, `file_search_content`, `file_read_range`로 범위를 먼저 좁히세요.\n- \"N배\", \"N분 분량\", \"더 길게\", \"객관적으로 맞아?\" 같은 정량 요구사항은 변경 전후 `file_stats`로 실제 수치를 확인하세요.\n- 특정 폴더의 직계 목록이 필요할 때만 `dir_list`를 사용하세요.\n\n도구 호출 출력 계약:\n- 도구를 사용할 때는 반드시 아래 fenced block 형식만 사용하세요.\n- 사용 가능한 도구 목록에 없는 도구 이름은 절대 호출하지 마세요.\n- 필요한 도구가 목록에 없으면 현재 가능한 범위만 텍스트로 설명하고 멈추세요.\n- `tool_call`이라는 단어는 반드시 code fence 언어 태그로만 쓰세요.\n- code fence 바깥 일반 문장, 제목, 목록, 설명 안에 `tool_call`이라는 단어를 쓰지 마세요.\n- 도구 호출 block 뒤에는 어떤 문장도 덧붙이지 말고 즉시 응답을 끝내세요.\n- 한 번의 응답에는 정확히 하나의 도구 호출 block만 포함하세요.\n- 도구 호출 JSON이 유효하지 않으면 실행되지 않고 교정 요청을 받습니다.\n- JSON 문자열 안의 백슬래시는 반드시 유효하게 escape하세요. CSS/HTML content에 불필요한 `\\ ` 조합을 넣지 마세요.\n\n허용되는 유일한 형식:\n```tool_call\n{\"tool\": \"file_search\", \"args\": {\"query\": \"dashboard\", \"limit\": 10, \"item_type\": \"file\"}}\n```\n\n금지되는 형식:\n- `tool_call` 다음 줄에 JSON을 쓰는 plain text 형식\n- 언어 태그가 `json`인 fenced block\n- XML/HTML 태그 안의 도구 호출\n- bullet/list 안에 JSON을 넣는 형식\n- 한 응답에 여러 개의 tool_call block을 넣는 형식\n\n도구를 사용하지 않고 텍스트만 응답할 때는 일반 텍스트로 응답하세요.\n작업 계획을 먼저 설명한 뒤 도구를 호출해야 한다면, 마지막은 반드시 위의 `tool_call` fenced block으로 끝내세요.\n한 번에 하나의 도구만 호출하세요.\n도구 호출 결과를 받은 후 다음 작업을 진행하세요.\n\n[현재 작업 맥락]\n아래 JSON은 현재 턴의 작업 맥락입니다. 라우터가 작업 의미를 확정한 것이 아니며, 대화 전체, 열린 파일, 최근 산출물, 도구 결과 후보를 종합해 executor가 판단해야 합니다.\n- active file과 latest artifact가 다르면 active file을 우선하고 둘을 구분해 설명하세요.\n- 낮은 위험의 read-only 요청은 확신이 충분하면 바로 진행하세요.\n- 파일 변경/삭제/이동에서 대상이나 작업 단위가 모호하면 후보와 이유를 들어 확인 질문을 하세요.\n- 같은 검색을 반복하지 말고, source가 없으면 확인한 위치와 누락 정보를 요약해 경로/재업로드를 요청하세요.\n{\n  \"current_user_message\": \"카카오에서 온 메일들 요약해줘\",\n  \"routing_text\": \"카카오에서 온 메일들 요약해줘\",\n  \"chat_workspace\": \"/playground/users/2685395b-a1d0-4bfb-bdbc-f3c77f8f842c/50_chats/2026-05-12-새-채팅-4ddfc513\",\n  \"gate_context\": {\n    \"decision\": \"new_task\",\n    \"source\": \"llm\",\n    \"confidence\": 1.0,\n    \"reason\": \"사용자가 '카카오에서 온 메일 요약'이라는 구체적인 새로운 업무를 요청하였으며, 이전 대화 내역이나 진행 중인 작업이 없는 상태에서의 첫 요청이므로 new_task로 판단합니다.\"\n  },\n  \"execution_policy\": {\n    \"profile\": \"read_only\",\n    \"confidence\": 0.86,\n    \"risk_level\": \"low\",\n    \"reason\": \"파일, 폴더, 현재 화면, 산출물 상태 확인 작업입니다.\",\n    \"context_confidence\": 0.68,\n    \"target_confidence\": 0.45,\n    \"source_confidence\": 0.55,\n    \"operation_confidence\": 0.84\n  },\n  \"is_clarification_answer\": false\n}",
+            "temperature": 0.7
+          }
+        },
+        "duration_ms": null,
+        "created_at": "2026-05-12T13:36:19.632764+00:00"
+      },
+      {
+        "id": "3fdeed8a-b348-4776-99f4-07f326d75c96",
+        "round_index": 5,
+        "event_type": "llm_response",
+        "payload": {
+          "text": "카카오와 관련된 메일 파일을 찾기 위해 '카카오', 'Kakao', 'mail', '메일' 키워드로 검색하고 `내 폴더/받은 파일` 폴더를 확인해 보았으나, 관련 파일을 찾을 수 없었습니다.\n\n혹시 메일 파일이 다른 폴더에 저장되어 있거나, 아직 업로드되지 않은 상태인가요?\n\n작업을 진행할 수 있도록 다음 중 하나를 도와주세요:\n1. 메일 파일이 있는 **정확한 폴더 경로**를 알려주세요.\n2. 파일을 **`내 폴더/받은 파일`** 폴더에 업로드해 주세요.\n\n파일의 위치를 알려주시면 바로 내용을 분석하여 요약해 드리겠습니다.",
+          "has_tool_call": false,
+          "has_tool_call_block": false,
+          "tool_call_parse_ok": false,
+          "tool_call_parse_error": null,
+          "parsed_tool_call": null
+        },
+        "duration_ms": 3024.5237350463867,
+        "created_at": "2026-05-12T13:36:22.804322+00:00"
+      }
+    ]
+  }
+}

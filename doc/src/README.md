@@ -89,6 +89,9 @@ Docker 컨테이너 기반 코드 실행 서버의 독립형 FastAPI 구현이�
 - 워크스페이스: 기본 `./data/workspaces`
 - 샌드박스 이미지: 기본 `denoland/deno:latest`
 - CORS: 기본 `http://localhost:5174`
+- Gmail OAuth: `GOOGLE_GMAIL_CLIENT_ID`, `GOOGLE_GMAIL_CLIENT_SECRET`, `GOOGLE_GMAIL_REDIRECT_URI`, `GOOGLE_GMAIL_SCOPES`
+- Gmail OAuth state/token 보호: `GOOGLE_OAUTH_STATE_SECRET`, `MAIL_TOKEN_ENCRYPTION_KEY`, `MAIL_TOKEN_STORE_DIR`
+- Gmail 메일 검색 벡터화: `MAIL_VECTOR_SEARCH_ENABLED`, `MAIL_VECTOR_EMBEDDING_MODEL`
 
 DB는 `sqlite+aiosqlite`를 사용하며, SQLite `WAL`과 foreign key pragma를 켠다.
 
@@ -108,6 +111,8 @@ DB는 `sqlite+aiosqlite`를 사용하며, SQLite `WAL`과 foreign key pragma를 
 | `AgentDebugTrace` | `agent_debug_traces` | 디버그 모드에서 보는 상세 페이로드 |
 | `InstalledSkill` | `installed_skills` | 설치된 스킬과 제공 도구 |
 | `SandboxNode` | `sandbox_nodes` | Docker 노드 풀 상태 |
+| `MailConnection`, `MailPolicy`, `MailAnalysisRun`, `MailThreadStaging` | `mail_*` | Gmail OAuth 연결 상태와 token reference, 분류/필터 정책, 분석 run, 승인 전 staging thread |
+| `MailStructureTest`, `MailImprovementCandidate` | `mail_*` | Gmail 검색/인사이트 품질 평가와 개선 후보 저장 |
 | `Session`, `Todo`, `TodoStep` | `sessions`, `todos`, `todo_steps` | 레거시 호환 모델 |
 
 현재 주 흐름은 `Project` + `ChatSession`이다. `Session` API와 Todo 모델은 초기 구조의 흔적이다.
@@ -117,10 +122,13 @@ DB는 `sqlite+aiosqlite`를 사용하며, SQLite `WAL`과 foreign key pragma를 
 | 라우터 | Prefix | 역할 |
 |---|---|---|
 | `auth.py` | `/api/auth` | 회원가입, 로그인, 현재 사용자 조회 |
+| `google_oauth.py` | `/api/auth/google/gmail` | Gmail OAuth callback, token 교환, 암호화 token store 저장, `MailConnection` 연결 상태 갱신 |
 | `projects.py` | `/api/projects` | 프로젝트 CRUD, 코드 실행, 프리뷰/배포, 샌드박스 상태 |
 | `chats.py` | `/api/projects/{project_id}/chats` | 채팅 CRUD, 채팅 폴더 동기화, 요약, 산출물 export |
 | `messages.py` | `/api/projects/{project_id}/chats/{chat_id}/messages` | 메시지 조회, 메시지 전송 SSE, 디버그 트레이스 조회 |
 | `files.py` | `/api/projects/{project_id}/files` | 파일 목록, 검색, 폴더 생성, 업로드, 파일 읽기/저장 |
+| `mail.py` | `/api/projects/{project_id}/mail/gmail` | Gmail OAuth 시작 URL 발급, 연결 상태, 비동기 최근 분석 run, thread/attachment/search/insight 조회, 상세 thread의 snapshot 본문 표시, 품질 테스트와 개선 후보 저장, 정책 저장, 재통계, 승격, 라이브 상태, 마이그레이션 |
+| `context_library.py` | `/api/projects/{project_id}/context-library` | 승인된 Project Team Context Library 검색 |
 | `skills.py` | `/api/skills` | 설치 스킬 목록 |
 | `logs.py` | `/api/projects/{project_id}/chats/{chat_id}/logs` | 에이전트 로그 조회 |
 | `preview.py` | `/preview/{project_id}/{path}` | 샌드박스 웹서버 reverse proxy |
@@ -182,6 +190,10 @@ DB는 `sqlite+aiosqlite`를 사용하며, SQLite `WAL`과 foreign key pragma를 
 - `file_export`
 - `file_search`
 - `file_count`
+- `mail_search`
+- `mail_attachment_read`
+
+`mail_search`는 최신 완료 Gmail 분석 run 또는 지정 run의 승인 전 staging thread를 검색한다. 검색 대상은 제목, 발신자, 수신자, 요약, 카테고리, 첨부 메타데이터/추출 요약/content profile, 참조 링크, 추출된 요청사항/마감/구조화 경고이며, raw Gmail id, OAuth token, 원문 body 전체는 반환하지 않는다. 가능한 경우 ChromaDB run별 collection과 Gemini embedding으로 vector hit를 만들고, 기존 텍스트 점수와 결합한 hybrid ranking으로 결과를 정렬한다. `mail_attachment_read`는 특정 Gmail thread의 첨부 저장 경로, 추출 상태, 요약, key points, content profile을 읽는다.
 
 부분 파일 작업은 `partial_file_ops.py`의 순수 텍스트 처리 로직과 `agent_tools.py`의 권한/이벤트/인덱스 갱신 연결로 나뉜다. 기존 파일 일부 수정은 전체 `file_write`보다 `file_stats`/`file_search_content`/`file_read_range`로 범위를 좁힌 뒤 `file_edit` 또는 `file_append`를 우선 사용한다. `file_replace_range`는 줄 범위가 명확한 문서 섹션 교체용 보조 도구다.
 
@@ -249,6 +261,18 @@ playground/
 
 `workspace_file_db.py`는 `/.haro/db/workspace.db`에 워크스페이스 파일 인덱스를 저장한다. 주요 테이블은 `workspace_items`, `workspace_item_relations`, `workspace_file_events`, `workspace_db_meta`이며, 가능하면 FTS5 `workspace_items_fts`도 만든다. 파일 검색, 폴더 페이징, 개수 조회, 요약 snippet 조회가 이 DB를 사용한다.
 
+`context_library_db.py`는 `/.haro/db/context_library.db`에 승인된 팀 지식 인덱스를 저장한다. v1은 Gmail staging run에서 사용자가 승인한 항목만 `clean-room/data/10_sources/mail/...` 요약 파일로 승격하고, `context_items`, `context_relations`, FTS5 `context_items_fts`에 제목/요약/카테고리와 관계를 기록한다. Gmail 원문, OAuth token, 원본 thread id는 Team Context Library에 쓰지 않는다.
+
+`mail_snapshot_store.py`는 Gmail fetch 결과를 `/.haro/cache/mail/gmail/{account_hash}/...`에 저장한다. 이 snapshot은 재분석용 숨김 캐시이며 파일 목록과 agent tool에는 노출하지 않는다. 기본 메일 분석은 캐시를 우선 사용하고, 사용자가 강제 갱신할 때만 Gmail API를 다시 호출한다. 선택한 thread 상세 API는 이 snapshot의 제한 길이 텍스트 본문, sandbox 렌더링용 HTML 본문, 첨부 메타데이터를 UI에 표시한다. OAuth token과 raw Gmail id는 공개 API/ChromaDB/clean-room에 노출하지 않는다.
+
+`mail_attachment_processing.py`는 관리 대상 후보 thread의 Gmail 첨부파일을 `/playground/users/{user_id}/00_inbox/mail/gmail/...`에 저장하고, `txt/md`, `csv`, `xlsx/xls`, `pdf`, `png/jpeg/jpg`를 추출/요약한다. 저장된 첨부는 workspace file DB에 동기화되어 일반 파일 검색에서도 보일 수 있다. 실패는 run 실패가 아니라 attachment 단위 `extract_status`와 `error_reason`으로 남긴다.
+
+`mail_structuring.py`는 Gmail snapshot thread를 10개 단위로 Gemini `gemini-3-flash-preview`에 보내 요청사항, due date, 구조화 경고, confidence를 추출한다. `POST /mail/gmail/analyze-recent`는 즉시 `queued` run을 반환하고 in-process background task가 `fetching -> normalizing -> attachment_downloading -> attachment_extracting -> structuring -> indexing -> completed/failed` 상태를 DB에 기록한다. LLM batch 실패는 전체 run 실패가 아니라 thread별 fallback warning으로 남긴다.
+
+`mail_insights.py`는 완료된 Gmail staging thread에서 반복 발신자, 마감/일정, 첨부파일, 구조화 경고, 대표 카테고리 인사이트를 deterministic하게 만든다. 프론트엔드는 검색/인사이트 결과에 대한 `good`, `warning`, `bad` 품질 평가를 `MailStructureTest`로 저장하고, 개선 필요 항목은 `MailImprovementCandidate`로 남긴다.
+
+`mail_vector_index.py`는 메일 검색용 ChromaDB 인덱스를 관리한다. 저장 위치는 프로젝트 워크스페이스의 `/.haro/db/chroma/mail`이며, run별 collection에 제목/요약/발신자/요청사항/마감/첨부 요약/content profile 같은 구조화 필드만 넣는다. ChromaDB 패키지나 embedding 설정을 사용할 수 없으면 검색 API는 명확한 오류를 반환한다.
+
 `workspace_index.py`는 `.haro/workspace.md`와 `.haro/file_summaries`를 관리하는 레거시/보조 인덱스 역할도 한다.
 
 ### Docker 샌드박스와 프리뷰
@@ -295,6 +319,7 @@ Docker가 없어도 로그인, 프로젝트, 파일 API는 가능한 한 살아 
 | `stores/chatSessions.ts` | 프로젝트별 채팅 목록/생성/삭제/이름변경, 요약/동기화 |
 | `stores/chat.ts` | 메시지 목록, SSE 메시지 전송, 에이전트 상태, 디버그 트레이스 |
 | `stores/files.ts` | 파일 트리, 폴더 캐시, 파일 내용, 파일 저장, 검색, 업로드 |
+| `stores/mail.ts` | Gmail 상태/비동기 분석 polling/thread 조회/정책/라이브/마이그레이션 API와 Context Library 검색 |
 
 `lib/api.ts`는 `/api` prefix와 JWT Bearer 헤더를 처리한다. `lib/sse.ts`는 `fetch` 응답 body를 직접 읽어 SSE 이벤트를 파싱한다.
 
@@ -304,9 +329,11 @@ Docker가 없어도 로그인, 프로젝트, 파일 API는 가능한 한 살아 
 
 주요 기능:
 
-- 좌측 사이드 패널: 파일, 스킬, 툴, 데이터소스 탭
+- 좌측 사이드 패널: 파일, 스킬, 툴, 메일 관리 탭
 - 파일 탐색기: 폴더 lazy load, 페이지네이션, 가상 스크롤, 검색, 업로드, 폴더 생성
 - 중앙 뷰어: preview/source/code/editor 탭
+- 메일 관리 모드: 중앙 `WorkspaceMailShell`에서 메일 탐색/설정/통계 탭을 렌더링하고, `메일 탐색`은 실제 분석 run의 thread 목록, 선택 thread의 snapshot 본문/HTML 원본 렌더러/첨부/구조화 상세, 로컬 검색, 추천 질문, 채팅 입력 연계를 보여준다. `설정`은 Gmail 연결/분석/카테고리/필터와 구조화 기준 요약을, `통계`는 구조화 품질과 인사이트 요약을 보여준다. 좌측 `WorkspaceMailPanel`은 Gmail 연결과 latest run 요약만 보여준다.
+- 메일 관리 모드의 오른쪽 채팅 입력은 선택 thread와 latest run을 `open_mail_context`로 함께 전송하고, 입력창과 사용자 메시지에 현재 메일 컨텍스트를 표시한다.
 - 파일 렌더링: Markdown, HTML iframe preview, CSV table, highlight.js 코드 뷰
 - 편집: CodeMirror 기반 텍스트 파일 편집과 저장
 - 우측 채팅 패널: 메시지 스트리밍, tool step 표시, 채팅 목록/생성/삭제

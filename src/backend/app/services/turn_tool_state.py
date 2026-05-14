@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
-SEARCH_STATEFUL_TOOLS = {"file_search", "dir_list", "file_search_content"}
+SEARCH_STATEFUL_TOOLS = {"file_search", "dir_list", "file_search_content", "mail_search", "mail_attachment_read"}
 VERIFY_FILE_TOOLS = {"file_read", "file_stats", "file_search_content", "file_read_range"}
 VERIFY_DIR_TOOLS = {"dir_list"}
 WRITE_GUARDED_TOOLS = {
@@ -69,8 +69,8 @@ class TurnToolState:
         if signature in self.search_signatures:
             return (
                 f"중복 탐색 생략: `{tool_name}`에 동일한 인자를 이미 사용했습니다. "
-                "직전 도구 결과와 현재 작업 맥락의 File Discovery 후보를 바탕으로 다음 단계를 판단하세요. "
-                "새 위치나 새 검색어가 없다면 사용자에게 파일 경로 또는 재업로드를 요청하세요."
+                "직전 도구 결과와 현재 작업 맥락을 바탕으로 다음 단계를 판단하세요. "
+                "새 위치나 새 검색어가 없다면 확인한 범위와 누락 정보를 요약해 사용자에게 알려주세요."
             )
         self.search_signatures.add(signature)
         return None

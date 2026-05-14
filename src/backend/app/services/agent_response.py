@@ -134,6 +134,7 @@ def executor_routing_context(context: dict) -> dict:
         "latest_artifact": context.get("latest_artifact"),
         "latest_preview": context.get("latest_preview"),
         "file_discovery_context": compact_file_discovery_context(context.get("file_discovery_context")),
+        "mail_context": compact_mail_context(context.get("mail_context")),
     }
     return {key: value for key, value in compact.items() if value not in (None, [], {})}
 
@@ -191,6 +192,24 @@ def compact_file_discovery_context(value: Any) -> dict | None:
         "open_file_context": value.get("open_file_context"),
     }
     return {key: item for key, item in context.items() if item not in (None, [], {})}
+
+
+def compact_mail_context(value: Any) -> dict | None:
+    if not isinstance(value, dict):
+        return None
+    context = {
+        key: value.get(key)
+        for key in [
+            "active",
+            "latest_run_id",
+            "latest_run_status",
+            "selected_thread_id",
+            "selected_subject",
+            "selected_sender",
+        ]
+        if value.get(key) not in (None, "", [], {})
+    }
+    return context or None
 
 
 def compact_text(text: str, limit: int) -> str:

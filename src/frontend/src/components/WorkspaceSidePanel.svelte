@@ -14,6 +14,7 @@
 
   let {
     width,
+    projectId,
     activeSideTab,
     sidePanelTabs,
     sidePanelTitle,
@@ -61,6 +62,7 @@
     isCleanRoomPath,
   }: {
     width: number;
+    projectId: string | null;
     activeSideTab: SidePanelTab;
     sidePanelTabs: SidePanelTabItem[];
     sidePanelTitle: string;
@@ -190,6 +192,7 @@
     {:else}
       <WorkspaceSideCatalog
         {activeSideTab}
+        {projectId}
         {skills}
         {skillsLoading}
         {skillsError}

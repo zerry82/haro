@@ -20,6 +20,8 @@ def test_builtin_file_ops_manifest_lists_expected_tools() -> None:
         "file_replace_range",
         "file_search",
         "web_search",
+        "mail_search",
+        "mail_attachment_read",
     }.issubset(manifest["tools"])
 
 
@@ -30,3 +32,8 @@ def test_app_factory_registers_core_routes() -> None:
     assert "/api/health" in paths
     assert "/api/projects" in paths
     assert "/api/projects/{project_id}/files" in paths
+    assert "/api/projects/{project_id}/mail/gmail/status" in paths
+    assert "/api/projects/{project_id}/mail/gmail/analysis/{run_id}/search" in paths
+    assert "/api/projects/{project_id}/mail/gmail/analysis/{run_id}/threads/{thread_id}/attachments/{attachment_ref}" in paths
+    assert "/api/auth/google/gmail/callback" in paths
+    assert "/api/projects/{project_id}/context-library/search" in paths

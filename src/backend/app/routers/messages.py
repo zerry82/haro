@@ -36,6 +36,7 @@ class SendMessageRequest(BaseModel):
     plan_mode_requested: bool = False
     plan_response: dict | None = None
     open_file_context: dict | None = None
+    open_mail_context: dict | None = None
 
 
 class MessageResponse(BaseModel):
@@ -228,6 +229,7 @@ async def send_message(
     plan_mode_requested = body.plan_mode_requested
     plan_response = body.plan_response
     open_file_context = body.open_file_context
+    open_mail_context = body.open_mail_context
     emitter = SSEEmitter()
 
     async def _run():
@@ -252,6 +254,7 @@ async def send_message(
                     plan_mode_requested=plan_mode_requested,
                     plan_response=plan_response,
                     open_file_context=open_file_context,
+                    open_mail_context=open_mail_context,
                 )
         except Exception:
             emitter.emit("error", {

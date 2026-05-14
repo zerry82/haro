@@ -366,6 +366,29 @@ async def _run_approved_plan_execution(
     return "completed"
 
 
+def sanitize_open_mail_context(value: dict | None) -> dict | None:
+    if not isinstance(value, dict):
+        return None
+    allowed = {
+        "active",
+        "latest_run_id",
+        "latest_run_status",
+        "selected_thread_id",
+        "selected_subject",
+        "selected_sender",
+    }
+    sanitized: dict = {}
+    for key in allowed:
+        item = value.get(key)
+        if item in (None, "", [], {}):
+            continue
+        if key == "active":
+            sanitized[key] = bool(item)
+        else:
+            sanitized[key] = str(item)[:500]
+    return sanitized or None
+
+
 async def run_agent(
     db: AsyncSession,
     chat_session: ChatSession,
@@ -378,6 +401,7 @@ async def run_agent(
     plan_mode_requested: bool = False,
     plan_response: dict | None = None,
     open_file_context: dict | None = None,
+    open_mail_context: dict | None = None,
 ) -> None:
     """에이전트 실행 메인 루프 — 자체 스킬 호출 + 스트리밍"""
     turn_message_id: str | None = None
@@ -388,12 +412,15 @@ async def run_agent(
 
         # 1. 사용자 메시지 저장
         sanitized_open_file_context = sanitize_open_file_context(open_file_context, project.user_id)
+        sanitized_open_mail_context = sanitize_open_mail_context(open_mail_context)
         message_metadata = {
             "client_message_id": client_message_id,
             "debug_enabled": debug_enabled,
         }
         if sanitized_open_file_context:
             message_metadata["open_file_context"] = sanitized_open_file_context
+        if sanitized_open_mail_context:
+            message_metadata["open_mail_context"] = sanitized_open_mail_context
         user_msg = Message(
             chat_session_id=chat_session.id,
             role="user",
@@ -502,6 +529,7 @@ async def run_agent(
             workspace=project.workspace_path,
             user_id=project.user_id,
             open_file_context=sanitized_open_file_context,
+            open_mail_context=sanitized_open_mail_context,
         )
         if debug_enabled and turn_message_id:
             await _record_debug_trace(
@@ -636,6 +664,7 @@ async def run_agent(
             previous_turn=gate.intent_turn,
             gate_context=gate_context_payload(gate),
             open_file_context=sanitized_open_file_context,
+            open_mail_context=sanitized_open_mail_context,
         )
         await _record_file_discovery_events(db, intent_turn, user_msg.id, route.routing_context)
         await record_intent_event(

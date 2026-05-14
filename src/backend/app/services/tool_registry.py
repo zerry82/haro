@@ -123,6 +123,20 @@ TOOL_CATALOG: dict[str, dict[str, object]] = {
         "typical_outputs": ["검색 결과 title/url/snippet 목록"],
         "description": "web_search(query, limit, recency_days, domains) - 외부 웹 검색 결과 조회. 검색이 필요하면 설명하지 말고 반드시 이 도구를 호출하세요.",
     },
+    "mail_search": {
+        "purpose": "Gmail 분석 결과 검색",
+        "when_to_use": "사용자가 Gmail/메일 thread, 발신자, 첨부, 요청사항, 마감, 구조화 결과를 검색하거나 요약해 달라고 할 때",
+        "required_args": ["query"],
+        "typical_outputs": ["검색된 메일 thread 요약, 발신자, 카테고리, 첨부, 요청사항, 마감, evidence"],
+        "description": "mail_search(query, limit, run_id) - 최신 완료 Gmail 분석 run 또는 지정 run의 구조화된 메일 staging 데이터를 검색합니다. run_id를 모르면 latest를 사용하세요.",
+    },
+    "mail_attachment_read": {
+        "purpose": "Gmail 첨부파일 추출 결과 읽기",
+        "when_to_use": "선택된 메일 또는 검색된 메일의 첨부파일 내용, 저장 경로, 추출 요약, CSV/Excel/PDF/이미지 profile을 확인해야 할 때",
+        "required_args": ["thread_id"],
+        "typical_outputs": ["첨부 파일명, inbox 경로, 추출 상태, 요약, 주요 포인트, content profile"],
+        "description": "mail_attachment_read(run_id, thread_id, attachment_ref) - 완료된 Gmail 분석 run의 특정 thread 첨부파일 추출 결과를 읽습니다. run_id를 모르면 latest를 사용하세요.",
+    },
     "file_export": {
         "purpose": "채팅 산출물 내보내기",
         "when_to_use": "현재 채팅 산출물을 다른 Playground 위치로 복사해야 할 때",
@@ -223,6 +237,8 @@ def _tool_call_example(tool_name: str) -> str:
         "code_run": '{"tool": "code_run", "args": {"filename": "script.ts", "code": "console.log(1)"}}',
         "web_preview": '{"tool": "web_preview", "args": {}}',
         "web_search": '{"tool": "web_search", "args": {"query": "대한민국 청개구리 개체수 최신 연구", "limit": 5}}',
+        "mail_search": '{"tool": "mail_search", "args": {"query": "카카오에서 온 메일", "limit": 10, "run_id": "latest"}}',
+        "mail_attachment_read": '{"tool": "mail_attachment_read", "args": {"run_id": "latest", "thread_id": "thread-id"}}',
         "file_export": '{"tool": "file_export", "args": {"source_path": "outputs/report.md", "target_path": "/playground/users/.../report.md"}}',
         "plan_file_update": '{"tool": "plan_file_update", "args": {"content": "# 계획\\n\\n## 목표\\n..."}}',
         "plan_approval_request": '{"tool": "plan_approval_request", "args": {"summary": "계획 초안이 준비되었습니다."}}',
@@ -295,6 +311,17 @@ def build_tool_descriptions(selected_tools: list[str] | None) -> str:
             "- 웹 검색이 필요한 작업에서 검색이 실패하면 내부 지식으로 대체하지 말고 실패 사실을 명확히 보고하고 멈추세요.",
             "- 웹 검색 결과를 사용한 최종 답변에는 가능한 한 URL 출처를 함께 표시하세요.",
             "- 사용자 파일 전문이나 민감한 workspace 내용을 검색 query로 자동 전송하지 말고 필요한 최소 키워드만 사용하세요.",
+        ])
+    if "mail_search" in tools:
+        lines.extend([
+            "- Gmail/메일/받은 메일/보낸사람/첨부/마감/요청사항 관련 질문에는 파일 도구가 아니라 `mail_search`를 먼저 호출하세요.",
+            "- `mail_search` 결과는 승인 전 staging 구조화 데이터입니다. 결과가 있으면 파일 업로드나 경로 제공을 요구하지 말고 그 결과를 근거로 답하세요.",
+            "- 완료된 Gmail 분석 run이 없다는 결과가 오면 메일 관리에서 최근 분석을 먼저 실행해야 한다고 안내하세요.",
+        ])
+    if "mail_attachment_read" in tools:
+        lines.extend([
+            "- 사용자가 메일 첨부파일의 실제 내용, 표/이미지/PDF 요약, 저장 위치를 묻고 thread_id를 알 수 있으면 `mail_attachment_read`를 사용하세요.",
+            "- thread_id를 모르면 먼저 `mail_search`로 관련 메일을 찾은 뒤 첨부 내용을 읽으세요.",
         ])
     if "plan_file_update" in tools or "plan_approval_request" in tools:
         lines.extend([

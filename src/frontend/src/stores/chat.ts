@@ -55,6 +55,15 @@ export interface OpenFileContext {
   selection?: OpenFileSelectionContext | null;
 }
 
+export interface OpenMailContext {
+  active?: boolean;
+  latest_run_id?: string | null;
+  latest_run_status?: string | null;
+  selected_thread_id?: string | null;
+  selected_subject?: string | null;
+  selected_sender?: string | null;
+}
+
 const idlePlanMode: PlanModeState = {
   active: false,
   planSessionId: null,
@@ -224,6 +233,7 @@ export async function sendMessage(
     planModeRequested?: boolean;
     planResponse?: { plan_session_id: string; action: 'approve' | 'reject'; feedback?: string };
     openFileContext?: OpenFileContext | null;
+    openMailContext?: OpenMailContext | null;
   } = {},
 ) {
   const clientMessageId = crypto.randomUUID();
@@ -236,6 +246,7 @@ export async function sendMessage(
       client_message_id: clientMessageId,
       debug_enabled: debugEnabled,
       open_file_context: options.openFileContext || null,
+      open_mail_context: options.openMailContext || null,
     },
   };
   messages.update((m) => [...m, userMsg]);
@@ -255,6 +266,7 @@ export async function sendMessage(
         plan_mode_requested: Boolean(options.planModeRequested),
         plan_response: options.planResponse || null,
         open_file_context: options.openFileContext || null,
+        open_mail_context: options.openMailContext || null,
       },
       (event, data) => {
       switch (event) {

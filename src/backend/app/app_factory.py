@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import auth, chats, files, logs, messages, preview, projects, sessions, skills
+from app.routers import auth, chats, context_library, files, google_oauth, logs, mail, messages, preview, projects, sessions, skills
 from app.startup.lifespan import lifespan
 
 
@@ -30,11 +30,14 @@ def _register_middleware(app: FastAPI) -> None:
 
 def _register_routes(app: FastAPI) -> None:
     app.include_router(auth.router)
+    app.include_router(google_oauth.router)
     app.include_router(projects.router)
     app.include_router(chats.router)
     app.include_router(sessions.router)
     app.include_router(messages.router)
     app.include_router(files.router)
+    app.include_router(mail.router)
+    app.include_router(context_library.router)
     app.include_router(skills.router)
     app.include_router(logs.router)
     app.include_router(preview.router)

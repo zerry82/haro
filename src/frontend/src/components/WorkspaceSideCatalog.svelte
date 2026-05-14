@@ -1,14 +1,17 @@
 <script lang="ts">
   import type { SidePanelTab, SkillResponse, ToolCatalogItem } from './workspaceSidePanelTypes';
+  import WorkspaceMailPanel from './WorkspaceMailPanel.svelte';
 
   let {
     activeSideTab,
+    projectId,
     skills,
     skillsLoading,
     skillsError,
     toolCatalog,
   }: {
     activeSideTab: SidePanelTab;
+    projectId: string | null;
     skills: SkillResponse[];
     skillsLoading: boolean;
     skillsError: string;
@@ -57,6 +60,8 @@
       </article>
     {/each}
   </div>
+{:else if activeSideTab === 'mail'}
+  <WorkspaceMailPanel {projectId} />
 {:else}
   <div class="side-list">
     <p class="empty">연결된 데이터소스 없음</p>
