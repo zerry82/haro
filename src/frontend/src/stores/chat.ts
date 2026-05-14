@@ -27,6 +27,7 @@ export interface DebugTraceEvent {
 export interface DebugTraceResponse {
   message_id: string;
   has_trace: boolean;
+  prompt_macros?: Record<string, any> | null;
   events: DebugTraceEvent[];
 }
 

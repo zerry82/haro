@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildDebugTraceExport,
+  debugMacroLabel,
   debugEventLabel,
   debugPayloadSections,
   formatDebugPayload,
@@ -23,6 +24,23 @@ describe('debugTraceUtils', () => {
     expect(sections[1].code).toBe(true);
   });
 
+  it('shows prompt macro references in llm request sections', () => {
+    const sections = debugPayloadSections('llm_request', {
+      model: 'gemini-3-flash-preview',
+      system_instruction: { $macro: 'system_prompt.full' },
+      system_prompt_hash: 'sha256:abc',
+      system_prompt_chars: 123,
+      prompt_cache: { strategy: 'gemini_explicit_stable_system', cache_state: 'reused' },
+      contents: [],
+      config: { cached_content: 'cachedContents/1' },
+    });
+
+    expect(debugMacroLabel({ $macro: 'system_prompt.full' })).toBe('$macro: system_prompt.full');
+    expect(sections.find((section) => section.title === 'System Instruction')?.content)
+      .toBe('$macro: system_prompt.full');
+    expect(sections.find((section) => section.title === 'Prompt Cache')?.code).toBe(true);
+  });
+
   it('maps labels and export payloads', () => {
     expect(debugEventLabel('router_result')).toBe('라우터 판단');
     expect(debugEventLabel('custom')).toBe('custom');
@@ -32,7 +50,14 @@ describe('debugTraceUtils', () => {
       'project-1',
       'chat-1',
       { id: 'm1', role: 'user', content: 'hello' },
-      { events: [] },
+      {
+        prompt_macros: {
+          'system_prompt.full': { text: 'full prompt' },
+          'system_prompt.cached_system': { text: 'cached prompt' },
+          'system_prompt.runtime_context': { text: 'runtime context' },
+        },
+        events: [],
+      },
       '2026-05-07T00:00:00.000Z',
     )).toEqual({
       exported_at: '2026-05-07T00:00:00.000Z',
@@ -45,7 +70,14 @@ describe('debugTraceUtils', () => {
         metadata: null,
         created_at: null,
       },
-      trace: { events: [] },
+      trace: {
+        prompt_macros: {
+          'system_prompt.full': { text: 'full prompt' },
+          'system_prompt.cached_system': { text: 'cached prompt' },
+          'system_prompt.runtime_context': { text: 'runtime context' },
+        },
+        events: [],
+      },
     });
   });
 });

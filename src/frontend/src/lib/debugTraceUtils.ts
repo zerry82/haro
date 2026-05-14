@@ -56,6 +56,15 @@ export function stringifyDebugValue(value: unknown) {
   }
 }
 
+export function debugMacroLabel(value: unknown) {
+  const record = debugPayloadRecord(value);
+  const macroId = record.$macro;
+  if (typeof macroId === 'string') {
+    return `$macro: ${macroId}`;
+  }
+  return stringifyDebugValue(value);
+}
+
 export function debugPayloadRecord(payload: unknown): Record<string, unknown> {
   if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
     return payload as Record<string, unknown>;
@@ -84,7 +93,28 @@ export function debugPayloadSections(eventType: string, payload: unknown): Debug
 
   if (eventType === 'llm_request') {
     sections.push({ title: '모델', content: stringifyDebugValue(record.model) || '-' });
-    sections.push({ title: 'System Instruction', content: stringifyDebugValue(record.system_instruction) });
+    sections.push({ title: 'System Instruction', content: debugMacroLabel(record.system_instruction) });
+    if (record.system_prompt_hash) {
+      sections.push({ title: 'System Prompt Hash', content: stringifyDebugValue(record.system_prompt_hash) });
+    }
+    if (record.system_prompt_chars) {
+      sections.push({ title: 'System Prompt Chars', content: stringifyDebugValue(record.system_prompt_chars) });
+    }
+    if (record.cached_system_hash) {
+      sections.push({ title: 'Cached System Hash', content: stringifyDebugValue(record.cached_system_hash) });
+    }
+    if (record.cached_system_chars) {
+      sections.push({ title: 'Cached System Chars', content: stringifyDebugValue(record.cached_system_chars) });
+    }
+    if (record.runtime_context_hash) {
+      sections.push({ title: 'Runtime Context Hash', content: stringifyDebugValue(record.runtime_context_hash) });
+    }
+    if (record.runtime_context_chars) {
+      sections.push({ title: 'Runtime Context Chars', content: stringifyDebugValue(record.runtime_context_chars) });
+    }
+    if (record.prompt_cache) {
+      sections.push({ title: 'Prompt Cache', content: stringifyDebugValue(record.prompt_cache), code: true });
+    }
     addContentSections(sections, record.contents);
     sections.push({ title: 'Generation Config', content: stringifyDebugValue(record.config), code: true });
     return sections;
@@ -93,6 +123,9 @@ export function debugPayloadSections(eventType: string, payload: unknown): Debug
   if (eventType === 'llm_response') {
     sections.push({ title: '응답 원문', content: stringifyDebugValue(record.text) });
     sections.push({ title: 'Tool Call 포함 여부', content: record.has_tool_call ? '예' : '아니오' });
+    if (record.usage_metadata) {
+      sections.push({ title: 'Usage Metadata', content: stringifyDebugValue(record.usage_metadata), code: true });
+    }
     if (record.parsed_tool_call) {
       sections.push({ title: '파싱된 Tool Call', content: stringifyDebugValue(record.parsed_tool_call), code: true });
     }

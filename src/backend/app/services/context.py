@@ -12,6 +12,7 @@ from app.models.chat_session import ChatSession
 from app.services.chat_workspace import load_chat_context
 from app.services.chat_workspace_paths import user_result_root_path
 from app.services.harness import ensure_harness_structure_synced
+from app.services.prompt_bundle import PromptSection
 from app.services.workspace_file_db import read_workspace_briefing_counts
 from app.services.workspace_index import LEGACY_META_DIR, META_DIR
 from app.services.workspace_instruction_files import load_user_instruction_context
@@ -59,21 +60,54 @@ SYSTEM_PROMPT = """당신은 haro AI 에이전트입니다.
 """
 
 
-async def build_context(db: AsyncSession, project: Project, chat_session: ChatSession | None = None) -> list[str]:
-    """LLM에 전달할 시스템 컨텍스트를 하나의 문자열 리스트로 조립."""
+async def build_context_sections(
+    db: AsyncSession,
+    project: Project,
+    chat_session: ChatSession | None = None,
+) -> list[PromptSection]:
+    """Return prompt sections ordered for Gemini explicit cache reuse."""
     ensure_harness_structure_synced(project.workspace_path, project.user_id, initialize_git=False)
-    parts = [SYSTEM_PROMPT]
+    sections = [
+        PromptSection(
+            id="system_prompt.static_core",
+            kind="static_core",
+            text=SYSTEM_PROMPT,
+            cache_scope="static",
+        )
+    ]
     instruction_context = load_user_instruction_context(project.workspace_path, project.user_id)
     if instruction_context:
-        parts.append(instruction_context)
-    parts.append(build_harness_briefing(project, chat_session))
+        sections.append(
+            PromptSection(
+                id="system_prompt.project_policy",
+                kind="project_policy",
+                text=instruction_context,
+                cache_scope="project",
+            )
+        )
+
+    runtime_parts = [build_harness_briefing(project, chat_session)]
 
     # 대화 요약
     summary = _load_latest_summary(project.workspace_path)
     if summary:
-        parts.append(f"\n[이전 대화 요약]\n{_truncate_text(summary, PREVIOUS_SUMMARY_MAX_CHARS)}")
+        runtime_parts.append(f"\n[이전 대화 요약]\n{_truncate_text(summary, PREVIOUS_SUMMARY_MAX_CHARS)}")
 
-    return parts
+    sections.append(
+        PromptSection(
+            id="system_prompt.runtime_context",
+            kind="runtime_context",
+            text="\n".join(runtime_parts),
+            cache_scope="runtime",
+        )
+    )
+
+    return sections
+
+
+async def build_context(db: AsyncSession, project: Project, chat_session: ChatSession | None = None) -> list[str]:
+    """LLM에 전달할 시스템 컨텍스트를 하나의 문자열 리스트로 조립."""
+    return [section.text for section in await build_context_sections(db, project, chat_session)]
 
 
 def build_harness_briefing(project: Project, chat_session: ChatSession | None = None) -> str:

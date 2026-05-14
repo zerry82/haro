@@ -45,8 +45,8 @@ Docker 컨테이너 기반 코드 실행 서버의 독립형 FastAPI 구현이�
       -> 사용자 메시지 저장
       -> intent gate 판단
       -> execution policy 결정
-      -> Working Context와 시스템 컨텍스트 조립
-      -> Gemini 스트리밍 호출
+      -> stable system prompt와 runtime context 조립
+      -> Gemini explicit prompt cache 준비 후 스트리밍 호출
       -> tool_call JSON 블록 파싱
       -> TurnToolState guard 확인
       -> agent_tools 또는 container_manager 실행
@@ -146,6 +146,8 @@ DB는 `sqlite+aiosqlite`를 사용하며, SQLite `WAL`과 foreign key pragma를 
 - `src/backend/app/services/file_discovery_context.py`
 - `src/backend/app/services/agent_response.py`
 - `src/backend/app/services/turn_tool_state.py`
+- `src/backend/app/services/prompt_bundle.py`
+- `src/backend/app/services/prompt_cache.py`
 - `src/backend/app/services/tool_registry.py`
 - `src/backend/app/services/agent_tools.py`
 
@@ -157,12 +159,14 @@ DB는 `sqlite+aiosqlite`를 사용하며, SQLite `WAL`과 foreign key pragma를 
 4. 작업이면 `route_intent` 호환층이 `ExecutionPolicyResolver`를 호출해 `read_only`, `file_work`, `workspace_admin`, `research`, `code_or_preview`, `plan_mode` 같은 broad profile을 고른다.
 5. source 파일이 반드시 필요하지만 File Discovery 후보가 없으면 `needs_clarification` 상태로 구체적인 경로/재업로드 질문을 한다.
 6. 실행 가능하면 `context.py`가 시스템 프롬프트와 하네스 브리핑을 만들고, `agent_response.py`가 Working Context를 compact JSON으로 덧붙인다.
-7. Gemini `gemini-3-flash-preview`를 스트리밍 호출한다.
-8. 모델 응답의 마지막 fenced block에서 `tool_call` JSON을 파싱한다.
-9. 선택된 profile의 broad tool set 밖의 도구를 호출하면 차단하고 intent를 `blocked`로 종료한다.
-10. `TurnToolState`가 중복 검색과 읽지 않은 파일에 대한 수정/삭제/이동을 synthetic result로 막아 모델이 먼저 확인하도록 유도한다.
-11. 도구 실행 결과를 다시 모델 입력에 붙이고 최대 15라운드까지 반복한다.
-12. 완료 시 intent를 `completed`로 기록하고 SSE `done`을 보낸다.
+7. `prompt_bundle.py`가 stable system prompt와 runtime context를 분리한다. stable 영역에는 기본 역할/프로젝트 지침/stable tool-call contract를 두고, selected tools/route/current context/plan instruction은 runtime 영역에 둔다.
+8. `prompt_cache.py`가 Gemini explicit cache를 준비한다. 300초 TTL 안에 같은 `cached_system_hash`가 있으면 `cached_content`를 재사용하고, 실패하면 full prompt를 `system_instruction`으로 보내는 fallback을 사용한다.
+9. Gemini `gemini-3-flash-preview`를 스트리밍 호출한다. explicit cache 성공 시 generate config에는 `cached_content`만 넣고, runtime context는 첫 synthetic user message로 전달한다.
+10. 모델 응답의 마지막 fenced block에서 `tool_call` JSON을 파싱한다.
+11. 선택된 profile의 broad tool set 밖의 도구를 호출하면 차단하고 intent를 `blocked`로 종료한다.
+12. `TurnToolState`가 중복 검색과 읽지 않은 파일에 대한 수정/삭제/이동을 synthetic result로 막아 모델이 먼저 확인하도록 유도한다.
+13. 도구 실행 결과를 다시 모델 입력에 붙이고 최대 15라운드까지 반복한다.
+14. 완료 시 intent를 `completed`로 기록하고 SSE `done`을 보낸다.
 
 메시지 전송 요청은 선택적으로 `open_file_context`를 포함할 수 있다. 프론트엔드는 현재 선택된 파일의 경로, 언어, 활성 뷰어 탭, dirty 상태, 선택 영역 preview만 전달하며 저장되지 않은 전체 에디터 본문은 보내지 않는다. 백엔드는 이 값을 latest artifact, 최근 대화의 원문 후보, linked files, chat workspace 파일, bounded workspace search 결과와 함께 `File Discovery Context`로 후보화한 뒤 Working Context에 넣는다. active file과 latest artifact가 다르면 executor는 active file을 현재 화면 맥락으로 우선한다.
 
@@ -388,4 +392,4 @@ npm run build
 - Excel 업로드는 `.xlsx`, `.xlsm`, `.xls` 파일을 CSV 파일들로 변환해 저장한다.
 - 메시지 전송 API는 일반 JSON 응답이 아니라 `text/event-stream` 응답이다.
 - 에이전트 도구 호출은 한 응답에 하나의 `tool_call` fenced block만 허용하도록 프롬프트와 파서가 설계되어 있다.
-- 디버그 모드가 켜져야 `AgentDebugTrace`에 상세 LLM 입력/응답/도구 결과가 저장된다.
+- 디버그 모드가 켜져야 `AgentDebugTrace`에 상세 LLM 입력/응답/도구 결과가 저장된다. 대형 prompt는 `debug_macros` 이벤트로 1회 저장하고, `/debug-trace` 응답의 `prompt_macros` 최상단 필드에 `system_prompt.full`, `system_prompt.cached_system`, `system_prompt.runtime_context`를 노출한다. 각 `llm_request` 이벤트에는 macro reference, cache state, hash/section 요약만 저장해 반복 payload를 줄인다.

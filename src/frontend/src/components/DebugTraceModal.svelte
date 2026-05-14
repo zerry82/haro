@@ -33,6 +33,25 @@
     debugPayloadSections: (eventType: string, payload: unknown) => DebugPayloadSection[];
     highlightDebugPayload: (payload: unknown) => string;
   } = $props();
+
+  function getPromptMacros(trace: DebugTraceResponse | null): { id: string; macro: Record<string, any> }[] {
+    const macros = trace?.prompt_macros;
+    if (!macros || typeof macros !== 'object') return [];
+    return Object.entries(macros)
+      .filter((entry): entry is [string, Record<string, any>] => Boolean(entry[1]) && typeof entry[1] === 'object')
+      .map(([id, macro]) => ({ id, macro }));
+  }
+
+  function macroText(macro: Record<string, any> | null) {
+    return typeof macro?.text === 'string' ? macro.text : '';
+  }
+
+  function macroMeta(macro: Record<string, any> | null) {
+    const parts = [];
+    if (macro?.chars) parts.push(`${macro.chars} chars`);
+    if (macro?.sha256) parts.push(String(macro.sha256));
+    return parts.join(' · ');
+  }
 </script>
 
 <div class="modal-backdrop" role="presentation" onclick={onClose}>
@@ -82,6 +101,32 @@
       {:else if !debugTrace?.has_trace}
         <div class="empty">이 메시지는 디버그 기록이 없습니다.</div>
       {:else}
+        {#each getPromptMacros(debugTrace) as promptMacro}
+          <details class="debug-event prompt-macro" open>
+            <summary>
+              <span>{promptMacro.id}</span>
+              <small>{macroMeta(promptMacro.macro)}</small>
+            </summary>
+            <div class="debug-event-toolbar">
+              <span>prompt macro</span>
+              <button type="button" class="link-btn" onclick={() => onCopyDebugPayload(promptMacro.macro)}>복사</button>
+            </div>
+            {#if debugPayloadView === 'expanded'}
+              <div class="debug-expanded-view">
+                <section class="debug-md-section">
+                  <h4>Macro Metadata</h4>
+                  <pre class="debug-md-code">{JSON.stringify({ id: promptMacro.macro?.id, sha256: promptMacro.macro?.sha256, chars: promptMacro.macro?.chars, sections: promptMacro.macro?.sections }, null, 2)}</pre>
+                </section>
+                <section class="debug-md-section">
+                  <h4>Prompt Text</h4>
+                  <pre class="debug-md-code prompt-text">{macroText(promptMacro.macro) || '-'}</pre>
+                </section>
+              </div>
+            {:else}
+              <pre class="debug-payload">{@html highlightDebugPayload(promptMacro.macro)}</pre>
+            {/if}
+          </details>
+        {/each}
         {#each debugTrace.events as event}
           <details class="debug-event" open={event.round_index === 0}>
             <summary>
@@ -139,6 +184,7 @@
   .debug-copy-message { color: var(--color-accent-strong); font-size: 0.72rem; white-space: nowrap; }
   .debug-modal-body { flex: 1; min-height: 0; overflow: auto; padding: 0.85rem; background: var(--color-canvas); }
   .debug-event { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); margin-bottom: 0.65rem; overflow: hidden; }
+  .debug-event.prompt-macro { border-color: var(--color-accent-soft); }
   .debug-event summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.65rem 0.8rem; cursor: pointer; font-weight: 700; font-size: 0.82rem; }
   .debug-event summary small { color: var(--color-text-muted); font-weight: 500; }
   .debug-event-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.4rem 0.8rem; border-top: 1px solid var(--color-border-soft); color: var(--color-text-muted); font-size: 0.7rem; }
@@ -147,6 +193,7 @@
   .debug-md-section h4 { margin: 0; padding: 0.45rem 0.7rem; border-bottom: 1px solid var(--color-border-soft); background: var(--color-sidebar); color: var(--color-text); font-size: 0.75rem; }
   .debug-md-text { padding: 0.7rem 0.8rem; white-space: pre-wrap; word-break: break-word; color: var(--color-text); font-size: 0.78rem; line-height: 1.55; }
   .debug-md-code { margin: 0; padding: 0.7rem 0.8rem; max-height: 320px; overflow: auto; background: var(--color-sidebar); color: var(--color-text); font-family: var(--font-mono); font-size: 0.72rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .debug-md-code.prompt-text { max-height: 440px; }
   .debug-payload { margin: 0; max-height: 420px; overflow: auto; border-top: 1px solid var(--color-border-soft); background: #0f172a; color: #dbeafe; padding: 0.85rem; font-family: var(--font-mono); font-size: 0.72rem; line-height: 1.55; tab-size: 2; white-space: pre-wrap; word-break: break-word; }
   .debug-payload :global(.debug-json-key) { color: #93c5fd; font-weight: 700; }
   .debug-payload :global(.debug-json-string) { color: #86efac; }

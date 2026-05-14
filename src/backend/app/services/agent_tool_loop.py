@@ -6,6 +6,7 @@ import threading
 import time
 import uuid
 from collections.abc import AsyncIterator
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,7 +26,7 @@ from app.services.agent_response import (
 )
 from app.services.agent_tools import execute_tool
 from app.services.chat_workspace import append_conversation_message
-from app.services.context import build_context, get_recent_messages
+from app.services.context import build_context_sections, get_recent_messages
 from app.services.intent_turns import RouterDecision, record_intent_event, set_intent_status
 from app.services.llm import get_client
 from app.services.plan_mode import (
@@ -38,13 +39,62 @@ from app.services.plan_mode import (
     plan_mode_blocked_message,
     record_plan_event,
 )
+from app.services.prompt_cache import ensure_gemini_prompt_cache
+from app.services.prompt_bundle import PromptBundle, PromptSection, generation_config_debug_payload
 from app.services.sse import SSEEmitter
-from app.services.tool_registry import build_tool_descriptions
+from app.services.tool_registry import build_dynamic_tool_context, build_stable_tool_contract
 from app.services.turn_tool_state import TurnToolState
 
 MAX_TOOL_ROUNDS = 15
 MAX_TOOL_PARSE_REPAIR_ATTEMPTS = 1
 MODEL_NAME = "gemini-3-flash-preview"
+
+
+def _build_prompt_bundle(
+    context_sections: list[PromptSection],
+    selected_tools: list[str],
+    route: RouterDecision,
+    *,
+    plan_session: PlanSession | None = None,
+    plan_feedback: str | None = None,
+    execution_plan_content: str | None = None,
+) -> PromptBundle:
+    sections = list(context_sections)
+    sections.append(
+        PromptSection(
+            id="system_prompt.stable_tool_contract",
+            kind="stable_tool_contract",
+            text=build_stable_tool_contract(),
+            cache_scope="stable",
+        )
+    )
+    sections.append(
+        PromptSection(
+            id="system_prompt.tool_and_route_context",
+            kind="runtime_context",
+            text=build_dynamic_tool_context(selected_tools) + routing_context_instruction(route),
+            cache_scope="runtime",
+        )
+    )
+    if plan_session:
+        sections.append(
+            PromptSection(
+                id="system_prompt.plan_mode_context",
+                kind="runtime_context",
+                text=build_plan_mode_instruction(plan_session, feedback=plan_feedback),
+                cache_scope="runtime",
+            )
+        )
+    if execution_plan_content:
+        sections.append(
+            PromptSection(
+                id="system_prompt.execution_plan_context",
+                kind="runtime_context",
+                text=build_execution_instruction(execution_plan_content),
+                cache_scope="runtime",
+            )
+        )
+    return PromptBundle.from_sections(sections)
 
 
 async def run_tool_call_loop(
@@ -63,22 +113,39 @@ async def run_tool_call_loop(
     plan_feedback: str | None = None,
     execution_plan_content: str | None = None,
 ) -> str:
-    system_parts = await build_context(db, project, chat_session)
-    system_instruction = "\n".join(system_parts) + "\n" + build_tool_descriptions(selected_tools) + routing_context_instruction(route)
-    if plan_session:
-        system_instruction += "\n" + build_plan_mode_instruction(plan_session, feedback=plan_feedback)
-    if execution_plan_content:
-        system_instruction += "\n" + build_execution_instruction(execution_plan_content)
+    context_sections = await build_context_sections(db, project, chat_session)
+    prompt_bundle = _build_prompt_bundle(
+        context_sections,
+        selected_tools,
+        route,
+        plan_session=plan_session,
+        plan_feedback=plan_feedback,
+        execution_plan_content=execution_plan_content,
+    )
+    cache_result = await ensure_gemini_prompt_cache(prompt_bundle, MODEL_NAME)
     recent = await get_recent_messages(db, chat_session.id)
-    contents = build_model_contents(recent, user_content)
+    base_contents = build_model_contents(recent, user_content)
+    contents = prompt_bundle.model_contents(base_contents, include_runtime_context=cache_result.use_cached_content)
 
-    generation_config = {"system_instruction": system_instruction, "temperature": 0.7}
+    prompt_cache_debug = cache_result.debug_summary()
+    generation_config = cache_result.generation_config(prompt_bundle.text, temperature=0.7)
     parse_repair_attempts = 0
     expecting_parse_repair = False
     tool_state = TurnToolState()
 
+    if debug_enabled and turn_message_id:
+        await record_debug_trace(
+            db,
+            project,
+            chat_session,
+            turn_message_id,
+            -1,
+            "debug_macros",
+            prompt_bundle.macro_debug_event_payload(prompt_cache_debug),
+        )
+
     for round_num in range(MAX_TOOL_ROUNDS):
-        full_text, llm_ms = await _stream_llm_round(
+        full_text, llm_ms, usage_metadata = await _stream_llm_round(
             db,
             project,
             chat_session,
@@ -88,11 +155,23 @@ async def run_tool_call_loop(
             emitter,
             round_num,
             debug_enabled=debug_enabled,
+            prompt_bundle=prompt_bundle,
+            prompt_cache=prompt_cache_debug,
         )
 
         parse_result = parse_tool_call_result(full_text)
         tool_call = parse_result.tool_call
         if debug_enabled and turn_message_id:
+            response_payload = {
+                "text": full_text,
+                "has_tool_call": tool_call is not None,
+                "has_tool_call_block": parse_result.has_block,
+                "tool_call_parse_ok": tool_call is not None,
+                "tool_call_parse_error": parse_result.error,
+                "parsed_tool_call": tool_call,
+            }
+            if usage_metadata:
+                response_payload["usage_metadata"] = usage_metadata
             await record_debug_trace(
                 db,
                 project,
@@ -100,14 +179,7 @@ async def run_tool_call_loop(
                 turn_message_id,
                 round_num,
                 "llm_response",
-                {
-                    "text": full_text,
-                    "has_tool_call": tool_call is not None,
-                    "has_tool_call_block": parse_result.has_block,
-                    "tool_call_parse_ok": tool_call is not None,
-                    "tool_call_parse_error": parse_result.error,
-                    "parsed_tool_call": tool_call,
-                },
+                response_payload,
                 duration_ms=llm_ms,
             )
 
@@ -295,17 +367,74 @@ def build_model_contents(recent: list[dict], user_content: str) -> list[dict]:
     return contents
 
 
+def _metadata_value(source: Any, snake_key: str, camel_key: str) -> Any:
+    if isinstance(source, dict):
+        return source.get(snake_key, source.get(camel_key))
+    if hasattr(source, snake_key):
+        return getattr(source, snake_key)
+    if hasattr(source, camel_key):
+        return getattr(source, camel_key)
+    return None
+
+
+def _normalize_usage_metadata(metadata: Any) -> dict[str, Any] | None:
+    if metadata is None:
+        return None
+    if isinstance(metadata, dict):
+        source = metadata
+    elif hasattr(metadata, "model_dump"):
+        source = metadata.model_dump()
+    elif hasattr(metadata, "to_dict"):
+        source = metadata.to_dict()
+    else:
+        source = metadata
+
+    fields = [
+        ("prompt_token_count", "promptTokenCount"),
+        ("cached_content_token_count", "cachedContentTokenCount"),
+        ("candidates_token_count", "candidatesTokenCount"),
+        ("total_token_count", "totalTokenCount"),
+    ]
+    normalized: dict[str, Any] = {}
+    for snake_key, camel_key in fields:
+        value = _metadata_value(source, snake_key, camel_key)
+        if value is not None:
+            normalized[snake_key] = value
+
+    return normalized or None
+
+
+def _extract_usage_metadata(chunk: Any) -> dict[str, Any] | None:
+    return _normalize_usage_metadata(
+        getattr(chunk, "usage_metadata", None) or getattr(chunk, "usageMetadata", None)
+    )
+
+
+def _usage_metadata_debug(metadata: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not metadata:
+        return None
+    debug = dict(metadata)
+    prompt_tokens = debug.get("prompt_token_count") or 0
+    if prompt_tokens and "cached_content_token_count" not in debug:
+        debug["cached_content_token_count"] = 0
+    cached_tokens = debug.get("cached_content_token_count") or 0
+    if prompt_tokens:
+        debug["cache_hit_ratio"] = cached_tokens / prompt_tokens
+    return debug
+
+
 async def stream_llm_chunks_nonblocking(
     contents: list[dict],
-    generation_config: dict,
+    generation_config: Any,
     *,
     model_name: str = MODEL_NAME,
+    usage_metadata_collector: list[dict[str, Any]] | None = None,
 ) -> AsyncIterator[str]:
-    queue: asyncio.Queue[tuple[str, str | Exception | None]] = asyncio.Queue()
+    queue: asyncio.Queue[tuple[str, Any]] = asyncio.Queue()
     loop = asyncio.get_running_loop()
     stopped = threading.Event()
 
-    def put_item(item: tuple[str, str | Exception | None]) -> None:
+    def put_item(item: tuple[str, Any]) -> None:
         if stopped.is_set():
             return
         try:
@@ -323,6 +452,9 @@ async def stream_llm_chunks_nonblocking(
             for chunk in stream:
                 if stopped.is_set():
                     break
+                usage_metadata = _extract_usage_metadata(chunk)
+                if usage_metadata:
+                    put_item(("metadata", usage_metadata))
                 chunk_text = getattr(chunk, "text", None)
                 if chunk_text:
                     put_item(("chunk", chunk_text))
@@ -337,6 +469,9 @@ async def stream_llm_chunks_nonblocking(
             kind, value = await queue.get()
             if kind == "chunk":
                 yield str(value)
+            elif kind == "metadata":
+                if usage_metadata_collector is not None:
+                    usage_metadata_collector[:] = [value]
             elif kind == "error":
                 if not isinstance(value, Exception):
                     value = RuntimeError("LLM stream worker failed")
@@ -355,12 +490,14 @@ async def _stream_llm_round(
     chat_session: ChatSession,
     turn_message_id: str | None,
     contents: list[dict],
-    generation_config: dict,
+    generation_config: Any,
     emitter: SSEEmitter,
     round_num: int,
     *,
     debug_enabled: bool,
-) -> tuple[str, float]:
+    prompt_bundle: PromptBundle | None = None,
+    prompt_cache: dict[str, Any] | None = None,
+) -> tuple[str, float, dict[str, Any] | None]:
     full_text = ""
     msg_id = str(uuid.uuid4())
     started = False
@@ -369,6 +506,21 @@ async def _stream_llm_round(
     db.add(AgentLog(chat_session_id=chat_session.id, round_index=round_num, event_type="llm_request", content=llm_input[:2000]))
     await db.commit()
     if debug_enabled and turn_message_id:
+        if prompt_bundle:
+            debug_payload = prompt_bundle.request_debug_payload(
+                model_name=MODEL_NAME,
+                contents=contents,
+                generation_config=generation_config,
+                prompt_cache=prompt_cache,
+            )
+        else:
+            debug_config = generation_config_debug_payload(generation_config)
+            debug_payload = {
+                "model": MODEL_NAME,
+                "system_instruction": debug_config.get("system_instruction"),
+                "contents": contents,
+                "config": debug_config,
+            }
         await record_debug_trace(
             db,
             project,
@@ -376,16 +528,16 @@ async def _stream_llm_round(
             turn_message_id,
             round_num,
             "llm_request",
-            {
-                "model": MODEL_NAME,
-                "system_instruction": generation_config["system_instruction"],
-                "contents": contents,
-                "config": generation_config,
-            },
+            debug_payload,
         )
 
     t0 = time.time()
-    async for chunk_text in stream_llm_chunks_nonblocking(contents, generation_config):
+    usage_metadata_items: list[dict[str, Any]] = []
+    async for chunk_text in stream_llm_chunks_nonblocking(
+        contents,
+        generation_config,
+        usage_metadata_collector=usage_metadata_items,
+    ):
         full_text += chunk_text
 
         if "```tool_call" in full_text:
@@ -411,7 +563,8 @@ async def _stream_llm_round(
     llm_ms = (time.time() - t0) * 1000
     db.add(AgentLog(chat_session_id=chat_session.id, round_index=round_num, event_type="llm_response", content=full_text[:4000], duration_ms=llm_ms))
     await db.commit()
-    return full_text, llm_ms
+    usage_metadata = _usage_metadata_debug(usage_metadata_items[0] if usage_metadata_items else None)
+    return full_text, llm_ms, usage_metadata
 
 
 async def _execute_tool_call(

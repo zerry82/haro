@@ -72,7 +72,22 @@ def _message_metadata(message: Message) -> dict | None:
 class DebugTraceResponse(BaseModel):
     message_id: str
     has_trace: bool
+    prompt_macros: dict[str, Any] | None = None
     events: list[DebugTraceEventResponse]
+
+
+def _decode_debug_payload(raw_payload: str) -> Any:
+    try:
+        return json.loads(raw_payload)
+    except Exception:
+        return raw_payload
+
+
+def _prompt_macros_from_payload(payload: Any) -> dict[str, Any] | None:
+    if not isinstance(payload, dict):
+        return None
+    prompt_macros = payload.get("prompt_macros")
+    return prompt_macros if isinstance(prompt_macros, dict) else None
 
 
 async def _get_project_and_chat(
@@ -145,6 +160,7 @@ async def get_message_debug_trace(
         raise HTTPException(status_code=404, detail="Message not found")
 
     events: list[DebugTraceEventResponse] = []
+    prompt_macros: dict[str, Any] | None = None
     intent_turns = await find_intent_turns_for_message(db, chat.id, message_id)
     if intent_turns:
         result = await db.execute(
@@ -154,10 +170,7 @@ async def get_message_debug_trace(
         )
         for index, event in enumerate(result.scalars().all()):
             raw_payload = event.debug_payload_json or event.payload_json
-            try:
-                payload = json.loads(raw_payload)
-            except Exception:
-                payload = raw_payload
+            payload = _decode_debug_payload(raw_payload)
             events.append(DebugTraceEventResponse(
                 id=event.id,
                 round_index=-100 + index,
@@ -173,10 +186,7 @@ async def get_message_debug_trace(
         .order_by(PlanEvent.created_at.asc())
     )
     for event in result.scalars().all():
-        try:
-            payload = json.loads(event.payload_json)
-        except Exception:
-            payload = event.payload_json
+        payload = _decode_debug_payload(event.payload_json)
         events.append(DebugTraceEventResponse(
             id=event.id,
             round_index=-50 + len(events),
@@ -197,10 +207,12 @@ async def get_message_debug_trace(
     )
     traces = result.scalars().all()
     for trace in traces:
-        try:
-            payload = json.loads(trace.payload_json)
-        except Exception:
-            payload = trace.payload_json
+        payload = _decode_debug_payload(trace.payload_json)
+        if trace.event_type == "debug_macros":
+            trace_prompt_macros = _prompt_macros_from_payload(payload)
+            if trace_prompt_macros:
+                prompt_macros = {**(prompt_macros or {}), **trace_prompt_macros}
+            continue
         events.append(DebugTraceEventResponse(
             id=trace.id,
             round_index=trace.round_index,
@@ -209,7 +221,12 @@ async def get_message_debug_trace(
             duration_ms=trace.duration_ms,
             created_at=trace.created_at,
         ))
-    return DebugTraceResponse(message_id=message_id, has_trace=bool(events), events=events)
+    return DebugTraceResponse(
+        message_id=message_id,
+        has_trace=bool(events or prompt_macros),
+        prompt_macros=prompt_macros,
+        events=events,
+    )
 
 
 @router.post("")

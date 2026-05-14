@@ -2,37 +2,41 @@
 
 ## 1. 개요
 
-현재 구현의 컨텍스트 조립은 단순하다.
-
 LLM에 전달되는 정보:
 
-1. 기본 시스템 프롬프트
-2. 프로젝트 워크스페이스 인덱스 (`.haro/workspace.md`)가 있으면 포함
-3. 최신 대화 요약 파일 (`.haro/summary_v*.md`)이 있으면 포함
-4. 현재 채팅 세션의 최근 메시지 20개
-5. 방금 입력한 사용자 메시지
-6. 도구 설명 문자열
+1. explicit cache 대상인 stable system prompt
+2. 현재 turn마다 바뀌는 runtime context
+3. 현재 채팅 세션의 최근 메시지 20개
+4. 방금 입력한 사용자 메시지
+5. 도구 실행 결과 메시지
 
 구현 위치:
 
 - `backend/app/services/context.py`
+- `backend/app/services/prompt_bundle.py`
+- `backend/app/services/prompt_cache.py`
 - `backend/app/services/workspace_index.py`
-- `backend/app/services/agent.py`
+- `backend/app/services/agent_tool_loop.py`
+- `backend/app/services/tool_registry.py`
 
 ## 2. 시스템 프롬프트
 
-현재 시스템 프롬프트는 단일 에이전트 역할을 정의한다.
+시스템 프롬프트는 `PromptBundle`로 stable 영역과 runtime 영역을 나눈다.
 
-핵심 규칙:
+Stable 영역:
 
-- 사용자 요청을 분석한다.
-- 필요한 작업을 계획한다.
-- 파일 작업은 제공된 도구로 수행한다.
-- 작업 전 `dir_list`로 파일 구조를 확인한다.
-- 한국어로 응답한다.
-- 한 번에 하나의 도구만 호출한다.
+- 기본 에이전트 역할과 공통 규칙
+- 프로젝트 지침 파일에서 온 정책
+- 도구 호출 문법, 한 번에 하나의 도구만 호출하는 규칙, workspace 안전 규칙 같은 stable tool-call contract
 
-여기에 `agent.py`의 `TOOL_DESCRIPTIONS`가 이어 붙는다.
+Runtime 영역:
+
+- 이번 turn에서 선택된 도구 목록과 도구별 상세 설명
+- route context
+- 하네스 브리핑, Working Context, 현재 채팅/파일 맥락
+- Plan Mode 또는 승인된 execution plan 지시
+
+Gemini explicit cache가 성공하면 stable 영역은 `cached_content`로 참조하고, runtime 영역은 첫 synthetic user message로 전달한다. cache 생성/조회 실패 시에는 stable + runtime 전체 prompt를 기존처럼 `system_instruction`에 넣어 fallback한다.
 
 ## 3. 최근 메시지
 
@@ -89,15 +93,15 @@ role 변환:
 현재 흐름:
 
 ```python
-system_parts = await build_context(db, project)
-system_instruction = "\n".join(system_parts) + "\n" + TOOL_DESCRIPTIONS
+context_sections = await build_context_sections(db, project, chat_session)
+prompt_bundle = _build_prompt_bundle(context_sections, selected_tools, route)
+cache_result = await ensure_gemini_prompt_cache(prompt_bundle, "gemini-3-flash-preview")
 
 recent = await get_recent_messages(db, chat_session.id)
+contents = build_model_contents(recent, user_content)
 
-contents = []
-for msg in recent:
-    contents.append({"role": msg["role"], "parts": [{"text": msg["text"]}]})
-contents.append({"role": "user", "parts": [{"text": user_content}]})
+if cache_result.use_cached_content:
+    contents = prompt_bundle.model_contents(contents, include_runtime_context=True)
 ```
 
 이후 Gemini 스트리밍 호출에 전달한다.
@@ -106,9 +110,11 @@ contents.append({"role": "user", "parts": [{"text": user_content}]})
 client.models.generate_content_stream(
     model="gemini-3-flash-preview",
     contents=contents,
-    config={"system_instruction": system_instruction, "temperature": 0.7},
+    config=cache_result.generation_config(prompt_bundle.text, temperature=0.7),
 )
 ```
+
+explicit cache 성공 시 config는 `{"cached_content": cache_name, "temperature": 0.7}` 형태이며, `system_instruction`을 다시 보내지 않는다. fallback 시 config는 `{"system_instruction": prompt_bundle.text, "temperature": 0.7}` 형태다.
 
 ## 7. 도구 결과 컨텍스트
 

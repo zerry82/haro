@@ -6,6 +6,7 @@ import pytest
 
 import app.services.agent_tool_loop as tool_loop
 from app.services.agent_tool_loop import build_model_contents
+from app.services.prompt_bundle import PromptBundle, PromptSection
 
 
 class FakeDb:
@@ -65,14 +66,24 @@ def _fake_client_with_stream(stream_factory):
 
 
 def _patch_loop_basics(monkeypatch, responses, executed, traces):
-    async def fake_build_context(*args, **kwargs):
-        return ["system"]
+    async def fake_build_context_sections(*args, **kwargs):
+        return [
+            PromptSection(
+                id="system_prompt.static_core",
+                kind="static_core",
+                text="system",
+                cache_scope="static",
+            )
+        ]
 
     async def fake_recent_messages(*args, **kwargs):
         return []
 
     async def fake_stream(*args, **kwargs):
-        return next(responses)
+        result = next(responses)
+        if len(result) == 2:
+            return result[0], result[1], None
+        return result
 
     async def fake_execute(
         db,
@@ -107,13 +118,36 @@ def _patch_loop_basics(monkeypatch, responses, executed, traces):
     ):
         traces.append((event_type, payload))
 
-    monkeypatch.setattr(tool_loop, "build_context", fake_build_context)
+    async def fake_ensure_gemini_prompt_cache(prompt_bundle, model_name):
+        return SimpleNamespace(
+            use_cached_content=False,
+            debug_summary=lambda: {
+                "strategy": "gemini_explicit_stable_system",
+                "cache_state": "failed_fallback",
+                "cache_key": "test-cache-key",
+                "cache_name": None,
+                "ttl_seconds": 300,
+                "cached_system_hash": prompt_bundle.cached_system_sha256,
+                "cached_system_chars": prompt_bundle.cached_system_chars,
+                "runtime_context_hash": prompt_bundle.runtime_context_sha256,
+                "runtime_context_chars": prompt_bundle.runtime_context_chars,
+                "full_hash": prompt_bundle.sha256,
+                "full_chars": prompt_bundle.chars,
+            },
+            generation_config=lambda fallback_system_instruction, temperature=0.7: {
+                "system_instruction": fallback_system_instruction,
+                "temperature": temperature,
+            },
+        )
+
+    monkeypatch.setattr(tool_loop, "build_context_sections", fake_build_context_sections)
     monkeypatch.setattr(tool_loop, "get_recent_messages", fake_recent_messages)
     monkeypatch.setattr(tool_loop, "_stream_llm_round", fake_stream)
     monkeypatch.setattr(tool_loop, "_execute_tool_call", fake_execute)
     monkeypatch.setattr(tool_loop, "record_debug_trace", fake_record_debug_trace)
     monkeypatch.setattr(tool_loop, "append_conversation_message", lambda *args, **kwargs: None)
     monkeypatch.setattr(tool_loop, "get_client", lambda: SimpleNamespace())
+    monkeypatch.setattr(tool_loop, "ensure_gemini_prompt_cache", fake_ensure_gemini_prompt_cache)
 
 
 def test_build_model_contents_reuses_recent_user_message_when_it_matches() -> None:
@@ -138,6 +172,35 @@ def test_build_model_contents_appends_current_user_message_when_recent_is_stale(
     contents = build_model_contents(recent, "새 요청")
 
     assert contents[-1] == {"role": "user", "parts": [{"text": "새 요청"}]}
+
+
+def test_prompt_bundle_keeps_static_prefix_stable_across_runtime_context() -> None:
+    static_section = PromptSection(
+        id="system_prompt.static_core",
+        kind="static_core",
+        text="stable system prompt",
+        cache_scope="static",
+    )
+    runtime_a = PromptSection(
+        id="system_prompt.runtime_context",
+        kind="runtime_context",
+        text="chat A",
+        cache_scope="runtime",
+    )
+    runtime_b = PromptSection(
+        id="system_prompt.runtime_context",
+        kind="runtime_context",
+        text="chat B",
+        cache_scope="runtime",
+    )
+
+    bundle_a = tool_loop._build_prompt_bundle([static_section, runtime_a], ["file_read"], _route())
+    bundle_b = tool_loop._build_prompt_bundle([static_section, runtime_b], ["web_search"], _route())
+
+    assert bundle_a.cached_system_sha256 == bundle_b.cached_system_sha256
+    assert bundle_a.cached_system_chars > len("stable system prompt")
+    assert bundle_a.runtime_context_sha256 != bundle_b.runtime_context_sha256
+    assert bundle_a.sha256 != bundle_b.sha256
 
 
 def test_stream_llm_chunks_nonblocking_keeps_event_loop_responsive(monkeypatch) -> None:
@@ -202,6 +265,184 @@ def test_stream_llm_chunks_nonblocking_propagates_worker_error(monkeypatch) -> N
         asyncio.run(collect())
 
 
+def test_stream_llm_chunks_nonblocking_collects_usage_metadata(monkeypatch) -> None:
+    def usage_stream():
+        yield SimpleNamespace(
+            text="A",
+            usage_metadata=SimpleNamespace(
+                prompt_token_count=100,
+                cached_content_token_count=90,
+                candidates_token_count=5,
+                total_token_count=105,
+            ),
+        )
+
+    monkeypatch.setattr(tool_loop, "get_client", lambda: _fake_client_with_stream(usage_stream))
+
+    async def collect():
+        chunks = []
+        usage_metadata = []
+        async for chunk in tool_loop.stream_llm_chunks_nonblocking(
+            [],
+            {},
+            usage_metadata_collector=usage_metadata,
+        ):
+            chunks.append(chunk)
+        return chunks, usage_metadata
+
+    chunks, usage_metadata = asyncio.run(collect())
+
+    assert chunks == ["A"]
+    assert usage_metadata == [{
+        "prompt_token_count": 100,
+        "cached_content_token_count": 90,
+        "candidates_token_count": 5,
+        "total_token_count": 105,
+    }]
+
+
+def test_stream_llm_round_records_prompt_macro_request_and_usage(monkeypatch) -> None:
+    traces = []
+
+    def usage_stream():
+        yield SimpleNamespace(
+            text="응답",
+            usage_metadata=SimpleNamespace(
+                prompt_token_count=200,
+                cached_content_token_count=150,
+                candidates_token_count=10,
+                total_token_count=210,
+            ),
+        )
+
+    async def fake_record_debug_trace(
+        db,
+        project,
+        chat_session,
+        turn_message_id,
+        round_index,
+        event_type,
+        payload,
+        duration_ms=None,
+    ):
+        traces.append((event_type, payload))
+
+    prompt_bundle = PromptBundle.from_sections([
+        PromptSection(
+            id="system_prompt.static_core",
+            kind="static_core",
+            text="large stable prompt",
+            cache_scope="static",
+        )
+    ])
+    monkeypatch.setattr(tool_loop, "get_client", lambda: _fake_client_with_stream(usage_stream))
+    monkeypatch.setattr(tool_loop, "record_debug_trace", fake_record_debug_trace)
+
+    full_text, _duration_ms, usage_metadata = asyncio.run(tool_loop._stream_llm_round(
+        FakeDb(),
+        _project(),
+        _chat_session(),
+        "message-1",
+        [{"role": "user", "parts": [{"text": "hello"}]}],
+        {"system_instruction": prompt_bundle.text, "temperature": 0.7},
+        FakeEmitter(),
+        0,
+        debug_enabled=True,
+        prompt_bundle=prompt_bundle,
+    ))
+
+    request_payload = traces[0][1]
+    assert full_text == "응답"
+    assert request_payload["system_instruction"] == {"$macro": "system_prompt.full"}
+    assert request_payload["config"]["system_instruction"] == {"$macro": "system_prompt.full"}
+    assert "large stable prompt" not in str(request_payload)
+    assert usage_metadata == {
+        "prompt_token_count": 200,
+        "cached_content_token_count": 150,
+        "candidates_token_count": 10,
+        "total_token_count": 210,
+        "cache_hit_ratio": 0.75,
+    }
+
+
+def test_stream_llm_round_records_explicit_cache_request_without_system_instruction(monkeypatch) -> None:
+    traces = []
+
+    def usage_stream():
+        yield SimpleNamespace(text="응답")
+
+    async def fake_record_debug_trace(
+        db,
+        project,
+        chat_session,
+        turn_message_id,
+        round_index,
+        event_type,
+        payload,
+        duration_ms=None,
+    ):
+        traces.append((event_type, payload))
+
+    prompt_bundle = PromptBundle.from_sections([
+        PromptSection(
+            id="system_prompt.static_core",
+            kind="static_core",
+            text="large stable prompt",
+            cache_scope="static",
+        ),
+        PromptSection(
+            id="system_prompt.runtime_context",
+            kind="runtime_context",
+            text="selected tool: file_read",
+            cache_scope="runtime",
+        ),
+    ])
+    contents = prompt_bundle.model_contents(
+        [{"role": "user", "parts": [{"text": "hello"}]}],
+        include_runtime_context=True,
+    )
+    monkeypatch.setattr(tool_loop, "get_client", lambda: _fake_client_with_stream(usage_stream))
+    monkeypatch.setattr(tool_loop, "record_debug_trace", fake_record_debug_trace)
+
+    asyncio.run(tool_loop._stream_llm_round(
+        FakeDb(),
+        _project(),
+        _chat_session(),
+        "message-1",
+        contents,
+        {"cached_content": "cachedContents/1", "temperature": 0.7},
+        FakeEmitter(),
+        0,
+        debug_enabled=True,
+        prompt_bundle=prompt_bundle,
+        prompt_cache={
+            "strategy": "gemini_explicit_stable_system",
+            "cache_state": "reused",
+            "cache_name": "cachedContents/1",
+        },
+    ))
+
+    request_payload = traces[0][1]
+    assert "system_instruction" not in request_payload["config"]
+    assert request_payload["config"]["cached_content"] == "cachedContents/1"
+    assert request_payload["contents"][0]["parts"][0]["text"] == {"$macro": "system_prompt.runtime_context"}
+    assert "selected tool: file_read" not in str(request_payload)
+
+
+def test_usage_metadata_debug_defaults_missing_cached_tokens_to_zero() -> None:
+    assert tool_loop._usage_metadata_debug({
+        "prompt_token_count": 100,
+        "candidates_token_count": 5,
+        "total_token_count": 105,
+    }) == {
+        "prompt_token_count": 100,
+        "candidates_token_count": 5,
+        "total_token_count": 105,
+        "cached_content_token_count": 0,
+        "cache_hit_ratio": 0,
+    }
+
+
 def test_run_tool_call_loop_repairs_invalid_tool_call_once(monkeypatch) -> None:
     responses = iter([
         (_invalid_tool_call_text(), 1.0),
@@ -230,6 +471,36 @@ def test_run_tool_call_loop_repairs_invalid_tool_call_once(monkeypatch) -> None:
     assert executed == [{"tool": "file_read", "args": {"path": "내 폴더/결과/report.md"}}]
     assert not any(_invalid_tool_call_text() in getattr(obj, "content", "") for obj in db.added)
     assert any(event == "tool_call_parse_error" for event, _payload in traces)
+
+
+def test_run_tool_call_loop_records_debug_macros_once(monkeypatch) -> None:
+    responses = iter([
+        ("작업이 완료되었습니다.", 1.0),
+    ])
+    executed = []
+    traces = []
+    _patch_loop_basics(monkeypatch, responses, executed, traces)
+
+    status = asyncio.run(tool_loop.run_tool_call_loop(
+        FakeDb(),
+        _project(),
+        _chat_session(),
+        None,
+        "message-1",
+        "완료해줘",
+        _route(),
+        ["file_read"],
+        FakeEmitter(),
+        debug_enabled=True,
+    ))
+
+    macro_events = [payload for event, payload in traces if event == "debug_macros"]
+    assert status == "completed"
+    assert len(macro_events) == 1
+    assert "system_prompt.full" in macro_events[0]["prompt_macros"]
+    assert "system_prompt.cached_system" in macro_events[0]["prompt_macros"]
+    assert "system_prompt.runtime_context" in macro_events[0]["prompt_macros"]
+    assert macro_events[0]["prompt_cache"]["strategy"] == "gemini_explicit_stable_system"
 
 
 def test_run_tool_call_loop_executes_web_search_tool_call(monkeypatch) -> None:
