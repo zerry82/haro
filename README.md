@@ -10,10 +10,19 @@ Haro is an open-source AI workspace for project-based work. It combines chat,
 files, code execution, previews, and workspace memory into one local-first
 product surface.
 
-The core idea is simple: every project gets its own physical file workspace.
-An AI agent can answer questions, create files, edit documents, search the
-workspace, run code in a Docker sandbox, and stream its work back to the UI in
-real time.
+Haro's product vision is more specific than a generic AI workspace: Haro is an
+active sandbox AI agent for marketers.
+
+It is designed for the people who live between campaign strategy, ad operations,
+creative production, reporting, and client communication. A marketer should be
+able to bring a campaign brief, Meta/Google ad data, reference files, audience
+notes, creative requirements, and reporting goals into one project, then ask the
+agent to actively work inside that project.
+
+The ambition is for Haro to become the marketer's always-on execution room:
+one place where the AI can inspect campaign context, organize files, draft
+reports, prepare banners, generate video-production briefs, assemble landing or
+dashboard previews, and keep the campaign's working memory intact.
 
 Haro is currently a developer preview. The architecture is production-minded,
 but the project is still moving quickly and should be treated as an early
@@ -21,8 +30,46 @@ open-source codebase.
 
 ## Why Haro
 
-Most AI chat tools are optimized around messages. Haro is optimized around
-workspaces.
+Modern marketers do not need another passive chatbot. They need an agent that
+can sit inside the messy campaign workspace and help move work forward.
+
+Haro is being built around that idea:
+
+- Campaign work should have a durable workspace, not disappear into chat history.
+- Marketing context should include files, briefs, ad-platform data, drafts,
+  reports, and decisions.
+- The agent should be able to create and revise real artifacts, not just suggest
+  what a human should do next.
+- Marketers should be able to experiment in a sandbox before anything reaches a
+  client, ad account, or production channel.
+- Creative and performance work should live together: strategy, Meta/Google ad
+  operations, banners, video concepts, reporting, and follow-up.
+
+## Marketing Workflows Haro Wants To Own
+
+Haro is aimed at the daily work loop of performance marketers, agencies, growth
+teams, and operators who manage campaigns across channels.
+
+- **Meta and Google ad operations**: organize campaign files, compare report
+  inputs, prepare analysis notes, and turn messy performance context into a
+  concrete next action.
+- **Campaign reporting**: transform raw files, search prior context, create
+  markdown/HTML reports, and prepare previewable dashboards.
+- **Banner production**: turn campaign briefs and creative requirements into
+  structured banner concepts, copy variants, asset checklists, and production
+  briefs.
+- **Video production planning**: draft short-form video concepts, shot lists,
+  scripts, storyboard notes, review checklists, and handoff documents.
+- **Client and team communication**: keep decisions, references, and follow-up
+  messages attached to the project instead of scattering them across chat,
+  email, and files.
+- **Active experimentation**: run code, preview generated pages, inspect files,
+  and iterate inside a project sandbox before shipping anything externally.
+
+## What Haro Is Today
+
+Haro is a developer preview of that vision. The current codebase already focuses
+on the foundation that this kind of marketer agent needs:
 
 - Project-scoped file systems for durable work, not throwaway chat context.
 - Multi-chat project history with shared artifacts and references.
@@ -37,9 +84,19 @@ workspaces.
   workspace knowledge.
 - Local secret scanning and ignore rules to reduce accidental credential leaks.
 
+The creative-production and ad-operations vision is intentionally larger than
+the current implementation. The repository is the foundation: workspace memory,
+agent tools, sandbox execution, previews, and context handling.
+
 ## Product Surface
 
-Haro ships as a FastAPI backend and a Svelte 5 single-page app.
+For users, Haro is organized as a project workspace:
+
+- Left: project navigation, file explorer, tools, skills, and mail/context panels.
+- Center: file viewer, markdown/HTML/CSV preview, code view, and editor.
+- Right: project chat sessions and streamed agent activity.
+
+For developers, Haro ships as a FastAPI backend and a Svelte 5 single-page app.
 
 ```text
 Browser
@@ -49,12 +106,6 @@ Browser
   -> Streaming agent loop
   -> Workspace files, Docker sandbox, previews, logs, debug traces
 ```
-
-The main workspace has three working areas:
-
-- Left: project navigation, file explorer, tools, skills, and mail/context panels.
-- Center: file viewer, markdown/HTML/CSV preview, code view, and editor.
-- Right: project chat sessions and streamed agent activity.
 
 ## Architecture
 
