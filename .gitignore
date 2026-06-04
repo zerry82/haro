@@ -2,6 +2,22 @@
 .env
 .env.*
 !.env.example
+.envrc
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+.npmrc
+.pypirc
+.netrc
+credentials*.json
+*credentials*.json
+service-account*.json
+*service-account*.json
+secrets.*
+*.secrets.*
 
 # Python
 __pycache__/
